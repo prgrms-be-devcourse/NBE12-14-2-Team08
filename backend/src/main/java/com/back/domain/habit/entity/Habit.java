@@ -21,10 +21,9 @@ public class Habit extends BaseEntity {
     )
     private GroupMember groupMember;
 
-    @Column(nullable = false, length = 100)
+    @Column(nullable = false)
     private String title;
 
-    @Column(length = 500)
     private String description;
 
     private int days;
