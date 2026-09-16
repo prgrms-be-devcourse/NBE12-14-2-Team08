@@ -4,6 +4,7 @@ import com.back.domain.groupMember.entity.GroupMember;
 import com.back.domain.groupMember.repository.GroupMemberRepository;
 import com.back.domain.habit.dto.CreateHabitRequest;
 import com.back.domain.habit.dto.HabitResponse;
+import com.back.domain.habit.dto.UpdateHabitRequest;
 import com.back.domain.habit.entity.Habit;
 import com.back.domain.habit.repository.HabitRepository;
 import jakarta.transaction.Transactional;
@@ -52,6 +53,35 @@ public class HabitService {
         return new HabitResponse(
                 habitRepository.save(habit)
         );
+    }
+
+    @Transactional
+    public HabitResponse updateHabit(
+            Long habitId,
+            Long memberId,
+            UpdateHabitRequest request
+    ) {
+        if (request.days() == null) {
+            throw new IllegalArgumentException(
+                    "수정할 값이 없습니다."
+            );
+        }
+
+        Habit habit = habitRepository
+                .findByIdAndGroupMember_Member_Id(
+                        habitId.intValue(),
+                        memberId.intValue()
+                )
+                .orElseThrow(() ->
+                        new IllegalArgumentException(
+                                "습관이 존재하지 않거나 수정 권한이 없습니다."
+                        ));
+
+        habit.update(
+                request.days()
+        );
+
+        return new HabitResponse(habit);
     }
 
     public Optional<Habit> findById(Long habitId) {

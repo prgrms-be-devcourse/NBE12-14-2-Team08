@@ -39,4 +39,16 @@ public class Habit extends BaseEntity {
         habit.days = days;
         return habit;
     }
+
+    public void update(Integer days) {
+        if (days != null) {
+            if (days < 1 || days > 7) {
+                throw new IllegalArgumentException(
+                        "실천 일수는 1~7이어야 합니다."
+                );
+            }
+
+            this.days = days;
+        }
+    }
 }
