@@ -6,10 +6,10 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import java.util.Optional;
 
 public interface GroupMemberRepository
-        extends JpaRepository<GroupMember, Integer> {
+        extends JpaRepository<GroupMember, Long> {
 
     Optional<GroupMember> findByGroup_IdAndMember_Id(
-            int groupId,
-            int memberId
+            Long groupId,
+            Long memberId
     );
 }

@@ -27,8 +27,8 @@ public class HabitService {
         GroupMember groupMember =
                 groupMemberRepository
                         .findByGroup_IdAndMember_Id(
-                                groupId.intValue(),
-                                memberId.intValue()
+                                groupId,
+                                memberId
                         )
                         .orElseThrow(() ->
                                 new IllegalArgumentException(
