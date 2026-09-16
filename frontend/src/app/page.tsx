@@ -1,7 +1,7 @@
-export default function Home() {
-  return (
-      <main>
-        <h1>Hello World!</h1>
-      </main>
-  );
+export default async function Home() {
+    const response = await fetch("http://localhost:8080/api/connection-test", {
+        cache: "no-store",
+    });
+
+    return <main>{await response.text()}</main>;
 }
