@@ -5,6 +5,8 @@ import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Table;
 import lombok.AccessLevel;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
@@ -12,6 +14,8 @@ import java.time.LocalDate;
 
 @Entity
 @Getter
+@Builder
+@AllArgsConstructor
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @Table(name = "groups")
 public class Group extends BaseEntity {
@@ -32,5 +36,33 @@ public class Group extends BaseEntity {
     private String inviteCode;
 
     private int memberLimit;
+
+    public void updateGroup(String title, String description, LocalDate deadline, String penalty, String password,
+                            int memberLimit) {
+
+        if (title != null && !title.isBlank()) {
+            this.title = title;
+        }
+
+        if (description != null) {
+            this.description = description;
+        }
+
+        if (deadline != null) {
+            this.deadline = deadline;
+        }
+
+        if (penalty != null) {
+            this.penalty = penalty;
+        }
+
+        if (password != null && !password.isBlank()) {
+            this.password = password;
+        }
+
+        if (memberLimit > 0) {
+            this.memberLimit = memberLimit;
+        }
+    }
 
 }
