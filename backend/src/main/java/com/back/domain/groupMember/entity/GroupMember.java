@@ -31,18 +31,6 @@ public class GroupMember extends BaseEntity {
     private Member member;
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false, length = 30)
+    @Column(nullable = false)
     private GroupMemberRole role;
-
-    private int penaltyCount;
-
-    public void increasePenaltyCount() {
-        this.penaltyCount++;
-    }
-
-    public void decreasePenaltyCount() {
-        if (this.penaltyCount > 0) {
-            this.penaltyCount--;
-        }
-    }
 }
