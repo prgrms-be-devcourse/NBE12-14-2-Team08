@@ -31,12 +31,10 @@ public class HabitVerify extends BaseEntity {
     private Habit habit;
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false, length = 20)
+    @Column(nullable = false)
     private HabitVerifyStatus status;
 
-    @Column(length = 500)
     private String description;
 
-    @Column(length = 500)
     private String imageUrl;
 }
