@@ -27,4 +27,16 @@ public class Habit extends BaseEntity {
     private String description;
 
     private int days;
+
+    public static Habit create(
+            GroupMember groupMember,
+            String title,
+            int days
+    ) {
+        Habit habit = new Habit();
+        habit.groupMember = groupMember;
+        habit.title = title;
+        habit.days = days;
+        return habit;
+    }
 }
