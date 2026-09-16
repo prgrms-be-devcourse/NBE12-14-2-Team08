@@ -8,10 +8,24 @@ import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
+import java.time.LocalDate;
+
 @Entity
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-@Table(name = "penalty_verify")
+@Table(
+        name = "penalty_verify",
+        uniqueConstraints = {
+                @UniqueConstraint(
+                        name = "uk_penalty_verify",
+                        columnNames = {
+                                "group_member_id",
+                                "habit_id",
+                                "verify_date"
+                        }
+                )
+        }
+)
 public class PenaltyVerify extends BaseEntity {
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
@@ -22,19 +36,20 @@ public class PenaltyVerify extends BaseEntity {
     @JoinColumn(name = "habit_id", nullable = false)
     private Habit habit;
 
-    @Column(nullable = false, length = 100)
+    @Column(name = "verify_date", nullable = false)
+    private LocalDate verifyDate;
+
+    @Column(nullable = false)
     private String habitTitle;
 
-    @Column(nullable = false, length = 255)
+    @Column(nullable = false)
     private String penaltyText;
 
-    @Column(length = 500)
     private String imageUrl;
 
-    @Column(length = 500)
     private String description;
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false, length = 20)
+    @Column(nullable = false)
     private PenaltyVerifyStatus status;
 }
