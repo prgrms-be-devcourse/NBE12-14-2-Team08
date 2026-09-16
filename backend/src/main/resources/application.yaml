@@ -4,9 +4,27 @@ server:
 spring:
   application:
     name: backend
+  profiles:
+    active: dev
+
+  output:
+    ansi:
+      enabled: always
+
+  jpa:
+    properties:
+      hibernate:
+        format_sql: true
+        highlight_sql: true
+        use_sql_comments: true
+    hibernate:
+      ddl-auto: update
+    show-sql: true
 
 management:
   endpoints:
     web:
       exposure:
         include: health
+
+
