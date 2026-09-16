@@ -30,7 +30,7 @@ public class WebMvcConfig implements WebMvcConfigurer {
     @Override
     public void addInterceptors(InterceptorRegistry registry) {
         registry.addInterceptor(mockAuthInterceptor)
-            .addPathPatterns("/**")
+            .addPathPatterns("/api/**")
             .excludePathPatterns(
                 "/members",
                 "/auth/login",
