@@ -1,0 +1,36 @@
+package com.back.domain.group.entity;
+
+import com.back.global.entity.BaseEntity;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.Table;
+import lombok.AccessLevel;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+
+import java.time.LocalDate;
+
+@Entity
+@Getter
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
+@Table(name = "groups")
+public class Group extends BaseEntity {
+
+    @Column(nullable = false)
+    private String title;
+
+    private String description;
+
+    private LocalDate deadline;
+
+    private String penalty;
+
+    @Column(nullable = false)
+    private String password;
+
+    @Column(nullable = false, unique = true)
+    private String inviteCode;
+
+    private int memberLimit;
+
+}
