@@ -1,4 +1,4 @@
-package com.back.domain.panaltyVerify.entity;
+package com.back.domain.penaltyverify.entity;
 
 import com.back.domain.groupMember.entity.GroupMember;
 import com.back.domain.habit.entity.Habit;
