@@ -27,7 +27,7 @@ public class HabitService {
     ) {
         GroupMember groupMember =
                 groupMemberRepository
-                        .findByGroup_IdAndMember_Id(
+                        .findByGroupIdAndMemberId(
                                 groupId,
                                 memberId
                         )
