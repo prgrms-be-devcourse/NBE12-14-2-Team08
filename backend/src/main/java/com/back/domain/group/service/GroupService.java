@@ -27,26 +27,6 @@ public class GroupService {
     private final GroupMemberRepository groupMemberRepository;
     private final MemberRepository memberRepository;
 
-    public List<GroupResponse.Simple> getGroupSimpleList(Long memberId) {
-        List<GroupMember> groupMembers = groupMemberRepository.findByMemberId(memberId);
-
-        return groupMembers.stream()
-                .map(GroupMember::getGroup)
-                .map(GroupResponse.Simple::from)
-                .toList();
-    }
-
-    public GroupResponse.Detail getGroupDetail(Long groupId, Long memberId) {
-        Group group = groupRepository.findById(groupId)
-                .orElseThrow(() -> new NoSuchElementException("존재하지 않는 그룹입니다."));
-
-        if (!groupMemberRepository.existsByGroupIdAndMemberId(groupId, memberId)) {
-            throw new ForbiddenException("해당 그룹의 접근 권한이 없습니다.");
-        }
-
-        return GroupResponse.Detail.from(group);
-    }
-
     @Transactional
     public GroupResponse.Detail createGroup(Long memberId, GroupRequest.Create request) {
         String inviteCode = generateUniqueInviteCode();
@@ -77,6 +57,26 @@ public class GroupService {
         groupMemberRepository.save(owner);
 
         return GroupResponse.Detail.from(savedGroup);
+    }
+
+    public List<GroupResponse.Simple> getGroupSimpleList(Long memberId) {
+        List<GroupMember> groupMembers = groupMemberRepository.findByMemberId(memberId);
+
+        return groupMembers.stream()
+                .map(GroupMember::getGroup)
+                .map(GroupResponse.Simple::from)
+                .toList();
+    }
+
+    public GroupResponse.Detail getGroupDetail(Long groupId, Long memberId) {
+        Group group = groupRepository.findById(groupId)
+                .orElseThrow(() -> new NoSuchElementException("존재하지 않는 그룹입니다."));
+
+        if (!groupMemberRepository.existsByGroupIdAndMemberId(groupId, memberId)) {
+            throw new ForbiddenException("해당 그룹의 접근 권한이 없습니다.");
+        }
+
+        return GroupResponse.Detail.from(group);
     }
 
     @Transactional

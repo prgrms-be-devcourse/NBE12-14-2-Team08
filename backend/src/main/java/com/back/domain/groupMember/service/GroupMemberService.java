@@ -23,18 +23,6 @@ public class GroupMemberService {
     private final GroupRepository groupRepository;
     private final MemberRepository memberRepository;
 
-    public List<GroupMemberResponse.Simple> getGroupMembers (Long groupId, Long memberId) {
-        if (!groupMemberRepository.existsByGroupIdAndMemberId(groupId, memberId)) {
-            throw new NoSuchElementException("해당 그룹의 접근 권한이 없거나 존재하지 않는 그룹입니다.");
-        }
-
-        List<GroupMember> groupMembers = groupMemberRepository.findByGroupId(groupId);
-
-        return groupMembers.stream()
-                .map(GroupMemberResponse.Simple::from)
-                .toList();
-    }
-
     @Transactional
     public void joinGroup(Long memberId, GroupRequest.Join request) {
         Group group = groupRepository.findByInviteCode(request.inviteCode())
@@ -54,6 +42,18 @@ public class GroupMemberService {
                 .build();
 
         groupMemberRepository.save(groupMember);
+    }
+
+    public List<GroupMemberResponse.Simple> getGroupMembers (Long groupId, Long memberId) {
+        if (!groupMemberRepository.existsByGroupIdAndMemberId(groupId, memberId)) {
+            throw new NoSuchElementException("해당 그룹의 접근 권한이 없거나 존재하지 않는 그룹입니다.");
+        }
+
+        List<GroupMember> groupMembers = groupMemberRepository.findByGroupId(groupId);
+
+        return groupMembers.stream()
+                .map(GroupMemberResponse.Simple::from)
+                .toList();
     }
 
     @Transactional
