@@ -12,4 +12,7 @@ public interface GroupMemberRepository
             Long groupId,
             Long memberId
     );
+    Optional<GroupMember> findByGroupIdAndMemberId(Long groupId, Long memberId);
+
+    Optional<GroupMember> findByIdAndMemberId(Long groupMemberId, Long memberId);
 }

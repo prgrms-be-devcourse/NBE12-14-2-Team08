@@ -49,6 +49,8 @@ public class Habit extends BaseEntity {
             }
 
             this.days = days;
+
         }
     }
+
 }

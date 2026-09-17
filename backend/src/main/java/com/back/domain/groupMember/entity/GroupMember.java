@@ -5,6 +5,7 @@ import com.back.domain.member.entity.Member;
 import com.back.global.entity.BaseEntity;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
+import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
@@ -33,4 +34,12 @@ public class GroupMember extends BaseEntity {
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private GroupMemberRole role;
+
+    public static GroupMember create(Group group, Member member, GroupMemberRole role) {
+        GroupMember groupMember = new GroupMember();
+        groupMember.group = group;
+        groupMember.member = member;
+        groupMember.role = role;
+        return groupMember;
+    }
 }
