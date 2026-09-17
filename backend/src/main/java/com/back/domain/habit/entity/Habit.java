@@ -27,4 +27,28 @@ public class Habit extends BaseEntity {
     private String description;
 
     private int days;
+
+    public static Habit create(
+            GroupMember groupMember,
+            String title,
+            int days
+    ) {
+        Habit habit = new Habit();
+        habit.groupMember = groupMember;
+        habit.title = title;
+        habit.days = days;
+        return habit;
+    }
+
+    public void update(Integer days) {
+        if (days != null) {
+            if (days < 1 || days > 7) {
+                throw new IllegalArgumentException(
+                        "실천 일수는 1~7이어야 합니다."
+                );
+            }
+
+            this.days = days;
+        }
+    }
 }
