@@ -66,7 +66,7 @@ public class MemberService {
     public void deleteMember(Long memberId) {
         Member member = findMember(memberId);
 
-        if (groupMemberRepository.existsByMember_Id(memberId)) {
+        if (groupMemberRepository.existsByMemberId(memberId)) {
             throw new IllegalStateException(
                     "참여 중인 방이 있어 회원 탈퇴를 할 수 없습니다."
             );
