@@ -100,8 +100,3 @@ public class GroupService {
         return inviteCode;
     }
 }
-
-// 임시 시큐리티
-interface PasswordEncoder {
-    String encode(CharSequence rawPassword);
-}
