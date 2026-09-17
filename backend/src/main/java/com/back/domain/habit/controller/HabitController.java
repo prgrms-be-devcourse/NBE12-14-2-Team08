@@ -9,8 +9,11 @@ import com.back.global.security.LoginMemberId;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 @RestController
 @RequiredArgsConstructor
@@ -34,12 +37,7 @@ public class HabitController {
         );
     }
 
-    @GetMapping("/habits/{id}")
-    public HabitResponse detail(@PathVariable Long id) {
-        Habit habit = habitService.findById(id).get();
 
-        return new HabitResponse(habit);
-    }
 
     @PatchMapping("/habits/{habitId}")
     public ResponseEntity<HabitResponse> updateHabit(
@@ -54,5 +52,50 @@ public class HabitController {
         );
 
         return ResponseEntity.ok(response);
+    }
+
+    @PostMapping("/habits/fail/{habitId}")
+    public ResponseEntity<Void> failHabit(
+            @PathVariable Long habitId,
+            @LoginMemberId Long memberId
+    ) {
+        habitService.failHabit(
+                memberId,
+                habitId
+        );
+
+        // TODO:
+        //  - penaltyVerify 엔티티에 데이터 추가
+        //  - penaltyVerifyService.createPenaltyVerify()
+
+        return ResponseEntity.ok().build();
+    }
+
+
+    @GetMapping("/habits/{id}")
+    public HabitResponse detail(@PathVariable Long id) {
+        Habit habit = habitService.findById(id).get();
+
+        return new HabitResponse(habit);
+    }
+
+    @GetMapping("/groups/{groupId}/habits/active")
+    public ResponseEntity<HabitResponse> getActiveHabit(
+            @LoginMemberId Long memberId,
+            @PathVariable Long groupId
+    ) {
+        return ResponseEntity.ok(
+                habitService.getActiveHabit(memberId, groupId)
+        );
+    }
+
+    @GetMapping("/groups/{groupId}/habits/fail")
+    public ResponseEntity<List<HabitResponse>> getFailedHabits(
+            @LoginMemberId Long memberId,
+            @PathVariable Long groupId
+    ) {
+        return ResponseEntity.ok(
+                habitService.getFailedHabits(memberId, groupId)
+        );
     }
 }

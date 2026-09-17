@@ -12,6 +12,8 @@ public record CreateHabitRequest(
         @NotBlank(message = "습관 제목은 필수입니다.")
         String title,
 
+        String description,
+
         @Min(value = 1, message = "실천 일수는 최소 1일입니다.")
         @Max(value = 7, message = "실천 일수는 최대 7일입니다.")
         int days

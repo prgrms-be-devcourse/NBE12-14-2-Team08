@@ -64,7 +64,7 @@ class PenaltyVerifyControllerTest {
         );
 
         Habit habit = habitRepository.save(
-            Habit.create(groupMember, "기상 후 운동", 30)
+            Habit.create(groupMember, "기상 후 운동", "열심히 해야지", 30)
         );
         habitId = habit.getId();
 
