@@ -7,6 +7,8 @@ import com.back.domain.groupMember.dto.GroupMemberResponse;
 import com.back.domain.groupMember.entity.GroupMember;
 import com.back.domain.groupMember.entity.GroupMemberRole;
 import com.back.domain.groupMember.repository.GroupMemberRepository;
+import com.back.domain.member.entity.Member;
+import com.back.domain.member.repository.MemberRepository;
 import java.util.List;
 import java.util.NoSuchElementException;
 import lombok.RequiredArgsConstructor;
@@ -19,6 +21,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class GroupMemberService {
     private final GroupMemberRepository groupMemberRepository;
     private final GroupRepository groupRepository;
+    private final MemberRepository memberRepository;
 
     public List<GroupMemberResponse.Simple> getGroupMembers (Long groupId, Long memberId) {
         if (!groupMemberRepository.existsByGroupIdAndMemberId(groupId, memberId)) {
@@ -41,14 +44,12 @@ public class GroupMemberService {
             return;
         }
 
-        if (groupMemberRepository.existsByGroupIdAndMemberId(group.getId(), memberId)) {
-            throw new IllegalStateException("이미 가입된 그룹입니다.");
-        }
+        Member member = memberRepository.findById(memberId)
+                .orElseThrow(() -> new NoSuchElementException("존재하지 않는 회원입니다."));
 
         GroupMember groupMember = GroupMember.builder()
                 .group(group)
-                //.member(memberRepository.findById(memberId).get()) // memberRepository 완성 시 주석 해제
-                .member(null) // memberRepository 완성 시 해당 코드 제거
+                .member(member)
                 .role(GroupMemberRole.MEMBER)
                 .build();
 
