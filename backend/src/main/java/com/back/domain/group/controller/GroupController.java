@@ -27,29 +27,32 @@ public class GroupController {
     private final GroupService groupService;
 
     @PostMapping
-    public ResponseEntity<GroupResponse.Detail> createGroup(@LoginMemberId Long memberId,
-                                                            @Valid @RequestBody GroupRequest.Create request) {
+    public ResponseEntity<GroupResponse.Detail> createGroup(
+            @LoginMemberId Long memberId,
+            @Valid @RequestBody GroupRequest.Create request) {
         GroupResponse.Detail response = groupService.createGroup(memberId, request);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
     @GetMapping
-    public ResponseEntity<List<GroupResponse.Simple>> getGroupSimpleList(@LoginMemberId Long memberId) {
+    public ResponseEntity<List<GroupResponse.Simple>> getGroupSimpleList(
+            @LoginMemberId Long memberId) {
         List<GroupResponse.Simple> response = groupService.getGroupSimpleList(memberId);
         return ResponseEntity.ok(response);
     }
 
     @GetMapping("/{groupId}")
-    public ResponseEntity<GroupResponse.Detail> getGroupDetail(@LoginMemberId Long memberId,
-                                                               @PathVariable Long groupId) {
+    public ResponseEntity<GroupResponse.Detail> getGroupDetail(
+            @PathVariable Long groupId,
+            @LoginMemberId Long memberId) {
         GroupResponse.Detail response = groupService.getGroupDetail(memberId, groupId);
         return ResponseEntity.ok(response);
     }
 
     @PutMapping("/{groupId}")
     public ResponseEntity<Void> updateGroup(
-            @LoginMemberId Long memberId,
             @PathVariable Long groupId,
+            @LoginMemberId Long memberId,
             @Valid @RequestBody GroupRequest.Update request) {
 
         groupService.updateGroup(memberId, groupId, request);
@@ -57,7 +60,9 @@ public class GroupController {
     }
 
     @DeleteMapping("/{groupId}")
-    public ResponseEntity<Void> deleteGroup(@LoginMemberId Long memberId, @PathVariable Long groupId) {
+    public ResponseEntity<Void> deleteGroup(
+            @PathVariable Long groupId,
+            @LoginMemberId Long memberId) {
         groupService.deleteGroup(memberId, groupId);
         return ResponseEntity.noContent().build();
     }
