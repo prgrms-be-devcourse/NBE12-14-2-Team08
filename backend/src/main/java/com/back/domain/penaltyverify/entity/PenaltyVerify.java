@@ -14,17 +14,17 @@ import java.time.LocalDate;
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @Table(
-        name = "penalty_verify",
-        uniqueConstraints = {
-                @UniqueConstraint(
-                        name = "uk_penalty_verify",
-                        columnNames = {
-                                "group_member_id",
-                                "habit_id",
-                                "verify_date"
-                        }
-                )
-        }
+    name = "penalty_verify",
+    uniqueConstraints = {
+        @UniqueConstraint(
+            name = "uk_penalty_verify",
+            columnNames = {
+                "group_member_id",
+                "habit_id",
+                "verify_date"
+            }
+        )
+    }
 )
 public class PenaltyVerify extends BaseEntity {
 
@@ -41,7 +41,7 @@ public class PenaltyVerify extends BaseEntity {
 
     @Column(nullable = false)
     private String habitTitle;
-
+    // 이전 벌칙 스냅샷
     @Column(nullable = false)
     private String penaltyText;
 
@@ -52,4 +52,36 @@ public class PenaltyVerify extends BaseEntity {
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private PenaltyVerifyStatus status;
+
+
+    public static PenaltyVerify submit(GroupMember groupMember, Habit habit, LocalDate verifyDate,
+        String habitTitle, String penaltyText, String description, String imageUrl) {
+
+        PenaltyVerify pv = new PenaltyVerify();
+        pv.groupMember = groupMember;
+        pv.habit = habit;
+        pv.verifyDate = verifyDate;
+        pv.habitTitle = habitTitle;
+        pv.penaltyText = penaltyText;
+        pv.description = description;
+        pv.imageUrl = imageUrl;
+        pv.status = PenaltyVerifyStatus.PENDING;
+        return pv;
+    }
+
+    public void approve() {
+        if (this.status != PenaltyVerifyStatus.PENDING) {
+            throw new IllegalStateException("승인 대기 상태가 아닙니다. 현재 상태 : " + this.status);
+        }
+        this.status = PenaltyVerifyStatus.APPROVED;
+    }
+
+    public void reject() {
+        if (this.status != PenaltyVerifyStatus.PENDING) {
+            throw new IllegalStateException("승인 대기 상태가 아닙니다. 현재 상태 : " + this.status);
+        }
+        this.status = PenaltyVerifyStatus.REJECTED;
+    }
+
+
 }
