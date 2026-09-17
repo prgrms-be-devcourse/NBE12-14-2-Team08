@@ -12,4 +12,7 @@ public interface GroupMemberRepository
             Long groupId,
             Long memberId
     );
+
+    boolean existsByMember_Id(Long memberId);
+    
 }
