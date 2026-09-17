@@ -45,7 +45,7 @@ class PenaltyVerifyControllerTest {
     @BeforeEach
     void setUp() {
         Member member = memberRepository.save(
-            Member.create("testuser", "테스트유저", "password")
+            Member.create( "테스트유저", "testuser","password")
         );
         memberId = member.getId();
 

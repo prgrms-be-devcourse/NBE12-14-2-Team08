@@ -14,7 +14,7 @@ public class BackendApplication {
 
 	// 임시 시큐리티
 	@Bean
-	public PasswordEncoder passwordEncoder() {
+	public PasswordEncoder customPasswordEncoder() {
 		return new PasswordEncoder() {
 			@Override
 			public String encode(CharSequence rawPassword) {

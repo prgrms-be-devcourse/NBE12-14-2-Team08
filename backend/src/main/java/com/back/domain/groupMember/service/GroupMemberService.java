@@ -1,0 +1,69 @@
+package com.back.domain.groupMember.service;
+
+import com.back.domain.group.dto.GroupRequest;
+import com.back.domain.group.entity.Group;
+import com.back.domain.group.repository.GroupRepository;
+import com.back.domain.groupMember.dto.GroupMemberResponse;
+import com.back.domain.groupMember.entity.GroupMember;
+import com.back.domain.groupMember.entity.GroupMemberRole;
+import com.back.domain.groupMember.repository.GroupMemberRepository;
+import java.util.List;
+import java.util.NoSuchElementException;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+@Service
+@RequiredArgsConstructor
+@Transactional(readOnly = true)
+public class GroupMemberService {
+    private final GroupMemberRepository groupMemberRepository;
+    private final GroupRepository groupRepository;
+
+    public List<GroupMemberResponse.Simple> getGroupMembers (Long groupId, Long memberId) {
+        if (!groupMemberRepository.existsByGroupIdAndMemberId(groupId, memberId)) {
+            throw new NoSuchElementException("해당 그룹의 접근 권한이 없거나 존재하지 않는 그룹입니다.");
+        }
+
+        List<GroupMember> groupMembers = groupMemberRepository.findByGroupId(groupId);
+
+        return groupMembers.stream()
+                .map(GroupMemberResponse.Simple::from)
+                .toList();
+    }
+
+    @Transactional
+    public void joinGroup(Long memberId, GroupRequest.Join request) {
+        Group group = groupRepository.findByInviteCode(request.inviteCode())
+                .orElseThrow(() -> new NoSuchElementException("유효하지 않거나 존재하지 않는 초대 코드입니다."));
+
+        if (groupMemberRepository.existsByGroupIdAndMemberId(group.getId(), memberId)) {
+            return;
+        }
+
+        if (groupMemberRepository.existsByGroupIdAndMemberId(group.getId(), memberId)) {
+            throw new IllegalStateException("이미 가입된 그룹입니다.");
+        }
+
+        GroupMember groupMember = GroupMember.builder()
+                .group(group)
+                //.member(memberRepository.findById(memberId).get()) // memberRepository 완성 시 주석 해제
+                .member(null) // memberRepository 완성 시 해당 코드 제거
+                .role(GroupMemberRole.MEMBER)
+                .build();
+
+        groupMemberRepository.save(groupMember);
+    }
+
+    @Transactional
+    public void leaveGroup(Long groupId, Long memberId) {
+        GroupMember groupMember = groupMemberRepository.findByGroupIdAndMemberId(groupId, memberId)
+                .orElseThrow(() -> new NoSuchElementException("해당 그룹의 멤버가 아닙니다."));
+
+        if (groupMember.getRole() == GroupMemberRole.OWNER) {
+            throw new IllegalStateException("방장은 그룹을 탈퇴할 수 없습니다. 방 삭제 기능을 이용해 주세요.");
+        }
+
+        groupMemberRepository.delete(groupMember);
+    }
+}

@@ -4,7 +4,6 @@ import com.back.global.entity.BaseEntity;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import lombok.AccessLevel;
-import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
@@ -22,11 +21,21 @@ public class Member extends BaseEntity {
     @Column(nullable = false)
     private String password;
 
-    public static Member create(String username, String nickname, String password) {
-        Member member = new Member();
-        member.username = username;
-        member.nickname = nickname;
-        member.password = password;
-        return member;
+    private Member(String nickname, String username, String password){
+        this.nickname = nickname;
+        this.username = username;
+        this.password = password;
+    }
+
+    public static Member create(String nickname, String username, String encodedPassword) {
+        return new Member(nickname, username, encodedPassword);
+    }
+
+    public void updateNickname(String nickname) {
+        this.nickname = nickname;
+    }
+
+    public void updatePassword(String encodedPassword){
+        this.password = encodedPassword;
     }
 }

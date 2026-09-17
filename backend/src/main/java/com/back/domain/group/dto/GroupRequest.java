@@ -32,4 +32,9 @@ public interface GroupRequest {
             @Min(value = 1, message = "최대 인원은 1명 이상이어야 합니다.")
             int memberLimit
     ) {}
+
+    record Join(
+            @NotBlank(message = "초대 코드는 필수입니다.")
+            String inviteCode
+    ) {}
 }
