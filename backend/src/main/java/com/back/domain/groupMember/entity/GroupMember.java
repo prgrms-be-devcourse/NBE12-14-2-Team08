@@ -37,4 +37,12 @@ public class GroupMember extends BaseEntity {
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private GroupMemberRole role;
+
+    public static GroupMember create(Group group, Member member, GroupMemberRole role) {
+        GroupMember groupMember = new GroupMember();
+        groupMember.group = group;
+        groupMember.member = member;
+        groupMember.role = role;
+        return groupMember;
+    }
 }

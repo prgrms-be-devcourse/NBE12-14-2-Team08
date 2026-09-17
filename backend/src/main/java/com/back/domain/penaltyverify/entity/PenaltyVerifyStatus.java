@@ -1,4 +1,4 @@
-package com.back.domain.panaltyVerify.entity;
+package com.back.domain.penaltyverify.entity;
 
 public enum PenaltyVerifyStatus {
     REQUIRED,
