@@ -50,7 +50,7 @@ public class GroupService {
                 .toList();
     }
 
-    public GroupResponse.Detail getGroupDetail(Long memberId, Long groupId) {
+    public GroupResponse.Detail getGroupDetail(Long groupId, Long memberId) {
         Group group = groupRepository.findById(groupId)
                 .orElseThrow(() -> new NoSuchElementException("존재하지 않는 그룹입니다."));
 
@@ -60,7 +60,7 @@ public class GroupService {
     }
 
     @Transactional
-    public void updateGroup(Long memberId, Long groupId, GroupRequest.Update request) {
+    public void updateGroup(Long groupId, Long memberId, GroupRequest.Update request) {
         Group group = groupRepository.findById(groupId)
                 .orElseThrow(() -> new NoSuchElementException("존재하지 않는 그룹입니다."));
 
@@ -82,7 +82,7 @@ public class GroupService {
     }
 
     @Transactional
-    public void deleteGroup(Long memberId, Long groupId) {
+    public void deleteGroup(Long groupId, Long memberId) {
         Group group = groupRepository.findById(groupId)
                 .orElseThrow(() -> new NoSuchElementException("존재하지 않는 그룹입니다."));
 
