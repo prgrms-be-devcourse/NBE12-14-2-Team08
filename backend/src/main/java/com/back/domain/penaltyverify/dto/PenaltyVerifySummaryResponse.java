@@ -4,7 +4,7 @@ import com.back.domain.penaltyverify.entity.PenaltyVerify;
 import com.back.domain.penaltyverify.entity.PenaltyVerifyStatus;
 import java.time.LocalDate;
 
-// 관리자 페이지 목록
+// 벌칙 요약 목록 (관리자 검토 및 사용자 벌칙 기록 공용)
 public record PenaltyVerifySummaryResponse (
     Long id,
     LocalDate verifyDate,

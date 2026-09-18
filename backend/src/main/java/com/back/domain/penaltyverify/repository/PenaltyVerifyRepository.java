@@ -1,6 +1,7 @@
 package com.back.domain.penaltyverify.repository;
 
 import com.back.domain.penaltyverify.entity.PenaltyVerify;
+import jakarta.persistence.Entity;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
@@ -17,7 +18,8 @@ public interface PenaltyVerifyRepository extends JpaRepository<PenaltyVerify, Lo
     @EntityGraph(attributePaths = {"groupMember", "groupMember.group", "groupMember.member"})
     Optional<PenaltyVerify> findById(Long id);
 
-    List<PenaltyVerify> findByHabitId(Long habitId);
+    @EntityGraph(attributePaths = {"groupMember", "groupMember.member"})
+    Optional<PenaltyVerify> findByHabitId(Long habitId);
 
     @Query("""
         SELECT pv FROM PenaltyVerify pv
@@ -27,6 +29,7 @@ public interface PenaltyVerifyRepository extends JpaRepository<PenaltyVerify, Lo
     """)
     List<PenaltyVerify> findPendingByGroupId(Long groupId);
 
+    long countByGroupMember_Group_IdAndGroupMember_Member_Id(Long groupId, Long memberId);
 
     @Query("""
         SELECT pv FROM PenaltyVerify pv
@@ -34,7 +37,7 @@ public interface PenaltyVerifyRepository extends JpaRepository<PenaltyVerify, Lo
     """)
     List<PenaltyVerify> findAllByIdInAndGroupId(@Param("ids") List<Long> ids, @Param("groupId") Long groupId);
 
-    boolean existsByGroupMemberIdAndHabitIdAndVerifyDate(
-        Long groupMemberId, Long habitId, LocalDate verifyDate
-    );
+    @EntityGraph(attributePaths = {"groupMember", "groupMember.member", "habit"})
+    List<PenaltyVerify> findByGroupMemberIdOrderByIdDesc(Long groupMemberId);
+    
 }

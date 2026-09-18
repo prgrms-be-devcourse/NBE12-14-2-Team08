@@ -5,10 +5,9 @@ import jakarta.validation.constraints.NotNull;
 import java.time.LocalDate;
 
 public record SubmitPenaltyVerifyRequest(
-    @NotNull
-    LocalDate verifyDate,
     String description,
-    @NotBlank
+
+    @NotBlank(message = "인증 이미지는 필수입니다.")
     String imageUrl
 
 ) {

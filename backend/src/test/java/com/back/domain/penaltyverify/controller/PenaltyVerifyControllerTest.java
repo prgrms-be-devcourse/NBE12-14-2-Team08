@@ -16,6 +16,7 @@ import com.back.domain.penaltyverify.entity.PenaltyVerify;
 import com.back.domain.penaltyverify.repository.PenaltyVerifyRepository;
 import java.time.LocalDate;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -39,16 +40,13 @@ class PenaltyVerifyControllerTest {
     @Autowired private PenaltyVerifyRepository penaltyVerifyRepository;
 
     private Long memberId;
+    private Long groupId;
+    private Long groupMemberId;
     private Long habitId;
-    private Long penaltyVerifyId;
+    private Long submittedPenaltyVerifyId;
 
     @BeforeEach
     void setUp() {
-        Member member = memberRepository.save(
-            Member.create( "테스트유저", "testuser","password")
-        );
-        memberId = member.getId();
-
         Group group = groupRepository.save(
             Group.builder()
                 .title("테스트 그룹")
@@ -58,31 +56,49 @@ class PenaltyVerifyControllerTest {
                 .memberLimit(5)
                 .build()
         );
+        groupId = group.getId();
 
-        GroupMember groupMember = groupMemberRepository.save(
-            GroupMember.create(group, member, GroupMemberRole.OWNER)
+        // 1. 유저 A: 습관 1개 생성 -> REQUIRED 벌칙 발급 (제출 테스트 & 본인 목록 조회 테스트용)
+        Member memberA = memberRepository.save(
+            Member.create("유저A", "usera", "password")
+        );
+        memberId = memberA.getId();
+
+        GroupMember groupMemberA = groupMemberRepository.save(
+            GroupMember.create(group, memberA, GroupMemberRole.OWNER)
+        );
+        groupMemberId = groupMemberA.getId();
+
+        Habit habitA = habitRepository.save(
+            Habit.create(groupMemberA, "기상 후 운동","열심히 운동하기", 30)
+        );
+        habitId = habitA.getId();
+
+        penaltyVerifyRepository.save(PenaltyVerify.create(groupMemberA, habitA));
+
+        // 2. 유저 B: 별도 멤버로 습관 1개 생성 -> PENDING 벌칙 등록 (상세 조회 테스트용, Habit 1:1 충돌 방지)
+        Member memberB = memberRepository.save(
+            Member.create("유저B", "userb", "password")
         );
 
-        Habit habit = habitRepository.save(
-            Habit.create(groupMember, "기상 후 운동", "열심히 해야지", 30)
+        GroupMember groupMemberB = groupMemberRepository.save(
+            GroupMember.create(group, memberB, GroupMemberRole.MEMBER)
         );
-        habitId = habit.getId();
 
-        // 상세 조회 테스트용 PenaltyVerify 미리 하나 생성
-        PenaltyVerify penaltyVerify = penaltyVerifyRepository.save(
-            PenaltyVerify.submit(
-                groupMember, habit, LocalDate.now(),
-                habit.getTitle(), group.getPenalty(),
-                "미리 만들어둔 벌칙 인증", "https://x.com/existing.jpg"
-            )
+        Habit habitB = habitRepository.save(
+            Habit.create(groupMemberB, "물 마시기", "하루 물 2L 마시기",30)
         );
-        penaltyVerifyId = penaltyVerify.getId();
+
+        PenaltyVerify submittedPenalty = PenaltyVerify.create(groupMemberB, habitB);
+        submittedPenalty.submit(LocalDate.now(), "미리 만들어둔 벌칙 인증", "https://x.com/existing.jpg");
+        submittedPenaltyVerifyId = penaltyVerifyRepository.save(submittedPenalty).getId();
     }
 
     @Test
+    @DisplayName("사전 발급된 REQUIRED 벌칙에 대해 X-User-Id 헤더로 인증 제출 성공")
     void X_User_Id_헤더로_벌칙_제출() throws Exception {
         String body = jsonMapper.writeValueAsString(
-            new SubmitPenaltyVerifyRequestTest("2026-09-18", "운동함", "https://x.com/a.jpg")
+            new SubmitPenaltyVerifyRequestTest("운동 완료했습니다", "https://x.com/a.jpg")
         );
 
         mockMvc.perform(post("/api/habits/{habitId}/penalties", habitId)
@@ -90,16 +106,29 @@ class PenaltyVerifyControllerTest {
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(body))
             .andExpect(status().isCreated())
-            .andExpect(jsonPath("$.status").value("PENDING"));
+            .andExpect(jsonPath("$.status").value("PENDING"))
+            .andExpect(jsonPath("$.description").value("운동 완료했습니다"))
+            .andExpect(jsonPath("$.verifyDate").isNotEmpty());
     }
 
     @Test
+    @DisplayName("존재하는 벌칙 인증 상세 조회 성공")
     void 존재하는_벌칙_인증_상세_조회_성공() throws Exception {
-        mockMvc.perform(get("/api/penalties/{id}", penaltyVerifyId))
+        mockMvc.perform(get("/api/penalties/{id}", submittedPenaltyVerifyId))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.status").value("PENDING"))
             .andExpect(jsonPath("$.description").value("미리 만들어둔 벌칙 인증"));
     }
 
-    record SubmitPenaltyVerifyRequestTest(String verifyDate, String description, String imageUrl) {}
+    @Test
+    @DisplayName("특정 그룹 멤버의 전체 벌칙 기록 목록 최신순 조회 성공")
+    void 그룹_멤버별_벌칙_목록_조회_성공() throws Exception {
+        mockMvc.perform(get("/api/groups/{groupId}/members/{groupMemberId}/penalties", groupId, groupMemberId))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.length()").value(1))
+            .andExpect(jsonPath("$[0].habitTitle").value("기상 후 운동"))
+            .andExpect(jsonPath("$[0].status").value("REQUIRED"));
+    }
+
+    record SubmitPenaltyVerifyRequestTest(String description, String imageUrl) {}
 }

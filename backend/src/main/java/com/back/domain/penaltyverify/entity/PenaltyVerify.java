@@ -53,8 +53,8 @@ public class PenaltyVerify extends BaseEntity {
     private PenaltyVerifyStatus status;
 
     public static PenaltyVerify create(
-            GroupMember groupMember,
-            Habit habit
+        GroupMember groupMember,
+        Habit habit
     ) {
         PenaltyVerify penaltyVerify = new PenaltyVerify();
 
@@ -70,19 +70,16 @@ public class PenaltyVerify extends BaseEntity {
         return penaltyVerify;
     }
 
-    public static PenaltyVerify submit(GroupMember groupMember, Habit habit, LocalDate verifyDate,
-        String habitTitle, String penaltyText, String description, String imageUrl) {
+    public void submit(LocalDate verifyDate, String description, String imageUrl) {
 
-        PenaltyVerify pv = new PenaltyVerify();
-        pv.groupMember = groupMember;
-        pv.habit = habit;
-        pv.verifyDate = verifyDate;
-        pv.habitTitle = habitTitle;
-        pv.penaltyText = penaltyText;
-        pv.description = description;
-        pv.imageUrl = imageUrl;
-        pv.status = PenaltyVerifyStatus.PENDING;
-        return pv;
+        if (this.status != PenaltyVerifyStatus.REQUIRED) {
+            throw new IllegalStateException("벌칙 제출 대상(REQUIRED)가 아닙니다. 현재상태" + this.status);
+        }
+
+        this.verifyDate = verifyDate;
+        this.description = description;
+        this.imageUrl = imageUrl;
+        this.status = PenaltyVerifyStatus.PENDING;
     }
 
     public void approve() {
