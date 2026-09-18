@@ -1,5 +1,7 @@
-import { redirect } from 'next/navigation';
+export default async function Home() {
+    const response = await fetch("http://localhost:8080/api/connection-test", {
+        cache: "no-store",
+    });
 
-export default function Page() {
-  redirect('/main');
+    return <main>{await response.text()}</main>;
 }

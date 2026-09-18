@@ -25,7 +25,7 @@ import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.quality.Strictness;
 
 @ExtendWith(MockitoExtension.class)
-@MockitoSettings(strictness = Strictness.LENIENT) // 불필요한 stubbing 경고를 무시하고 유연하게 허용
+@MockitoSettings(strictness = Strictness.LENIENT)
 class PenaltyVerifyServiceTest {
 
     @Mock private PenaltyVerifyRepository penaltyVerifyRepository;
@@ -46,14 +46,19 @@ class PenaltyVerifyServiceTest {
         when(groupMember.getMember()).thenReturn(ownerMember);
 
         Habit habit = mock(Habit.class);
-        when(habit.getGroupMember()).thenReturn(groupMember);
+        when(habit.getTitle()).thenReturn("기상 후 운동");
 
-        when(habitRepository.findById(100L)).thenReturn(Optional.of(habit));
+        Group group = mock(Group.class);
+        when(group.getPenalty()).thenReturn("커피사기");
+        when(groupMember.getGroup()).thenReturn(group);
+
+        PenaltyVerify pv = PenaltyVerify.create(groupMember, habit);
+        when(penaltyVerifyRepository.findByHabitId(100L)).thenReturn(Optional.of(pv));
 
         SubmitPenaltyVerifyRequest request =
-            new SubmitPenaltyVerifyRequest(LocalDate.now(), "운동함", "https://x.com/a.jpg");
+            new SubmitPenaltyVerifyRequest("운동함", "https://x.com/a.jpg");
 
-        // when & then: memberId=999는 습관 소유자(1L)가 아님
+        // when & then: 로그인한 사용자 999L은 습관 소유자(1L)가 아님
         assertThatThrownBy(() -> penaltyVerifyService.submit(999L, 100L, request))
             .isInstanceOf(IllegalStateException.class)
             .hasMessageContaining("본인의 습관");
@@ -65,25 +70,25 @@ class PenaltyVerifyServiceTest {
         // given
         Group group = mock(Group.class);
         when(group.getId()).thenReturn(10L);
+        when(group.getPenalty()).thenReturn("커피사기");
 
         GroupMember gm = mock(GroupMember.class);
         when(gm.getGroup()).thenReturn(group);
 
         Habit habit = mock(Habit.class);
+        when(habit.getTitle()).thenReturn("기상 후 운동");
 
-        PenaltyVerify pv = PenaltyVerify.submit(
-            gm, habit, LocalDate.now(), "기상 후 운동", "커피사기", "설명", "https://x.com/a.jpg"
-        );
-        pv.approve(); // 이미 APPROVED 상태로 변경
+        PenaltyVerify pv = PenaltyVerify.create(gm, habit);
+        pv.submit(LocalDate.now(), "설명", "https://x.com/a.jpg");
+        pv.approve(); // 이미 APPROVED 상태
 
         when(penaltyVerifyRepository.findById(1L)).thenReturn(Optional.of(pv));
 
-        // 🚨 밖에서 미리 선언해서 중첩 when 에러 방지
         GroupMember owner = ownerGroupMember();
         when(groupMemberRepository.findByGroupIdAndMemberId(any(), any()))
             .thenReturn(Optional.of(owner));
 
-        // when & then
+        // when & then: APPROVED 상태는 재승인 불가
         assertThatThrownBy(() -> penaltyVerifyService.approve(1L, 1L))
             .isInstanceOf(IllegalStateException.class)
             .hasMessageContaining("승인 대기 상태가 아닙니다");
@@ -95,15 +100,17 @@ class PenaltyVerifyServiceTest {
         // given
         Group group = mock(Group.class);
         when(group.getId()).thenReturn(10L);
+        when(group.getPenalty()).thenReturn("커피사기");
 
         GroupMember gm = mock(GroupMember.class);
         when(gm.getGroup()).thenReturn(group);
 
         Habit habit = mock(Habit.class);
+        when(habit.getTitle()).thenReturn("기상 후 운동");
 
-        PenaltyVerify pv = PenaltyVerify.submit(
-            gm, habit, LocalDate.now(), "기상 후 운동", "커피사기", "설명", "https://x.com/a.jpg"
-        );
+        PenaltyVerify pv = PenaltyVerify.create(gm, habit);
+        pv.submit(LocalDate.now(), "설명", "https://x.com/a.jpg"); // PENDING 상태
+
         when(penaltyVerifyRepository.findById(1L)).thenReturn(Optional.of(pv));
 
         GroupMember notOwner = mock(GroupMember.class);
