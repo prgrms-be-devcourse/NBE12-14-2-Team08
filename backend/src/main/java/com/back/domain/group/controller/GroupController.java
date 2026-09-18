@@ -45,7 +45,7 @@ public class GroupController {
     public ResponseEntity<GroupResponse.Detail> getGroupDetail(
             @PathVariable Long groupId,
             @LoginMemberId Long memberId) {
-        GroupResponse.Detail response = groupService.getGroupDetail(memberId, groupId);
+        GroupResponse.Detail response = groupService.getGroupDetail(groupId, memberId);
         return ResponseEntity.ok(response);
     }
 
@@ -55,7 +55,7 @@ public class GroupController {
             @LoginMemberId Long memberId,
             @Valid @RequestBody GroupRequest.Update request) {
 
-        groupService.updateGroup(memberId, groupId, request);
+        groupService.updateGroup(groupId, memberId, request);
         return ResponseEntity.ok().build();
     }
 
@@ -63,7 +63,7 @@ public class GroupController {
     public ResponseEntity<Void> deleteGroup(
             @PathVariable Long groupId,
             @LoginMemberId Long memberId) {
-        groupService.deleteGroup(memberId, groupId);
+        groupService.deleteGroup(groupId, memberId);
         return ResponseEntity.noContent().build();
     }
 }
