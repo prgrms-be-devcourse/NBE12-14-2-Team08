@@ -16,9 +16,7 @@ public record HabitVerifyResponse(
         String imageUrl
 ) {
 
-    public static HabitVerifyResponse from(
-            HabitVerify habitVerify
-    ) {
+    public static HabitVerifyResponse from(HabitVerify habitVerify) {
         return new HabitVerifyResponse(
                 habitVerify.getId(),
                 habitVerify.getHabit().getId(),
@@ -26,6 +24,7 @@ public record HabitVerifyResponse(
                 habitVerify.getStatus(),
                 habitVerify.getDescription(),
                 habitVerify.getImageUrl()
+
         );
     }
 }

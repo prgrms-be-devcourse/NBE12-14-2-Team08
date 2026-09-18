@@ -45,7 +45,8 @@ public class HabitVerifyService {
 
         HabitVerify habitVerify = HabitVerify.create(
                 habit, request.verifyDate(),
-                request.status(), request.description()
+                request.status(), request.description(),
+                request.imageUrl()
         );
 
         HabitVerify savedHabitVerify =
@@ -102,7 +103,8 @@ public class HabitVerifyService {
         habitVerify.update(
                 request.verifyDate(),
                 request.status(),
-                request.description()
+                request.description(),
+                request.imageUrl()
         );
 
         return HabitVerifyResponse.from(habitVerify);

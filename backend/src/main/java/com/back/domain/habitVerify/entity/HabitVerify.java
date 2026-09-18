@@ -40,20 +40,24 @@ public class HabitVerify extends BaseEntity {
 
     public static HabitVerify create(
             Habit habit, LocalDate verifyDate,
-            HabitVerifyStatus status, String description
+            HabitVerifyStatus status, String description,
+            String imageUrl
+
     ) {
         HabitVerify habitVerify = new HabitVerify();
 
         habitVerify.habit = habit;habitVerify.verifyDate = verifyDate;
         habitVerify.status = status;habitVerify.description = description;
+        habitVerify.imageUrl = imageUrl;
 
         return habitVerify;
     }
 
     public void update(
-            LocalDate verifyDate, HabitVerifyStatus status, String description) {
+            LocalDate verifyDate, HabitVerifyStatus status, String description, String imageUrl) {
         this.verifyDate = verifyDate;
         this.status = status;
         this.description = description;
+        this.imageUrl = imageUrl;
     }
 }
