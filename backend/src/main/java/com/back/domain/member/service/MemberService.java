@@ -2,10 +2,12 @@ package com.back.domain.member.service;
 
 import com.back.domain.groupMember.repository.GroupMemberRepository;
 import com.back.domain.member.dto.CreateMemberRequest;
+import com.back.domain.member.dto.LoginRequest;
 import com.back.domain.member.dto.MemberResponse;
 import com.back.domain.member.dto.UpdateMemberRequest;
 import com.back.domain.member.entity.Member;
 import com.back.domain.member.repository.MemberRepository;
+import com.back.global.exception.UnauthorizedException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -39,6 +41,26 @@ public class MemberService {
         Member savedMember = memberRepository.save(member);
 
         return MemberResponse.from(savedMember);
+    }
+
+    public Long authenticate(LoginRequest request) {
+        Member member = memberRepository.findByUsername(request.username())
+                .orElseThrow(
+                        () -> new UnauthorizedException(
+                                "아이디 또는 비밀번호가 일치하지 않습니다."
+                        )
+                );
+
+        if (!passwordEncoder.matches(
+                request.password(),
+                member.getPassword()
+        )) {
+            throw new UnauthorizedException(
+                    "아이디 또는 비밀번호가 일치하지 않습니다."
+            );
+        }
+
+        return member.getId();
     }
 
     public MemberResponse getMember(Long memberId) {
