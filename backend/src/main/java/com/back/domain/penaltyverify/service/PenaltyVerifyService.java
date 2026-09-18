@@ -12,6 +12,8 @@ import com.back.domain.penaltyverify.dto.SubmitPenaltyVerifyRequest;
 import com.back.domain.penaltyverify.entity.PenaltyVerify;
 import com.back.domain.penaltyverify.repository.PenaltyVerifyRepository;
 import com.back.global.util.ImageUrlValidator;
+
+import java.time.LocalDate;
 import java.util.List;
 import java.util.NoSuchElementException;
 import lombok.RequiredArgsConstructor;
@@ -26,6 +28,18 @@ public class PenaltyVerifyService {
     private final PenaltyVerifyRepository penaltyVerifyRepository;
     private final GroupMemberRepository groupMemberRepository;
     private final HabitRepository habitRepository;
+
+    @Transactional
+    public void createPenaltyVerify(
+            Habit habit
+    ) {
+        PenaltyVerify penaltyVerify = PenaltyVerify.create(
+                habit.getGroupMember(),
+                habit
+        );
+
+        penaltyVerifyRepository.save(penaltyVerify);
+    }
 
     @Transactional
     public PenaltyVerifyDetailResponse submit(Long memberId, Long habitId,

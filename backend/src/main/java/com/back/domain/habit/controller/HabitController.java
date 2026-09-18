@@ -5,12 +5,16 @@ import com.back.domain.habit.dto.HabitResponse;
 import com.back.domain.habit.dto.UpdateHabitRequest;
 import com.back.domain.habit.entity.Habit;
 import com.back.domain.habit.service.HabitService;
+import com.back.domain.penaltyverify.service.PenaltyVerifyService;
 import com.back.global.security.LoginMemberId;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 @RestController
 @RequiredArgsConstructor
@@ -34,6 +38,20 @@ public class HabitController {
         );
     }
 
+    @PostMapping("/habits/fail/{habitId}")
+    public ResponseEntity<Void> failHabit(
+            @LoginMemberId Long memberId,
+            @PathVariable Long habitId
+    ) {
+        habitService.failHabit(
+                memberId,
+                habitId
+        );
+
+        return ResponseEntity.ok().build();
+    }
+
+
     @GetMapping("/habits/{id}")
     public HabitResponse detail(@PathVariable Long id) {
         Habit habit = habitService.findById(id).get();
@@ -41,18 +59,24 @@ public class HabitController {
         return new HabitResponse(habit);
     }
 
-    @PatchMapping("/habits/{habitId}")
-    public ResponseEntity<HabitResponse> updateHabit(
+    @GetMapping("/groups/{groupId}/habits/active")
+    public ResponseEntity<HabitResponse> getActiveHabit(
             @LoginMemberId Long memberId,
-            @PathVariable Long habitId,
-            @RequestBody UpdateHabitRequest request
+            @PathVariable Long groupId
     ) {
-        HabitResponse response = habitService.updateHabit(
-                habitId,
-                memberId,
-                request
+        return ResponseEntity.ok(
+                habitService.getActiveHabit(memberId, groupId)
         );
-
-        return ResponseEntity.ok(response);
     }
+
+    @GetMapping("/groups/{groupId}/habits/fail")
+    public ResponseEntity<List<HabitResponse>> getFailedHabits(
+            @LoginMemberId Long memberId,
+            @PathVariable Long groupId
+    ) {
+        return ResponseEntity.ok(
+                habitService.getFailedHabits(memberId, groupId)
+        );
+    }
+
 }

@@ -10,14 +10,21 @@ import lombok.NoArgsConstructor;
 @Entity
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-@Table(name = "habit")
+@Table(
+        name = "habit",
+        indexes = {
+                @Index(
+                        name = "idx_habit_group_member",
+                        columnList = "group_member_id"
+                )
+        }
+)
 public class Habit extends BaseEntity {
 
-    @OneToOne(fetch = FetchType.LAZY, optional = false)
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(
             name = "group_member_id",
-            nullable = false,
-            unique = true
+            nullable = false
     )
     private GroupMember groupMember;
 
@@ -26,19 +33,28 @@ public class Habit extends BaseEntity {
 
     private String description;
 
+    @Column(nullable = false)
     private int days;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 20)
+    private HabitStatus status;
 
     public static Habit create(
             GroupMember groupMember,
             String title,
+            String description,
             int days
     ) {
         Habit habit = new Habit();
         habit.groupMember = groupMember;
         habit.title = title;
+        habit.description = description;
         habit.days = days;
+        habit.status = HabitStatus.ACTIVE;
         return habit;
     }
+
 
     public void update(Integer days) {
         if (days != null) {
@@ -49,8 +65,16 @@ public class Habit extends BaseEntity {
             }
 
             this.days = days;
-
         }
     }
 
+    public void fail() {
+        if (this.status != HabitStatus.ACTIVE) {
+            throw new IllegalStateException(
+                    "활성화된 습관만 실패 처리할 수 있습니다."
+            );
+        }
+
+        this.status = HabitStatus.FAILED;
+    }
 }
