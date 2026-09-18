@@ -7,17 +7,10 @@ public interface GroupMemberResponse {
 
     record Simple(
             Long Id,
-            Long memeberId,
+            Long memberId,
             String nickname,
-            GroupMemberRole role
-    ) {
-        public static Simple from(GroupMember groupMember) {
-            return new Simple(
-                    groupMember.getId(),
-                    groupMember.getMember().getId(),
-                    groupMember.getMember().getNickname(),
-                    groupMember.getRole()
-            );
-        }
-    }
+            String role,
+            String habitTitle,
+            String habitDescription
+    ) {}
 }
