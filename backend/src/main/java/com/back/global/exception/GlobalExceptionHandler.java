@@ -83,4 +83,12 @@ public class GlobalExceptionHandler {
             .status(HttpStatus.INTERNAL_SERVER_ERROR)
             .body(ErrorResponse.of(500, "서버 내부 오류가 발생했습니다."));
     }
+
+    // 그룹 최대 참여 인원 초과 (400 BAD_REQUEST)
+    @ExceptionHandler(GroupLimitExceededException.class)
+    public ResponseEntity<ErrorResponse> handleGroupLimitExceeded(GroupLimitExceededException e) {
+        return ResponseEntity
+                .status(HttpStatus.BAD_REQUEST)
+                .body(ErrorResponse.of(400, e.getMessage()));
+    }
 }

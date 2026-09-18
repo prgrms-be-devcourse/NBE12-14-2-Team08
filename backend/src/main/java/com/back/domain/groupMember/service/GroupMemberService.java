@@ -9,6 +9,7 @@ import com.back.domain.groupMember.entity.GroupMemberRole;
 import com.back.domain.groupMember.repository.GroupMemberRepository;
 import com.back.domain.member.entity.Member;
 import com.back.domain.member.repository.MemberRepository;
+import com.back.global.exception.GroupLimitExceededException;
 import java.util.List;
 import java.util.NoSuchElementException;
 import lombok.RequiredArgsConstructor;
@@ -30,6 +31,11 @@ public class GroupMemberService {
 
         if (groupMemberRepository.existsByGroupIdAndMemberId(group.getId(), memberId)) {
             return;
+        }
+
+        long currentMemberCount = groupMemberRepository.countByGroupId(group.getId());
+        if (currentMemberCount >= group.getMemberLimit()) {
+            throw new GroupLimitExceededException("그룹의 최대 인원이 초과되어 입장할 수 없습니다.");
         }
 
         Member member = memberRepository.findById(memberId)
