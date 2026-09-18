@@ -1,8 +1,6 @@
 package com.back.domain.penaltyverify.repository;
 
 import com.back.domain.penaltyverify.entity.PenaltyVerify;
-import jakarta.persistence.Entity;
-import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 import org.springframework.data.jpa.repository.EntityGraph;

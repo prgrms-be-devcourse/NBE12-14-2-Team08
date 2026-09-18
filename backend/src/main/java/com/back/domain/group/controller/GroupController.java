@@ -2,7 +2,6 @@ package com.back.domain.group.controller;
 
 import com.back.domain.group.dto.GroupRequest;
 import com.back.domain.group.dto.GroupResponse;
-import com.back.domain.group.dto.GroupResponse.Simple;
 import com.back.domain.group.service.GroupService;
 import com.back.global.security.LoginMemberId;
 import jakarta.validation.Valid;

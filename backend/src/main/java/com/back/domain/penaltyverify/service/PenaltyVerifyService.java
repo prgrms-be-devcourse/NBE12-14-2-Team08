@@ -1,6 +1,5 @@
 package com.back.domain.penaltyverify.service;
 
-import com.back.domain.groupMember.entity.GroupMember;
 import com.back.domain.groupMember.entity.GroupMemberRole;
 import com.back.domain.groupMember.repository.GroupMemberRepository;
 import com.back.domain.habit.entity.Habit;

@@ -1,7 +1,6 @@
 package com.back.domain.groupMember.entity;
 
 import com.back.domain.group.entity.Group;
-import com.back.domain.habit.entity.Habit;
 import com.back.domain.member.entity.Member;
 import com.back.global.entity.BaseEntity;
 import jakarta.persistence.*;

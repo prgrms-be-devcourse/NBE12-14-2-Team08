@@ -2,15 +2,12 @@ package com.back.domain.habit.controller;
 
 import com.back.domain.habit.dto.CreateHabitRequest;
 import com.back.domain.habit.dto.HabitResponse;
-import com.back.domain.habit.dto.UpdateHabitRequest;
 import com.back.domain.habit.entity.Habit;
 import com.back.domain.habit.service.HabitService;
-import com.back.domain.penaltyverify.service.PenaltyVerifyService;
 import com.back.global.security.LoginMemberId;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
