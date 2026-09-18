@@ -8,6 +8,7 @@ import com.back.domain.penaltyverify.service.PenaltyVerifyService;
 import com.back.global.security.LoginMemberId;
 import jakarta.validation.Valid;
 import java.util.List;
+import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -18,6 +19,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
@@ -43,9 +45,18 @@ public class PenaltyVerifyController {
         return penaltyVerifyService.getDetail(id);
     }
 
-    @GetMapping("/habits/{habitId}/penalties")
-    public List<PenaltyVerifySummaryResponse> getListByHabit(@PathVariable Long habitId) {
-        return penaltyVerifyService.getListByHabit(habitId);
+    @GetMapping("/groups/{groupId}/penalties/count")
+    public ResponseEntity<Map<String, Long>> getCount(@PathVariable Long groupId,
+        @LoginMemberId Long memberId){
+        long count =  penaltyVerifyService.getCount(groupId, memberId);
+        return ResponseEntity.ok(Map.of("count", count));
+    }
+
+    @GetMapping("/groups/{groupId}/members/{groupMemberId}/penalties")
+    public List<PenaltyVerifySummaryResponse> getPenaltyList(
+        @PathVariable Long groupId, @PathVariable Long groupMemberId
+    ){
+        return penaltyVerifyService.getPenaltiesByGroupMember(groupMemberId);
     }
 
     // 단건 승인

@@ -1,7 +1,9 @@
 package com.back.domain.penaltyverify.dto;
 
+import java.util.List;
+
 public record BulkActionRequest(
-    java.util.List<Long> ids
+    List<Long> ids
 ) {
 
 }

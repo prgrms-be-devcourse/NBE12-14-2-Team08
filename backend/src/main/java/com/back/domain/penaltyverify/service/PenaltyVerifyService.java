@@ -12,6 +12,7 @@ import com.back.domain.penaltyverify.dto.SubmitPenaltyVerifyRequest;
 import com.back.domain.penaltyverify.entity.PenaltyVerify;
 import com.back.domain.penaltyverify.repository.PenaltyVerifyRepository;
 import com.back.global.util.ImageUrlValidator;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.NoSuchElementException;
 import lombok.RequiredArgsConstructor;
@@ -32,28 +33,20 @@ public class PenaltyVerifyService {
         SubmitPenaltyVerifyRequest request) {
         ImageUrlValidator.validate(request.imageUrl());
 
-        Habit habit = habitRepository.findById(habitId)
-            .orElseThrow(() -> new NoSuchElementException("존재하지 않는 습관입니다."));
+        PenaltyVerify penaltyVerify = penaltyVerifyRepository.findByHabitId(habitId)
+            .orElseThrow(() -> new NoSuchElementException("해당 습관에 대한 벌칙 정보가 존재하지 않습니다."));
 
-        GroupMember groupMember = habit.getGroupMember();
-        if (!groupMember.getMember().getId().equals(memberId)) {
+        if (!penaltyVerify.getGroupMember().getMember().getId().equals(memberId)) {
             throw new IllegalStateException("본인의 습관에 대해서만 벌칙을 제출할 수 있습니다.");
         }
 
-        if (penaltyVerifyRepository.existsByGroupMemberIdAndHabitIdAndVerifyDate(
-            groupMember.getId(), habitId, request.verifyDate())) {
-            throw new IllegalStateException("이미 해당 날짜에 벌칙이 제출되었습니다.");
-        }
-
-        String penaltyText = groupMember.getGroup().getPenalty();
-
-        PenaltyVerify penaltyVerify = PenaltyVerify.submit(
-            groupMember, habit, request.verifyDate(),
-            habit.getTitle(), penaltyText,
-            request.description(), request.imageUrl()
+        penaltyVerify.submit(
+            LocalDate.now(),
+            request.description(),
+            request.imageUrl()
         );
 
-        return PenaltyVerifyDetailResponse.from(penaltyVerifyRepository.save(penaltyVerify));
+        return PenaltyVerifyDetailResponse.from(penaltyVerify);
     }
 
     @Transactional
@@ -103,10 +96,16 @@ public class PenaltyVerifyService {
         return PenaltyVerifyDetailResponse.from(findById(id));
     }
 
-    public List<PenaltyVerifySummaryResponse> getListByHabit(Long habitId) {
-        return penaltyVerifyRepository.findByHabitId(habitId).stream()
+    public long getCount(Long groupId, Long memberId) {
+        return penaltyVerifyRepository.countByGroupMember_Group_IdAndGroupMember_Member_Id(groupId,
+            memberId);
+    }
+
+    public List<PenaltyVerifySummaryResponse> getPenaltiesByGroupMember(Long groupMemberId) {
+        return penaltyVerifyRepository.findByGroupMemberIdOrderByIdDesc(groupMemberId).stream()
             .map(PenaltyVerifySummaryResponse::from)
             .toList();
+
     }
 
     // 본인이 작성했거나, 해당 그룹의 방장인 경우에만 삭제 가능
@@ -141,5 +140,4 @@ public class PenaltyVerifyService {
             .map(gm -> gm.getRole() == GroupMemberRole.OWNER)
             .orElse(false);
     }
-
 }
