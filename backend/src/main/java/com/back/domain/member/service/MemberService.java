@@ -23,6 +23,7 @@ public class MemberService {
     private final MemberRepository memberRepository;
     private final PasswordEncoder passwordEncoder;
     private final GroupMemberRepository groupMemberRepository;
+    private final AuthTokenService authTokenService;
 
     @Transactional
     public MemberResponse join(CreateMemberRequest request) {
@@ -33,12 +34,19 @@ public class MemberService {
         String encodedPassword = passwordEncoder.encode(request.password());
 
         Member member = Member.create(
-                request.name(),
+                request.nickname(),
                 request.username(),
                 encodedPassword
         );
 
         Member savedMember = memberRepository.save(member);
+
+        String refreshToken =
+                authTokenService.createRefreshToken(
+                        savedMember.getId()
+                );
+
+        savedMember.updateRefreshToken(refreshToken);
 
         return MemberResponse.from(savedMember);
     }
@@ -72,8 +80,8 @@ public class MemberService {
     public MemberResponse updateMember(Long memberId, UpdateMemberRequest request) {
         Member member = findMember(memberId);
 
-        if (request.name() != null && !request.name().isBlank()) {
-            member.updateNickname(request.name());
+        if (request.nickname() != null && !request.nickname().isBlank()) {
+            member.updateNickname(request.nickname());
         }
 
         if (request.password() != null && !request.password().isBlank()) {
@@ -82,6 +90,32 @@ public class MemberService {
         }
 
         return MemberResponse.from(member);
+    }
+
+    // 로그인 시 DB에 저장된 리프레시 토큰 조회
+    public String getRefreshToken(Long memberId) {
+        Member member = findMember(memberId);
+
+        String refreshToken = member.getRefreshToken();
+
+        if (refreshToken == null
+                || refreshToken.isBlank()) {
+            throw new UnauthorizedException(
+                    "저장된 리프레시 토큰이 없습니다."
+            );
+        }
+
+        return refreshToken;
+    }
+
+    // 재발급 요청의 리프레시 토큰과 DB 저장값 비교
+    public boolean matchesRefreshToken(
+            Long memberId,
+            String refreshToken
+    ) {
+        Member member = findMember(memberId);
+
+        return member.matchesRefreshToken(refreshToken);
     }
 
     @Transactional

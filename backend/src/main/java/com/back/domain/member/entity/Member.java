@@ -21,6 +21,14 @@ public class Member extends BaseEntity {
     @Column(nullable = false)
     private String password;
 
+    @Column(
+            name = "refresh_token",
+            unique = true,
+            length = 512
+    )
+    private String refreshToken;
+
+
     private Member(String nickname, String username, String password){
         this.nickname = nickname;
         this.username = username;
@@ -37,5 +45,16 @@ public class Member extends BaseEntity {
 
     public void updatePassword(String encodedPassword){
         this.password = encodedPassword;
+    }
+    
+    // 회원가입 시 생성된 리프레시 토큰 저장
+    public void updateRefreshToken(String refreshToken) {
+        this.refreshToken = refreshToken;
+    }
+    
+    // 재발급 요청의 리프레시 토큰과 DB 저장값 비교
+    public boolean matchesRefreshToken(String refreshToken) {
+        return this.refreshToken != null
+                && this.refreshToken.equals(refreshToken);
     }
 }
