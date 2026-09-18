@@ -38,23 +38,6 @@ public class HabitController {
         );
     }
 
-
-
-    @PatchMapping("/habits/{habitId}")
-    public ResponseEntity<HabitResponse> updateHabit(
-            @LoginMemberId Long memberId,
-            @PathVariable Long habitId,
-            @RequestBody UpdateHabitRequest request
-    ) {
-        HabitResponse response = habitService.updateHabit(
-                habitId,
-                memberId,
-                request
-        );
-
-        return ResponseEntity.ok(response);
-    }
-
     @PostMapping("/habits/fail/{habitId}")
     public ResponseEntity<Void> failHabit(
             @LoginMemberId Long memberId,
@@ -95,4 +78,5 @@ public class HabitController {
                 habitService.getFailedHabits(memberId, groupId)
         );
     }
+
 }
