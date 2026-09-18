@@ -55,11 +55,7 @@ public class GroupMemberService {
             throw new NoSuchElementException("해당 그룹의 접근 권한이 없거나 존재하지 않는 그룹입니다.");
         }
 
-        List<GroupMember> groupMembers = groupMemberRepository.findByGroupId(groupId);
-
-        return groupMembers.stream()
-                .map(GroupMemberResponse.Simple::from)
-                .toList();
+        return groupMemberRepository.findByGroupIdWithHabit(groupId);
     }
 
     @Transactional
