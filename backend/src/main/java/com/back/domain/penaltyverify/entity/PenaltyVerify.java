@@ -20,8 +20,7 @@ import java.time.LocalDate;
             name = "uk_penalty_verify",
             columnNames = {
                 "group_member_id",
-                "habit_id",
-                "verify_date"
+                "habit_id"
             }
         )
     }
@@ -36,7 +35,7 @@ public class PenaltyVerify extends BaseEntity {
     @JoinColumn(name = "habit_id", nullable = false)
     private Habit habit;
 
-    @Column(name = "verify_date", nullable = false)
+    @Column(name = "verify_date")
     private LocalDate verifyDate;
 
     @Column(nullable = false)
@@ -53,6 +52,23 @@ public class PenaltyVerify extends BaseEntity {
     @Column(nullable = false)
     private PenaltyVerifyStatus status;
 
+    public static PenaltyVerify create(
+            GroupMember groupMember,
+            Habit habit
+    ) {
+        PenaltyVerify penaltyVerify = new PenaltyVerify();
+
+        penaltyVerify.groupMember = groupMember;
+        penaltyVerify.habit = habit;
+        penaltyVerify.verifyDate = null;
+
+        penaltyVerify.habitTitle = habit.getTitle();
+        penaltyVerify.penaltyText = groupMember.getGroup().getPenalty();
+
+        penaltyVerify.status = PenaltyVerifyStatus.REQUIRED;
+
+        return penaltyVerify;
+    }
 
     public static PenaltyVerify submit(GroupMember groupMember, Habit habit, LocalDate verifyDate,
         String habitTitle, String penaltyText, String description, String imageUrl) {

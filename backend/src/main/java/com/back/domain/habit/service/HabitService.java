@@ -8,6 +8,7 @@ import com.back.domain.habit.dto.UpdateHabitRequest;
 import com.back.domain.habit.entity.Habit;
 import com.back.domain.habit.entity.HabitStatus;
 import com.back.domain.habit.repository.HabitRepository;
+import com.back.domain.penaltyverify.service.PenaltyVerifyService;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -20,42 +21,7 @@ import java.util.Optional;
 public class HabitService {
     private final GroupMemberRepository groupMemberRepository;
     private final HabitRepository habitRepository;
-
-//    @Transactional
-//    public HabitResponse createHabit(
-//            Long groupId,
-//            Long memberId,
-//            CreateHabitRequest request
-//    ) {
-//        GroupMember groupMember =
-//                groupMemberRepository
-//                        .findByGroupIdAndMemberId(
-//                                groupId,
-//                                memberId
-//                        )
-//                        .orElseThrow(() ->
-//                                new IllegalArgumentException(
-//                                        "해당 그룹의 멤버가 아닙니다."
-//                                ));
-//
-//        if (habitRepository.existsByGroupMember_Id(
-//                groupMember.getId()
-//        )) {
-//            throw new IllegalStateException(
-//                    "이미 습관이 등록되어 있습니다."
-//            );
-//        }
-//
-//        Habit habit = Habit.create(
-//                groupMember,
-//                request.title(),
-//                request.days()
-//        );
-//
-//        return new HabitResponse(
-//                habitRepository.save(habit)
-//        );
-//    }
+    private final PenaltyVerifyService penaltyVerifyService;
 
     @Transactional
     public HabitResponse createHabit(
@@ -110,8 +76,8 @@ public class HabitService {
 
         Habit habit = habitRepository
                 .findByIdAndGroupMember_Member_Id(
-                        habitId.intValue(),
-                        memberId.intValue()
+                        habitId,
+                        memberId
                 )
                 .orElseThrow(() ->
                         new IllegalArgumentException(
@@ -126,28 +92,19 @@ public class HabitService {
     }
 
     @Transactional
-    public void failHabit(
-            Long groupMemberId,
-            Long habitId
-    ) {
+    public void failHabit(Long memberId, Long habitId) {
+
         Habit habit = habitRepository
-                .findByIdAndGroupMember_Id(
-                        habitId,
-                        groupMemberId
-                )
+                .findByIdAndGroupMember_Member_Id(habitId, memberId)
                 .orElseThrow(() ->
                         new IllegalArgumentException(
-                                "해당 습관을 찾을 수 없습니다."
+                                "해당 회원의 습관을 찾을 수 없습니다."
                         )
                 );
 
-        if (habit.getStatus() != HabitStatus.ACTIVE) {
-            throw new IllegalStateException(
-                    "활성화된 습관만 실패 처리할 수 있습니다."
-            );
-        }
-
         habit.fail();
+
+        penaltyVerifyService.createPenaltyVerify(habit);
     }
 
     @Transactional

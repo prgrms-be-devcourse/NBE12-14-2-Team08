@@ -5,6 +5,7 @@ import com.back.domain.habit.dto.HabitResponse;
 import com.back.domain.habit.dto.UpdateHabitRequest;
 import com.back.domain.habit.entity.Habit;
 import com.back.domain.habit.service.HabitService;
+import com.back.domain.penaltyverify.service.PenaltyVerifyService;
 import com.back.global.security.LoginMemberId;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import jakarta.validation.Valid;
@@ -56,17 +57,13 @@ public class HabitController {
 
     @PostMapping("/habits/fail/{habitId}")
     public ResponseEntity<Void> failHabit(
-            @PathVariable Long habitId,
-            @LoginMemberId Long memberId
+            @LoginMemberId Long memberId,
+            @PathVariable Long habitId
     ) {
         habitService.failHabit(
                 memberId,
                 habitId
         );
-
-        // TODO:
-        //  - penaltyVerify 엔티티에 데이터 추가
-        //  - penaltyVerifyService.createPenaltyVerify()
 
         return ResponseEntity.ok().build();
     }

@@ -9,24 +9,17 @@ import java.util.List;
 import java.util.Optional;
 
 public interface HabitRepository extends JpaRepository<Habit, Long> {
-    boolean existsByGroupMember_Id(Long groupMemberId);
+
     Optional<Habit> findByIdAndGroupMember_Member_Id(
-            int habitId,
-            int memberId
+            Long habitId,
+            Long memberId
     );
-
-
-
 
     boolean existsByGroupMember_IdAndStatus(
             Long groupMemberId,
             HabitStatus status
     );
 
-    Optional<Habit> findByIdAndGroupMember_Id(
-            Long habitId,
-            Long groupMemberId
-    );
 
     Optional<Habit> findByGroupMember_IdAndGroupMember_Group_IdAndStatus(
             Long memberId,
