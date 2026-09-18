@@ -1,6 +1,5 @@
 package com.back.domain.habit.dto;
 
-import com.back.domain.member.entity.Member;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
