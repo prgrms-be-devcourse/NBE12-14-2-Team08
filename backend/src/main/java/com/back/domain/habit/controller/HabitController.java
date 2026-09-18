@@ -24,7 +24,6 @@ public class HabitController {
 
     private final HabitService habitService;
 
-
     @PostMapping("/groups/{groupId}/habits")
     public HabitResponse createHabit(
             @LoginMemberId Long memberId,
