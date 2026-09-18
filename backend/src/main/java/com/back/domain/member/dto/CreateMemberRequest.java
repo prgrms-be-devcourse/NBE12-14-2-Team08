@@ -4,7 +4,7 @@ import jakarta.validation.constraints.NotBlank;
 
 public record CreateMemberRequest(
         @NotBlank(message = "이름은 필수입니다.")
-        String name,
+        String nickname,
 
         @NotBlank(message = "아이디는 필수입니다.")
         String username,

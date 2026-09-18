@@ -33,8 +33,8 @@ public class AuthController {
 
         String accessToken = authTokenService.createAccessToken(memberId);
 
-        String refreshToken = authTokenService.createRefreshToken(memberId);
-
+        String refreshToken = memberService.getRefreshToken(memberId);   // 로그인 시 DB에 저장된 리프레시 토큰 조회
+        
         LoginResponse response = LoginResponse.of(
                 accessToken,
                 refreshToken
@@ -58,6 +58,16 @@ public class AuthController {
 
         Long memberId =
                 authTokenService.getMemberId(refreshToken);
+        
+        // 받은 리프레시 토큰과 DB 저장값 비교
+        if (!memberService.matchesRefreshToken(
+                memberId,
+                refreshToken
+        )) {
+            throw new UnauthorizedException(
+                    "저장된 리프레시 토큰과 일치하지 않습니다."
+            );
+        }
 
         String accessToken =
                 authTokenService.createAccessToken(memberId);
