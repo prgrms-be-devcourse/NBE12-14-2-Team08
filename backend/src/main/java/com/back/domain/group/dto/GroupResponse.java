@@ -13,9 +13,12 @@ public interface GroupResponse {
             String penalty,
             String inviteCode,
             int memberLimit,
-            LocalDateTime createDate
+            LocalDateTime createDate,
+            String inviteLink
     ) {
-        public static Detail from(Group group) {
+        public static Detail from(Group group, String baseInviteUrl) {
+            String fullInviteLink = baseInviteUrl + group.getInviteCode();
+
             return new Detail(
                     group.getId(),
                     group.getTitle(),
@@ -24,7 +27,8 @@ public interface GroupResponse {
                     group.getPenalty(),
                     group.getInviteCode(),
                     group.getMemberLimit(),
-                    group.getCreateDate()
+                    group.getCreateDate(),
+                    fullInviteLink
             );
         }
     }

@@ -14,6 +14,7 @@ import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -27,10 +28,12 @@ public class GroupService {
     private final GroupMemberRepository groupMemberRepository;
     private final MemberRepository memberRepository;
 
+    @Value("${app.invite-base-url}")
+    private String baseInviteUrl;
+
     @Transactional
     public GroupResponse.Detail createGroup(Long memberId, GroupRequest.Create request) {
         String inviteCode = generateUniqueInviteCode();
-
         String encodedPassword = passwordEncoder.encode(request.password());
 
         Group group = Group.builder()
@@ -56,7 +59,7 @@ public class GroupService {
 
         groupMemberRepository.save(owner);
 
-        return GroupResponse.Detail.from(savedGroup);
+        return GroupResponse.Detail.from(savedGroup, baseInviteUrl);
     }
 
     public List<GroupResponse.Simple> getGroupSimpleList(Long memberId) {
@@ -71,7 +74,7 @@ public class GroupService {
             throw new ForbiddenException("해당 그룹의 접근 권한이 없습니다.");
         }
 
-        return GroupResponse.Detail.from(group);
+        return GroupResponse.Detail.from(group, baseInviteUrl);
     }
 
     @Transactional
