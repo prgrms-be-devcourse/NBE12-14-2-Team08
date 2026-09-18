@@ -29,3 +29,9 @@ management:
 
 app:
   invite-base-url: https://nbe-12-14-2-team08.vercel.app/
+
+
+jwt:
+  secret: ${JWT_SECRET:local-development-jwt-secret-key-1234567890}
+  access-expiration: ${JWT_ACCESS_EXPIRATION:1800000}
+
