@@ -7,14 +7,16 @@ import com.back.domain.group.repository.GroupRepository;
 import com.back.domain.groupMember.entity.GroupMember;
 import com.back.domain.groupMember.entity.GroupMemberRole;
 import com.back.domain.groupMember.repository.GroupMemberRepository;
+import com.back.domain.member.repository.MemberRepository;
 import com.back.global.exception.ForbiddenException;
-import java.util.List;
-import java.util.NoSuchElementException;
-import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.util.List;
+import java.util.NoSuchElementException;
+import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -23,6 +25,7 @@ public class GroupService {
     private final GroupRepository groupRepository;
     private final PasswordEncoder passwordEncoder;
     private final GroupMemberRepository groupMemberRepository;
+    private final MemberRepository memberRepository;// 테스트용 코드 필요없다면 지워도 상관없습니다
 
     @Transactional
     public GroupResponse.Detail createGroup(Long memberId, GroupRequest.Create request) {
@@ -44,7 +47,8 @@ public class GroupService {
 
         GroupMember owner = GroupMember.builder()
                 .group(savedGroup)
-                .member(null) // 임시
+                .member(memberRepository.findById(memberId)
+                        .orElseThrow(() -> new NoSuchElementException("존재하지 않는 회원입니다."))) // 임시// 테스트용 코드 필요없다면 지워도 상관없습니다
                 .role(GroupMemberRole.OWNER)
                 .build();
         groupMemberRepository.save(owner);
