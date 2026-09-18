@@ -70,7 +70,7 @@ class PenaltyVerifyControllerTest {
         groupMemberId = groupMemberA.getId();
 
         Habit habitA = habitRepository.save(
-            Habit.create(groupMemberA, "기상 후 운동", 30)
+            Habit.create(groupMemberA, "기상 후 운동","열심히 운동하기", 30)
         );
         habitId = habitA.getId();
 
@@ -86,7 +86,7 @@ class PenaltyVerifyControllerTest {
         );
 
         Habit habitB = habitRepository.save(
-            Habit.create(groupMemberB, "물 마시기", 30)
+            Habit.create(groupMemberB, "물 마시기", "하루 물 2L 마시기",30)
         );
 
         PenaltyVerify submittedPenalty = PenaltyVerify.create(groupMemberB, habitB);

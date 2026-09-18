@@ -7,6 +7,9 @@ import com.back.domain.groupMember.dto.GroupMemberResponse;
 import com.back.domain.groupMember.entity.GroupMember;
 import com.back.domain.groupMember.entity.GroupMemberRole;
 import com.back.domain.groupMember.repository.GroupMemberRepository;
+import com.back.domain.member.entity.Member;
+import com.back.domain.member.repository.MemberRepository;
+import com.back.global.exception.GroupLimitExceededException;
 import java.util.List;
 import java.util.NoSuchElementException;
 import lombok.RequiredArgsConstructor;
@@ -19,6 +22,33 @@ import org.springframework.transaction.annotation.Transactional;
 public class GroupMemberService {
     private final GroupMemberRepository groupMemberRepository;
     private final GroupRepository groupRepository;
+    private final MemberRepository memberRepository;
+
+    @Transactional
+    public void joinGroup(Long memberId, GroupRequest.Join request) {
+        Group group = groupRepository.findByInviteCode(request.inviteCode())
+                .orElseThrow(() -> new NoSuchElementException("유효하지 않거나 존재하지 않는 초대 코드입니다."));
+
+        if (groupMemberRepository.existsByGroupIdAndMemberId(group.getId(), memberId)) {
+            return;
+        }
+
+        long currentMemberCount = groupMemberRepository.countByGroupId(group.getId());
+        if (currentMemberCount >= group.getMemberLimit()) {
+            throw new GroupLimitExceededException("그룹의 최대 인원이 초과되어 입장할 수 없습니다.");
+        }
+
+        Member member = memberRepository.findById(memberId)
+                .orElseThrow(() -> new NoSuchElementException("존재하지 않는 회원입니다."));
+
+        GroupMember groupMember = GroupMember.builder()
+                .group(group)
+                .member(member)
+                .role(GroupMemberRole.MEMBER)
+                .build();
+
+        groupMemberRepository.save(groupMember);
+    }
 
     public List<GroupMemberResponse.Simple> getGroupMembers (Long groupId, Long memberId) {
         if (!groupMemberRepository.existsByGroupIdAndMemberId(groupId, memberId)) {
@@ -30,29 +60,6 @@ public class GroupMemberService {
         return groupMembers.stream()
                 .map(GroupMemberResponse.Simple::from)
                 .toList();
-    }
-
-    @Transactional
-    public void joinGroup(Long memberId, GroupRequest.Join request) {
-        Group group = groupRepository.findByInviteCode(request.inviteCode())
-                .orElseThrow(() -> new NoSuchElementException("유효하지 않거나 존재하지 않는 초대 코드입니다."));
-
-        if (groupMemberRepository.existsByGroupIdAndMemberId(group.getId(), memberId)) {
-            return;
-        }
-
-        if (groupMemberRepository.existsByGroupIdAndMemberId(group.getId(), memberId)) {
-            throw new IllegalStateException("이미 가입된 그룹입니다.");
-        }
-
-        GroupMember groupMember = GroupMember.builder()
-                .group(group)
-                //.member(memberRepository.findById(memberId).get()) // memberRepository 완성 시 주석 해제
-                .member(null) // memberRepository 완성 시 해당 코드 제거
-                .role(GroupMemberRole.MEMBER)
-                .build();
-
-        groupMemberRepository.save(groupMember);
     }
 
     @Transactional

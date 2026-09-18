@@ -13,9 +13,12 @@ public interface GroupResponse {
             String penalty,
             String inviteCode,
             int memberLimit,
-            LocalDateTime createDate
+            LocalDateTime createDate,
+            String inviteLink
     ) {
-        public static Detail from(Group group) {
+        public static Detail from(Group group, String baseInviteUrl) {
+            String fullInviteLink = baseInviteUrl + group.getInviteCode();
+
             return new Detail(
                     group.getId(),
                     group.getTitle(),
@@ -24,7 +27,8 @@ public interface GroupResponse {
                     group.getPenalty(),
                     group.getInviteCode(),
                     group.getMemberLimit(),
-                    group.getCreateDate()
+                    group.getCreateDate(),
+                    fullInviteLink
             );
         }
     }
@@ -32,16 +36,8 @@ public interface GroupResponse {
     record Simple(
             Long id,
             String title,
-            LocalDate deadline,
-            int memberLimit
-    ) {
-        public static Simple from(Group group) {
-            return new Simple(
-                    group.getId(),
-                    group.getTitle(),
-                    group.getDeadline(),
-                    group.getMemberLimit()
-            );
-        }
-    }
+            String description,
+            int memberLimit,
+            Long currentMemberCount
+    ) {}
 }

@@ -29,6 +29,18 @@ public class PenaltyVerifyService {
     private final HabitRepository habitRepository;
 
     @Transactional
+    public void createPenaltyVerify(
+            Habit habit
+    ) {
+        PenaltyVerify penaltyVerify = PenaltyVerify.create(
+                habit.getGroupMember(),
+                habit
+        );
+
+        penaltyVerifyRepository.save(penaltyVerify);
+    }
+
+    @Transactional
     public PenaltyVerifyDetailResponse submit(Long memberId, Long habitId,
         SubmitPenaltyVerifyRequest request) {
         ImageUrlValidator.validate(request.imageUrl());
@@ -140,4 +152,5 @@ public class PenaltyVerifyService {
             .map(gm -> gm.getRole() == GroupMemberRole.OWNER)
             .orElse(false);
     }
+
 }
