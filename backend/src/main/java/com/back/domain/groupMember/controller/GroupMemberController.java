@@ -22,20 +22,20 @@ import org.springframework.web.bind.annotation.RestController;
 public class GroupMemberController {
     private final GroupMemberService groupMemberService;
 
-    @GetMapping("{groupId}/members")
-    public ResponseEntity<List<GroupMemberResponse.Simple>> getGroupMembers(
-            @PathVariable Long groupId,
-            @LoginMemberId Long memberId) {
-        List<GroupMemberResponse.Simple> response = groupMemberService.getGroupMembers(groupId, memberId);
-        return ResponseEntity.ok(response);
-    }
-
     @PostMapping("/join")
     public ResponseEntity<Void> joinGroup(
             @LoginMemberId Long memberId,
             @Valid @RequestBody GroupRequest.Join request) {
         groupMemberService.joinGroup(memberId, request);
         return ResponseEntity.ok().build();
+    }
+
+    @GetMapping("/{groupId}/members")
+    public ResponseEntity<List<GroupMemberResponse.Simple>> getGroupMembers(
+            @PathVariable Long groupId,
+            @LoginMemberId Long memberId) {
+        List<GroupMemberResponse.Simple> response = groupMemberService.getGroupMembers(groupId, memberId);
+        return ResponseEntity.ok(response);
     }
 
     @DeleteMapping("/{groupId}/leave")

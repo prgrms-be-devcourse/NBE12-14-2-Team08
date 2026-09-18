@@ -7,16 +7,17 @@ import com.back.domain.group.repository.GroupRepository;
 import com.back.domain.groupMember.entity.GroupMember;
 import com.back.domain.groupMember.entity.GroupMemberRole;
 import com.back.domain.groupMember.repository.GroupMemberRepository;
+import com.back.domain.member.entity.Member;
 import com.back.domain.member.repository.MemberRepository;
 import com.back.global.exception.ForbiddenException;
-import lombok.RequiredArgsConstructor;
-import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-
 import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.UUID;
+import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @RequiredArgsConstructor
@@ -25,12 +26,14 @@ public class GroupService {
     private final GroupRepository groupRepository;
     private final PasswordEncoder passwordEncoder;
     private final GroupMemberRepository groupMemberRepository;
-    private final MemberRepository memberRepository;// 테스트용 코드 필요없다면 지워도 상관없습니다
+    private final MemberRepository memberRepository;
+
+    @Value("${app.invite-base-url}")
+    private String baseInviteUrl;
 
     @Transactional
     public GroupResponse.Detail createGroup(Long memberId, GroupRequest.Create request) {
         String inviteCode = generateUniqueInviteCode();
-
         String encodedPassword = passwordEncoder.encode(request.password());
 
         Group group = Group.builder()
@@ -45,24 +48,22 @@ public class GroupService {
 
         Group savedGroup = groupRepository.save(group);
 
+        Member member = memberRepository.findById(memberId)
+                .orElseThrow(() -> new NoSuchElementException("존재하지 않는 회원입니다."));
+
         GroupMember owner = GroupMember.builder()
                 .group(savedGroup)
-                .member(memberRepository.findById(memberId)
-                        .orElseThrow(() -> new NoSuchElementException("존재하지 않는 회원입니다."))) // 임시// 테스트용 코드 필요없다면 지워도 상관없습니다
+                .member(member)
                 .role(GroupMemberRole.OWNER)
                 .build();
+
         groupMemberRepository.save(owner);
 
-        return GroupResponse.Detail.from(savedGroup);
+        return GroupResponse.Detail.from(savedGroup, baseInviteUrl);
     }
 
     public List<GroupResponse.Simple> getGroupSimpleList(Long memberId) {
-        List<GroupMember> groupMembers = groupMemberRepository.findByMemberId(memberId);
-
-        return groupMembers.stream()
-                .map(GroupMember::getGroup)
-                .map(GroupResponse.Simple::from)
-                .toList();
+        return groupRepository.findMyGroupsWithCount(memberId);
     }
 
     public GroupResponse.Detail getGroupDetail(Long groupId, Long memberId) {
@@ -73,7 +74,7 @@ public class GroupService {
             throw new ForbiddenException("해당 그룹의 접근 권한이 없습니다.");
         }
 
-        return GroupResponse.Detail.from(group);
+        return GroupResponse.Detail.from(group, baseInviteUrl);
     }
 
     @Transactional

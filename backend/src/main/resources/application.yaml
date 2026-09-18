@@ -27,4 +27,5 @@ management:
       exposure:
         include: health
 
-
+app:
+  invite-base-url: https://nbe-12-14-2-team08.vercel.app/
