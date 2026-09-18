@@ -32,16 +32,8 @@ public interface GroupResponse {
     record Simple(
             Long id,
             String title,
-            LocalDate deadline,
-            int memberLimit
-    ) {
-        public static Simple from(Group group) {
-            return new Simple(
-                    group.getId(),
-                    group.getTitle(),
-                    group.getDeadline(),
-                    group.getMemberLimit()
-            );
-        }
-    }
+            String description,
+            int memberLimit,
+            Long currentMemberCount
+    ) {}
 }

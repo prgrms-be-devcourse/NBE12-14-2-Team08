@@ -60,12 +60,7 @@ public class GroupService {
     }
 
     public List<GroupResponse.Simple> getGroupSimpleList(Long memberId) {
-        List<GroupMember> groupMembers = groupMemberRepository.findByMemberId(memberId);
-
-        return groupMembers.stream()
-                .map(GroupMember::getGroup)
-                .map(GroupResponse.Simple::from)
-                .toList();
+        return groupRepository.findMyGroupsWithCount(memberId);
     }
 
     public GroupResponse.Detail getGroupDetail(Long groupId, Long memberId) {
