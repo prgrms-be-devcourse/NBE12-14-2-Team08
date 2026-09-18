@@ -21,15 +21,10 @@ public interface GroupMemberRepository extends JpaRepository<GroupMember, Long> 
             "where gm.group.id = :groupId")
     List<GroupMemberResponse.Simple> findByGroupIdWithHabit(@Param("groupId") Long groupId);
 
-    @EntityGraph(attributePaths = {"member"})
-    List<GroupMember> findByGroupId(Long groupId);
-
     Optional<GroupMember> findByGroupIdAndMemberId(Long groupId, Long memberId);
     boolean existsByGroupIdAndMemberId(Long groupId, Long memberId);
 
     boolean existsByMemberId(Long memberId);
-
-    Optional<GroupMember> findByIdAndMemberId(Long groupMemberId, Long memberId);
 
     long countByGroupId(Long groupId);
 }

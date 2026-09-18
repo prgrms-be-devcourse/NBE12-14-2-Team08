@@ -7,7 +7,7 @@ public interface GroupMemberResponse {
 
     record Simple(
             Long Id,
-            Long memeberId,
+            Long memberId,
             String nickname,
             String role,
             String habitTitle,
