@@ -13,4 +13,12 @@ public interface GroupMemberResponse {
             String habitTitle,
             String habitDescription
     ) {}
+
+    record Detail(
+            Long groupMemberId,
+            Long memberId,
+            String nickname,
+            String role,
+            int penaltyCount
+    ) {}
 }

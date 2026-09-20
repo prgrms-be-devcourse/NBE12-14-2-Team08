@@ -9,6 +9,7 @@ import com.back.domain.groupMember.entity.GroupMemberRole;
 import com.back.domain.groupMember.repository.GroupMemberRepository;
 import com.back.domain.member.entity.Member;
 import com.back.domain.member.repository.MemberRepository;
+import com.back.global.exception.ForbiddenException;
 import com.back.global.exception.GroupLimitExceededException;
 import java.util.List;
 import java.util.NoSuchElementException;
@@ -56,6 +57,15 @@ public class GroupMemberService {
         }
 
         return groupMemberRepository.findByGroupIdWithHabit(groupId);
+    }
+
+    public GroupMemberResponse.Detail getGroupMemberDetail(Long groupId, Long groupMemberId, Long memberId) {
+        if (!groupMemberRepository.existsByGroupIdAndMemberId(groupId, memberId)) {
+            throw new ForbiddenException("해당 그룹의 접근 권한이 없습니다.");
+        }
+
+        return groupMemberRepository.findMemberDetailWithPenaltyCount(groupId, groupMemberId)
+                .orElseThrow(() -> new NoSuchElementException("존재하지 않거나 해당 그룹의 가입 멤버가 아닙니다."));
     }
 
     @Transactional
