@@ -54,4 +54,13 @@ public class GroupMemberController {
         groupMemberService.leaveGroup(groupId, memberId);
         return ResponseEntity.ok().build();
     }
+
+    @DeleteMapping("/{groupId}/members/{groupMemberId}/kick")
+    public ResponseEntity<Void> kickMember(
+            @PathVariable Long groupId,
+            @PathVariable Long groupMemberId,
+            @LoginMemberId Long memberId) {
+        groupMemberService.kickMember(groupId, groupMemberId, memberId);
+        return ResponseEntity.noContent().build();
+    }
 }
