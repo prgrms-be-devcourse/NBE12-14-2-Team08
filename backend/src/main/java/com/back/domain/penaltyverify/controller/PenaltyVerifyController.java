@@ -77,8 +77,11 @@ public class PenaltyVerifyController {
     }
 
     @GetMapping("/groups/{groupId}/penalties/pending")
-    public List<PenaltyVerifySummaryResponse> getPending(@PathVariable Long groupId) {
-        return penaltyVerifyService.getPendingByGroup(groupId);
+    public List<PenaltyVerifySummaryResponse> getPending(
+        @LoginMemberId Long memberId,
+        @PathVariable Long groupId) {
+
+        return penaltyVerifyService.getPendingByGroup(memberId, groupId);
     }
 
     @PatchMapping("/groups/{groupId}/penalties/bulk-approve")

@@ -1,5 +1,6 @@
 package com.back.domain.penaltyverify.service;
 
+import com.back.domain.groupMember.entity.GroupMember;
 import com.back.domain.groupMember.entity.GroupMemberRole;
 import com.back.domain.groupMember.repository.GroupMemberRepository;
 import com.back.domain.habit.entity.Habit;
@@ -15,6 +16,7 @@ import java.time.LocalDate;
 import java.util.List;
 import java.util.NoSuchElementException;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -97,7 +99,15 @@ public class PenaltyVerifyService {
         return targets.stream().map(PenaltyVerifyDetailResponse::from).toList();
     }
 
-    public List<PenaltyVerifySummaryResponse> getPendingByGroup(Long groupId) {
+    public List<PenaltyVerifySummaryResponse> getPendingByGroup(Long memberId, Long groupId) {
+
+        GroupMember requester = groupMemberRepository.findByGroupIdAndMemberId(groupId, memberId)
+            .orElseThrow(() -> new AccessDeniedException("해당 방의 멤버가 아닙니다."));
+
+        if(requester.getRole() != GroupMemberRole.OWNER){
+            throw new AccessDeniedException("방장만 대기 목록을 조회할 수 있습니다.");
+        }
+
         return penaltyVerifyRepository.findPendingByGroupId(groupId).stream()
             .map(PenaltyVerifySummaryResponse::from)
             .toList();
