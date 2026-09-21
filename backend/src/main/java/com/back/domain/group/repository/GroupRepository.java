@@ -1,7 +1,6 @@
 package com.back.domain.group.repository;
 
 import com.back.domain.group.dto.GroupResponse;
-import com.back.domain.group.dto.GroupResponse.Simple;
 import com.back.domain.group.entity.Group;
 import java.util.List;
 import java.util.Optional;

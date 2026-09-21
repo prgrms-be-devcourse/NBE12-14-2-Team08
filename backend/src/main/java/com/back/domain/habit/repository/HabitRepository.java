@@ -1,6 +1,5 @@
 package com.back.domain.habit.repository;
 
-import com.back.domain.groupMember.entity.GroupMember;
 import com.back.domain.habit.entity.Habit;
 import com.back.domain.habit.entity.HabitStatus;
 import org.springframework.data.jpa.repository.JpaRepository;

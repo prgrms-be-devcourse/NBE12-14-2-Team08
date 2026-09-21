@@ -1,0 +1,364 @@
+package com.back.domain.member.service;
+
+import com.back.domain.groupMember.repository.GroupMemberRepository;
+import com.back.domain.member.dto.CreateMemberRequest;
+import com.back.domain.member.dto.LoginRequest;
+import com.back.domain.member.dto.MemberResponse;
+import com.back.domain.member.dto.UpdateMemberRequest;
+import com.back.domain.member.entity.Member;
+import com.back.domain.member.repository.MemberRepository;
+import com.back.global.exception.UnauthorizedException;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.test.util.ReflectionTestUtils;
+
+import java.util.Optional;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
+@ExtendWith(MockitoExtension.class)
+class MemberServiceTest {
+
+    @Mock
+    private MemberRepository memberRepository;
+
+    @Mock
+    private PasswordEncoder passwordEncoder;
+
+    @Mock
+    private GroupMemberRepository groupMemberRepository;
+
+    @Mock
+    private AuthTokenService authTokenService;
+
+    @InjectMocks
+    private MemberService memberService;
+
+    @Test
+    @DisplayName("회원가입 성공")
+    void joinSuccess() {
+        // given
+        CreateMemberRequest request = new CreateMemberRequest(
+                "habit_user",
+                "user@example.com",
+                "password123"
+        );
+
+        when(memberRepository.existsByUsername(request.username()))
+                .thenReturn(false);
+
+        when(passwordEncoder.encode(request.password()))
+                .thenReturn("encoded-password");
+
+        when(memberRepository.save(any(Member.class)))
+                .thenAnswer(invocation -> {
+                    Member member = invocation.getArgument(0);
+                    ReflectionTestUtils.setField(member, "id", 1L);
+                    return member;
+                });
+
+        when(authTokenService.createRefreshToken(1L))
+                .thenReturn("refresh-token");
+
+        // when
+        MemberResponse response = memberService.join(request);
+
+        // then
+        assertThat(response.memberId()).isEqualTo(1L);
+        assertThat(response.nickname()).isEqualTo("habit_user");
+        assertThat(response.username()).isEqualTo("user@example.com");
+
+        verify(passwordEncoder).encode("password123");
+        verify(authTokenService).createRefreshToken(1L);
+    }
+
+    @Test
+    @DisplayName("중복 아이디 회원가입 실패")
+    void joinFailWhenUsernameDuplicated() {
+        // given
+        CreateMemberRequest request = new CreateMemberRequest(
+                "habit_user",
+                "user@example.com",
+                "password123"
+        );
+
+        when(memberRepository.existsByUsername(request.username()))
+                .thenReturn(true);
+
+        // when & then
+        assertThatThrownBy(() -> memberService.join(request))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessage("이미 사용 중인 아이디입니다.");
+
+        verify(memberRepository, never()).save(any(Member.class));
+    }
+
+    @Test
+    @DisplayName("로그인 성공")
+    void authenticateSuccess() {
+        // given
+        LoginRequest request = new LoginRequest(
+                "user@example.com",
+                "password123"
+        );
+
+        Member member = createMember(
+                1L,
+                "habit_user",
+                "user@example.com",
+                "encoded-password"
+        );
+
+        when(memberRepository.findByUsername(request.username()))
+                .thenReturn(Optional.of(member));
+
+        when(passwordEncoder.matches(
+                request.password(),
+                member.getPassword()
+        )).thenReturn(true);
+
+        // when
+        Long memberId = memberService.authenticate(request);
+
+        // then
+        assertThat(memberId).isEqualTo(1L);
+    }
+
+    @Test
+    @DisplayName("존재하지 않는 아이디 로그인 실패")
+    void authenticateFailWhenUsernameNotFound() {
+        // given
+        LoginRequest request = new LoginRequest(
+                "none@example.com",
+                "password123"
+        );
+
+        when(memberRepository.findByUsername(request.username()))
+                .thenReturn(Optional.empty());
+
+        // when & then
+        assertThatThrownBy(() -> memberService.authenticate(request))
+                .isInstanceOf(UnauthorizedException.class)
+                .hasMessage("아이디 또는 비밀번호가 일치하지 않습니다.");
+    }
+
+    @Test
+    @DisplayName("비밀번호 불일치 로그인 실패")
+    void authenticateFailWhenPasswordWrong() {
+        // given
+        LoginRequest request = new LoginRequest(
+                "user@example.com",
+                "wrong-password"
+        );
+
+        Member member = createMember(
+                1L,
+                "habit_user",
+                "user@example.com",
+                "encoded-password"
+        );
+
+        when(memberRepository.findByUsername(request.username()))
+                .thenReturn(Optional.of(member));
+
+        when(passwordEncoder.matches(
+                request.password(),
+                member.getPassword()
+        )).thenReturn(false);
+
+        // when & then
+        assertThatThrownBy(() -> memberService.authenticate(request))
+                .isInstanceOf(UnauthorizedException.class)
+                .hasMessage("아이디 또는 비밀번호가 일치하지 않습니다.");
+    }
+
+    @Test
+    @DisplayName("회원 정보 조회 성공")
+    void getMemberSuccess() {
+        // given
+        Member member = createMember(
+                1L,
+                "habit_user",
+                "user@example.com",
+                "encoded-password"
+        );
+
+        when(memberRepository.findById(1L))
+                .thenReturn(Optional.of(member));
+
+        // when
+        MemberResponse response = memberService.getMember(1L);
+
+        // then
+        assertThat(response.memberId()).isEqualTo(1L);
+        assertThat(response.nickname()).isEqualTo("habit_user");
+        assertThat(response.username()).isEqualTo("user@example.com");
+    }
+
+    @Test
+    @DisplayName("회원 정보 수정 성공")
+    void updateMemberSuccess() {
+        // given
+        Member member = createMember(
+                1L,
+                "habit_user",
+                "user@example.com",
+                "old-encoded-password"
+        );
+
+        UpdateMemberRequest request = new UpdateMemberRequest(
+                "updated_user",
+                "newPassword123"
+        );
+
+        when(memberRepository.findById(1L))
+                .thenReturn(Optional.of(member));
+
+        when(passwordEncoder.encode("newPassword123"))
+                .thenReturn("new-encoded-password");
+
+        // when
+        MemberResponse response =
+                memberService.updateMember(1L, request);
+
+        // then
+        assertThat(response.nickname()).isEqualTo("updated_user");
+        assertThat(member.getPassword())
+                .isEqualTo("new-encoded-password");
+    }
+
+    @Test
+    @DisplayName("참여 중인 방이 없으면 회원 탈퇴 성공")
+    void deleteMemberSuccess() {
+        // given
+        Member member = createMember(
+                1L,
+                "habit_user",
+                "user@example.com",
+                "encoded-password"
+        );
+
+        when(memberRepository.findById(1L))
+                .thenReturn(Optional.of(member));
+
+        when(groupMemberRepository.existsByMemberId(1L))
+                .thenReturn(false);
+
+        // when
+        memberService.deleteMember(1L);
+
+        // then
+        verify(memberRepository).delete(member);
+    }
+
+    @Test
+    @DisplayName("참여 중인 방이 있으면 회원 탈퇴 실패")
+    void deleteMemberFailWhenParticipatingInGroup() {
+        // given
+        Member member = createMember(
+                1L,
+                "habit_user",
+                "user@example.com",
+                "encoded-password"
+        );
+
+        when(memberRepository.findById(1L))
+                .thenReturn(Optional.of(member));
+
+        when(groupMemberRepository.existsByMemberId(1L))
+                .thenReturn(true);
+
+        // when & then
+        assertThatThrownBy(() -> memberService.deleteMember(1L))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessage(
+                        "참여 중인 방이 있어 회원 탈퇴를 할 수 없습니다."
+                );
+
+        verify(memberRepository, never())
+                .delete(any(Member.class));
+    }
+
+    @Test
+    @DisplayName("DB에 저장된 리프레시 토큰 조회 성공")
+    void getRefreshTokenSuccess() {
+        // given
+        Member member = createMember(
+                1L,
+                "habit_user",
+                "user@example.com",
+                "encoded-password"
+        );
+
+        member.updateRefreshToken("refresh-token");
+
+        when(memberRepository.findById(1L))
+                .thenReturn(Optional.of(member));
+
+        // when
+        String refreshToken =
+                memberService.getRefreshToken(1L);
+
+        // then
+        assertThat(refreshToken).isEqualTo("refresh-token");
+    }
+
+    @Test
+    @DisplayName("리프레시 토큰과 DB 저장값 비교")
+    void matchesRefreshToken() {
+        // given
+        Member member = createMember(
+                1L,
+                "habit_user",
+                "user@example.com",
+                "encoded-password"
+        );
+
+        member.updateRefreshToken("refresh-token");
+
+        when(memberRepository.findById(1L))
+                .thenReturn(Optional.of(member));
+
+        // when & then
+        assertThat(
+                memberService.matchesRefreshToken(
+                        1L,
+                        "refresh-token"
+                )
+        ).isTrue();
+
+        assertThat(
+                memberService.matchesRefreshToken(
+                        1L,
+                        "wrong-token"
+                )
+        ).isFalse();
+    }
+
+    private Member createMember(
+            Long id,
+            String nickname,
+            String username,
+            String encodedPassword
+    ) {
+        Member member = Member.create(
+                nickname,
+                username,
+                encodedPassword
+        );
+
+        ReflectionTestUtils.setField(member, "id", id);
+
+        return member;
+    }
+}

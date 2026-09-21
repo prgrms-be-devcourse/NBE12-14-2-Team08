@@ -1,8 +1,5 @@
 package com.back.domain.groupMember.dto;
 
-import com.back.domain.groupMember.entity.GroupMember;
-import com.back.domain.groupMember.entity.GroupMemberRole;
-
 public interface GroupMemberResponse {
 
     record Simple(
@@ -12,5 +9,13 @@ public interface GroupMemberResponse {
             String role,
             String habitTitle,
             String habitDescription
+    ) {}
+
+    record Detail(
+            Long groupMemberId,
+            Long memberId,
+            String nickname,
+            String role,
+            int penaltyCount
     ) {}
 }
