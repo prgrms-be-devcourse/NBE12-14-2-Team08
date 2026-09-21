@@ -9,6 +9,7 @@ import com.back.domain.groupMember.entity.GroupMemberRole;
 import com.back.domain.groupMember.repository.GroupMemberRepository;
 import com.back.domain.member.entity.Member;
 import com.back.domain.member.repository.MemberRepository;
+import com.back.global.exception.ForbiddenException;
 import com.back.global.exception.GroupLimitExceededException;
 import java.util.List;
 import java.util.NoSuchElementException;
@@ -58,6 +59,15 @@ public class GroupMemberService {
         return groupMemberRepository.findByGroupIdWithHabit(groupId);
     }
 
+    public GroupMemberResponse.Detail getGroupMemberDetail(Long groupId, Long groupMemberId, Long memberId) {
+        if (!groupMemberRepository.existsByGroupIdAndMemberId(groupId, memberId)) {
+            throw new ForbiddenException("해당 그룹의 접근 권한이 없습니다.");
+        }
+
+        return groupMemberRepository.findMemberDetailWithPenaltyCount(groupId, groupMemberId)
+                .orElseThrow(() -> new NoSuchElementException("존재하지 않거나 해당 그룹의 가입 멤버가 아닙니다."));
+    }
+
     @Transactional
     public void leaveGroup(Long groupId, Long memberId) {
         GroupMember groupMember = groupMemberRepository.findByGroupIdAndMemberId(groupId, memberId)
@@ -68,5 +78,28 @@ public class GroupMemberService {
         }
 
         groupMemberRepository.delete(groupMember);
+    }
+
+    @Transactional
+    public void kickMember(Long groupId, Long groupMemberId, Long memberId) {
+        GroupMember owner = groupMemberRepository.findByGroupIdAndMemberId(groupId, memberId)
+                .orElseThrow(() -> new NoSuchElementException("해당 그룹의 멤버가 아닙니다."));
+
+        if (owner.getRole() != GroupMemberRole.OWNER) {
+            throw new ForbiddenException("그룹 멤버 추방은 방장만 가능합니다.");
+        }
+
+        GroupMember kickTarget = groupMemberRepository.findById(groupMemberId)
+                .orElseThrow(() -> new NoSuchElementException("존재하지 않거나 해당 그룹의 멤버가 아닙니다."));
+
+        if (!kickTarget.getGroup().getId().equals(groupId)) {
+            throw new IllegalArgumentException("해당 그룹에 속한 멤버가 아닙니다.");
+        }
+
+        if (kickTarget.getId().equals(owner.getId())) {
+            throw new IllegalStateException("방장 스스로를 추방할 수 없습니다. 방 삭제를 이용해 주세요.");
+        }
+
+        groupMemberRepository.delete(kickTarget);
     }
 }

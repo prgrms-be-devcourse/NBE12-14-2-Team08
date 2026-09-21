@@ -38,11 +38,29 @@ public class GroupMemberController {
         return ResponseEntity.ok(response);
     }
 
+    @GetMapping("/{groupId}/members/{groupMemberId}")
+    public ResponseEntity<GroupMemberResponse.Detail> getGroupMemberDetail(
+            @PathVariable Long groupId,
+            @PathVariable Long groupMemberId,
+            @LoginMemberId Long memberId) {
+        GroupMemberResponse.Detail response = groupMemberService.getGroupMemberDetail(groupId, groupMemberId, memberId);
+        return ResponseEntity.ok(response);
+    }
+
     @DeleteMapping("/{groupId}/leave")
     public ResponseEntity<Void> leaveGroup(
             @PathVariable Long groupId,
             @LoginMemberId Long memberId) {
         groupMemberService.leaveGroup(groupId, memberId);
         return ResponseEntity.ok().build();
+    }
+
+    @DeleteMapping("/{groupId}/members/{groupMemberId}/kick")
+    public ResponseEntity<Void> kickMember(
+            @PathVariable Long groupId,
+            @PathVariable Long groupMemberId,
+            @LoginMemberId Long memberId) {
+        groupMemberService.kickMember(groupId, groupMemberId, memberId);
+        return ResponseEntity.noContent().build();
     }
 }
