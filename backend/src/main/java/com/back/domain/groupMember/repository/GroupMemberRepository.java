@@ -26,7 +26,7 @@ public interface GroupMemberRepository extends JpaRepository<GroupMember, Long> 
             "gm.id, m.id, m.nickname, cast(gm.role as string), cast(count(pv) as int)) " +
             "from GroupMember gm " +
             "join gm.member m " +
-            "left join PenaltyVerify pv on pv.groupMember.id = gm.id and pv.status = 'REQUIRED' " +
+            "left join PenaltyVerify pv on pv.groupMember.id = gm.id " +
             "where gm.group.id = :groupId and gm.id = :groupMemberId " +
             "group by gm.id, m.id, m.nickname, gm.role")
     Optional<GroupMemberResponse.Detail> findMemberDetailWithPenaltyCount(
