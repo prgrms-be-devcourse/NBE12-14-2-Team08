@@ -4,7 +4,6 @@ import com.back.domain.groupMember.entity.GroupMember;
 import com.back.domain.groupMember.repository.GroupMemberRepository;
 import com.back.domain.habit.dto.CreateHabitRequest;
 import com.back.domain.habit.dto.HabitResponse;
-import com.back.domain.habit.dto.UpdateHabitRequest;
 import com.back.domain.habit.entity.Habit;
 import com.back.domain.habit.entity.HabitStatus;
 import com.back.domain.habit.repository.HabitRepository;
