@@ -1,5 +1,7 @@
 package com.back.global.security;
 
+import com.back.domain.member.entity.MemberStatus;
+import com.back.domain.member.repository.MemberRepository;
 import com.back.domain.member.service.AuthTokenService;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -22,6 +24,7 @@ public class CustomAuthenticationFilter extends OncePerRequestFilter {
     private static final String BEARER_PREFIX = "Bearer ";
 
     private final AuthTokenService authTokenService;
+    private final MemberRepository memberRepository;
 
     @Override
     protected void doFilterInternal(
@@ -36,21 +39,23 @@ public class CustomAuthenticationFilter extends OncePerRequestFilter {
                 && authTokenService.validateToken(accessToken)
                 && authTokenService.isAccessToken(accessToken)) {
 
-            Long memberId =
-                    authTokenService.getMemberId(accessToken);
+            Long memberId = authTokenService.getMemberId(accessToken);
 
-            request.setAttribute("loginMemberId", memberId);
 
-            UsernamePasswordAuthenticationToken authentication =
-                    new UsernamePasswordAuthenticationToken(
-                            memberId,
-                            null,
-                            List.of()
-                    );
+            if (memberRepository.existsByIdAndStatus(memberId, MemberStatus.ACTIVE)) {
+                request.setAttribute("loginMemberId", memberId);
 
-            SecurityContextHolder
-                    .getContext()
-                    .setAuthentication(authentication);
+                UsernamePasswordAuthenticationToken authentication =
+                        new UsernamePasswordAuthenticationToken(
+                                memberId,
+                                null,
+                                List.of()
+                        );
+
+                SecurityContextHolder
+                        .getContext()
+                        .setAuthentication(authentication);
+            }
         }
 
         filterChain.doFilter(request, response);

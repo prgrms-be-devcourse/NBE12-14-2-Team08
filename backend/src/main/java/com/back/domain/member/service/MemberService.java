@@ -1,19 +1,26 @@
 package com.back.domain.member.service;
 
+import com.back.domain.group.entity.GroupStatus;
+import com.back.domain.groupMember.entity.GroupMember;
+import com.back.domain.groupMember.entity.GroupMemberStatus;
 import com.back.domain.groupMember.repository.GroupMemberRepository;
 import com.back.domain.member.dto.CreateMemberRequest;
 import com.back.domain.member.dto.LoginRequest;
 import com.back.domain.member.dto.MemberResponse;
 import com.back.domain.member.dto.UpdateMemberRequest;
 import com.back.domain.member.entity.Member;
+import com.back.domain.member.entity.MemberStatus;
 import com.back.domain.member.repository.MemberRepository;
 import com.back.global.exception.UnauthorizedException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
+import com.back.domain.group.entity.Group;
 import java.util.NoSuchElementException;
+
+import java.time.LocalDate;
+import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -68,6 +75,10 @@ public class MemberService {
             );
         }
 
+        if (member.getStatus() == MemberStatus.WITHDRAWN) {
+            throw new UnauthorizedException("탈퇴한 회원은 로그인할 수 없습니다.");
+        }
+
         return member.getId();
     }
 
@@ -115,20 +126,42 @@ public class MemberService {
     ) {
         Member member = findMember(memberId);
 
-        return member.matchesRefreshToken(refreshToken);
+        return member.getStatus() == MemberStatus.ACTIVE && member.matchesRefreshToken(refreshToken);
     }
 
     @Transactional
     public void deleteMember(Long memberId) {
         Member member = findMember(memberId);
 
-        if (groupMemberRepository.existsByMemberId(memberId)) {
+        if (member.getStatus() == MemberStatus.WITHDRAWN) {
+            throw new IllegalStateException("이미 탈퇴한 회원입니다.");
+        }
+
+        List<GroupMember> groupMembers =
+                groupMemberRepository.findAllByMemberId(memberId);
+        LocalDate today = LocalDate.now();
+
+        boolean hasActiveGroup = groupMembers.stream()
+                .anyMatch(gm -> gm.getStatus() == GroupMemberStatus.ACTIVE
+                        && isActiveGroup(gm.getGroup(), today));
+
+        if (hasActiveGroup) {
             throw new IllegalStateException(
-                    "참여 중인 방이 있어 회원 탈퇴를 할 수 없습니다."
+                    "진행 중인 방이 있어 회원 탈퇴를 할 수 없습니다."
             );
         }
 
-        memberRepository.delete(member);
+        groupMembers.stream()
+                .filter(gm -> !isActiveGroup(gm.getGroup(), today))
+                .forEach(GroupMember::leave);
+
+        member.withdraw();
+    }
+
+    private boolean isActiveGroup(Group group, LocalDate today) {
+        return group.getStatus() == GroupStatus.ACTIVE
+                && (group.getDeadline() == null
+                || !today.isAfter(group.getDeadline()));
     }
 
     private Member findMember(Long memberId) {
