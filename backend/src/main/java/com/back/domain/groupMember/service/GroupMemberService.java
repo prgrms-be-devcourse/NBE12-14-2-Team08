@@ -134,7 +134,8 @@ public class GroupMemberService {
         groupMemberRepository.delete(kickTarget);
     }
 
-    private void deleteGroupMemberDataBulk(Long groupMemberId) {
+    @Transactional
+    public void deleteGroupMemberDataBulk(Long groupMemberId) {
         List<Long> habitIds = habitRepository.findIdsByGroupMemberId(groupMemberId);
 
         if (!habitIds.isEmpty()) {
