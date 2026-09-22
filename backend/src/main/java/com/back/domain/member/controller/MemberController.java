@@ -29,6 +29,7 @@ public class MemberController {
         return ResponseEntity
                 .status(HttpStatus.CREATED)
                 .body(response);
+
     }
 
     @GetMapping("/me")

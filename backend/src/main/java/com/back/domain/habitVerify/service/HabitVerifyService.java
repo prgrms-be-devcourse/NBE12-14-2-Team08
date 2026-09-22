@@ -49,6 +49,19 @@ public class HabitVerifyService {
                     "해당 날짜에 이미 인증 기록이 있습니다."
             );
         }
+        if (request.imageUrl() != null) {
+
+            boolean exists =
+                    storageService.existsHabitImage(
+                            request.imageUrl()
+                    );
+
+            if (!exists) {
+                throw new IllegalArgumentException(
+                        "업로드된 이미지를 확인할 수 없습니다."
+                );
+            }
+        }
 
         HabitVerify habitVerify = HabitVerify.create(
                 habit, verifyDate,

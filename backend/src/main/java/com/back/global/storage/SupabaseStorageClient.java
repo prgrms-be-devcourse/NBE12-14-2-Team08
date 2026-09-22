@@ -60,7 +60,7 @@ public class SupabaseStorageClient {
                             HttpResponse.BodyHandlers.ofString()
                     );
 
-            if (!response.statusCodeIsSuccessful()) {
+            if (response.statusCode() < 200 || response.statusCode() >= 300) {
                 throw new IllegalArgumentException(
                         "Supabase 업로드 URL 발급에 실패했습니다."
                 );
