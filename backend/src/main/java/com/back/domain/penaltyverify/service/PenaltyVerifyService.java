@@ -31,11 +31,11 @@ public class PenaltyVerifyService {
 
     @Transactional
     public void createPenaltyVerify(
-            Habit habit
+        Habit habit
     ) {
         PenaltyVerify penaltyVerify = PenaltyVerify.create(
-                habit.getGroupMember(),
-                habit
+            habit.getGroupMember(),
+            habit
         );
 
         penaltyVerifyRepository.save(penaltyVerify);
@@ -104,7 +104,7 @@ public class PenaltyVerifyService {
         GroupMember requester = groupMemberRepository.findByGroupIdAndMemberId(groupId, memberId)
             .orElseThrow(() -> new AccessDeniedException("해당 방의 멤버가 아닙니다."));
 
-        if(requester.getRole() != GroupMemberRole.OWNER){
+        if (requester.getRole() != GroupMemberRole.OWNER) {
             throw new AccessDeniedException("방장만 대기 목록을 조회할 수 있습니다.");
         }
 
@@ -119,12 +119,10 @@ public class PenaltyVerifyService {
             .orElseThrow(() -> new NoSuchElementException("벌칙을 찾을 수 없습니다."));
 
         boolean isMember = groupMemberRepository.existsByGroupIdAndMemberId(
-            penaltyVerify.getHabit().getGroupMember().getGroup().getId(),memberId
+            penaltyVerify.getHabit().getGroupMember().getGroup().getId(), memberId
         );
 
-
-
-        if (!isMember){
+        if (!isMember) {
             throw new AccessDeniedException("같은 그룹의 멤버만 조회할 수 있습니다.");
         }
 
@@ -136,7 +134,17 @@ public class PenaltyVerifyService {
             memberId);
     }
 
-    public List<PenaltyVerifySummaryResponse> getPenaltiesByGroupMember(Long groupMemberId) {
+    public List<PenaltyVerifySummaryResponse> getPenaltiesByGroupMember(
+        Long memberId,
+        Long groupId,
+        Long groupMemberId) {
+
+        boolean isMember = groupMemberRepository.existsByGroupIdAndMemberId(groupId, memberId);
+
+        if (!isMember) {
+            throw new AccessDeniedException("같은 그룹의 멤버만 조회할 수 있습니다.");
+        }
+
         return penaltyVerifyRepository.findByGroupMemberIdOrderByIdDesc(groupMemberId).stream()
             .map(PenaltyVerifySummaryResponse::from)
             .toList();

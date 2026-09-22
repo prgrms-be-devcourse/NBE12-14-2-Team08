@@ -41,23 +41,25 @@ public class PenaltyVerifyController {
 
     @GetMapping("/penalties/{id}")
     public PenaltyVerifyDetailResponse getDetail(
-        @LoginMemberId Long MemberId,
+        @LoginMemberId Long memberId,
         @PathVariable Long id) {
-        return penaltyVerifyService.getDetail(MemberId, id);
+        return penaltyVerifyService.getDetail(memberId, id);
     }
 
     @GetMapping("/groups/{groupId}/penalties/count")
     public ResponseEntity<Map<String, Long>> getCount(@PathVariable Long groupId,
-        @LoginMemberId Long memberId){
-        long count =  penaltyVerifyService.getCount(groupId, memberId);
+        @LoginMemberId Long memberId) {
+        long count = penaltyVerifyService.getCount(groupId, memberId);
         return ResponseEntity.ok(Map.of("count", count));
     }
 
     @GetMapping("/groups/{groupId}/members/{groupMemberId}/penalties")
     public List<PenaltyVerifySummaryResponse> getPenaltyList(
-        @PathVariable Long groupId, @PathVariable Long groupMemberId
-    ){
-        return penaltyVerifyService.getPenaltiesByGroupMember(groupMemberId);
+        @LoginMemberId Long memberId,
+        @PathVariable Long groupId,
+        @PathVariable Long groupMemberId
+    ) {
+        return penaltyVerifyService.getPenaltiesByGroupMember(memberId, groupId, groupMemberId);
     }
 
     // 단건 승인
