@@ -1,5 +1,6 @@
 package com.back.domain.penaltyverify.service;
 
+import com.back.domain.groupMember.entity.GroupMember;
 import com.back.domain.groupMember.entity.GroupMemberRole;
 import com.back.domain.groupMember.repository.GroupMemberRepository;
 import com.back.domain.habit.entity.Habit;
@@ -15,6 +16,7 @@ import java.time.LocalDate;
 import java.util.List;
 import java.util.NoSuchElementException;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -29,11 +31,11 @@ public class PenaltyVerifyService {
 
     @Transactional
     public void createPenaltyVerify(
-            Habit habit
+        Habit habit
     ) {
         PenaltyVerify penaltyVerify = PenaltyVerify.create(
-                habit.getGroupMember(),
-                habit
+            habit.getGroupMember(),
+            habit
         );
 
         penaltyVerifyRepository.save(penaltyVerify);
@@ -97,14 +99,34 @@ public class PenaltyVerifyService {
         return targets.stream().map(PenaltyVerifyDetailResponse::from).toList();
     }
 
-    public List<PenaltyVerifySummaryResponse> getPendingByGroup(Long groupId) {
+    public List<PenaltyVerifySummaryResponse> getPendingByGroup(Long memberId, Long groupId) {
+
+        GroupMember requester = groupMemberRepository.findByGroupIdAndMemberId(groupId, memberId)
+            .orElseThrow(() -> new AccessDeniedException("해당 방의 멤버가 아닙니다."));
+
+        if (requester.getRole() != GroupMemberRole.OWNER) {
+            throw new AccessDeniedException("방장만 대기 목록을 조회할 수 있습니다.");
+        }
+
         return penaltyVerifyRepository.findPendingByGroupId(groupId).stream()
             .map(PenaltyVerifySummaryResponse::from)
             .toList();
     }
 
-    public PenaltyVerifyDetailResponse getDetail(Long id) {
-        return PenaltyVerifyDetailResponse.from(findById(id));
+    public PenaltyVerifyDetailResponse getDetail(Long memberId, Long id) {
+
+        PenaltyVerify penaltyVerify = penaltyVerifyRepository.findById(id)
+            .orElseThrow(() -> new NoSuchElementException("벌칙을 찾을 수 없습니다."));
+
+        boolean isMember = groupMemberRepository.existsByGroupIdAndMemberId(
+            penaltyVerify.getHabit().getGroupMember().getGroup().getId(), memberId
+        );
+
+        if (!isMember) {
+            throw new AccessDeniedException("같은 그룹의 멤버만 조회할 수 있습니다.");
+        }
+
+        return PenaltyVerifyDetailResponse.from(penaltyVerify);
     }
 
     public long getCount(Long groupId, Long memberId) {
@@ -112,7 +134,17 @@ public class PenaltyVerifyService {
             memberId);
     }
 
-    public List<PenaltyVerifySummaryResponse> getPenaltiesByGroupMember(Long groupMemberId) {
+    public List<PenaltyVerifySummaryResponse> getPenaltiesByGroupMember(
+        Long memberId,
+        Long groupId,
+        Long groupMemberId) {
+
+        boolean isMember = groupMemberRepository.existsByGroupIdAndMemberId(groupId, memberId);
+
+        if (!isMember) {
+            throw new AccessDeniedException("같은 그룹의 멤버만 조회할 수 있습니다.");
+        }
+
         return penaltyVerifyRepository.findByGroupMemberIdOrderByIdDesc(groupMemberId).stream()
             .map(PenaltyVerifySummaryResponse::from)
             .toList();
