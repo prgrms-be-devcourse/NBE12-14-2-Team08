@@ -54,8 +54,7 @@ public class HabitVerify extends BaseEntity {
     }
 
     public void update(
-            LocalDate verifyDate, HabitVerifyStatus status, String description, String imageUrl) {
-        this.verifyDate = verifyDate;
+           HabitVerifyStatus status, String description, String imageUrl) {
         this.status = status;
         this.description = description;
         this.imageUrl = imageUrl;
