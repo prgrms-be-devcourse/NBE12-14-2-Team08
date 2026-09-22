@@ -1,11 +1,17 @@
 package com.back.domain.member.service;
 
+import com.back.domain.group.entity.Group;
+import com.back.domain.group.entity.GroupStatus;
+import com.back.domain.groupMember.entity.GroupMember;
+import com.back.domain.groupMember.entity.GroupMemberRole;
+import com.back.domain.groupMember.entity.GroupMemberStatus;
 import com.back.domain.groupMember.repository.GroupMemberRepository;
 import com.back.domain.member.dto.CreateMemberRequest;
 import com.back.domain.member.dto.LoginRequest;
 import com.back.domain.member.dto.MemberResponse;
 import com.back.domain.member.dto.UpdateMemberRequest;
 import com.back.domain.member.entity.Member;
+import com.back.domain.member.entity.MemberStatus;
 import com.back.domain.member.repository.MemberRepository;
 import com.back.global.exception.UnauthorizedException;
 import org.junit.jupiter.api.DisplayName;
@@ -17,14 +23,14 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.util.ReflectionTestUtils;
 
+import java.time.LocalDate;
+import java.util.List;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 class MemberServiceTest {
@@ -238,55 +244,67 @@ class MemberServiceTest {
     }
 
     @Test
-    @DisplayName("참여 중인 방이 없으면 회원 탈퇴 성공")
+    @DisplayName("참여 중인 방이 없으면 회원을 WITHDRAWN으로 변경")
     void deleteMemberSuccess() {
-        // given
-        Member member = createMember(
-                1L,
-                "habit_user",
-                "user@example.com",
-                "encoded-password"
-        );
+        Member member = createMember(1L, "habit_user", "user@example.com", "encoded-password");
+        member.updateRefreshToken("refresh-token");
 
-        when(memberRepository.findById(1L))
-                .thenReturn(Optional.of(member));
+        when(memberRepository.findById(1L)).thenReturn(Optional.of(member));
+        when(groupMemberRepository.findAllByMemberId(1L)).thenReturn(List.of());
 
-        when(groupMemberRepository.existsByMemberId(1L))
-                .thenReturn(false);
-
-        // when
         memberService.deleteMember(1L);
 
-        // then
-        verify(memberRepository).delete(member);
+        assertThat(member.getStatus()).isEqualTo(MemberStatus.WITHDRAWN);
+        assertThat(member.getRefreshToken()).isNull();
+        verify(memberRepository, never()).delete(any(Member.class));
     }
 
     @Test
-    @DisplayName("참여 중인 방이 있으면 회원 탈퇴 실패")
+    @DisplayName("진행 중인 방에 참여 중이면 회원 탈퇴 실패")
     void deleteMemberFailWhenParticipatingInGroup() {
-        // given
-        Member member = createMember(
-                1L,
-                "habit_user",
-                "user@example.com",
-                "encoded-password"
-        );
+        Member member = createMember(1L, "habit_user", "user@example.com", "encoded-password");
+        Group group = Group.builder()
+                .title("테스트 방")
+                .deadline(LocalDate.now().plusDays(1))
+                .status(GroupStatus.ACTIVE)
+                .build();
+        GroupMember groupMember = GroupMember.create(group, member, GroupMemberRole.MEMBER);
 
-        when(memberRepository.findById(1L))
-                .thenReturn(Optional.of(member));
+        when(memberRepository.findById(1L)).thenReturn(Optional.of(member));
+        when(groupMemberRepository.findAllByMemberId(1L))
+                .thenReturn(List.of(groupMember));
 
-        when(groupMemberRepository.existsByMemberId(1L))
-                .thenReturn(true);
-
-        // when & then
         assertThatThrownBy(() -> memberService.deleteMember(1L))
                 .isInstanceOf(IllegalStateException.class)
-                .hasMessage(
-                        "참여 중인 방이 있어 회원 탈퇴를 할 수 없습니다."
-                );
+                .hasMessage("진행 중인 방이 있어 회원 탈퇴를 할 수 없습니다.");
 
-        verify(memberRepository, never())
-                .delete(any(Member.class));
+        assertThat(member.getStatus()).isEqualTo(MemberStatus.ACTIVE);
+        assertThat(groupMember.getStatus()).isEqualTo(GroupMemberStatus.ACTIVE);
+    }
+
+    @Test
+    @DisplayName("종료된 방의 기록은 LEFT로 남기고 회원 탈퇴")
+    void deleteMemberLeavesFinishedGroup() {
+        Member member = createMember(1L, "habit_user", "user@example.com", "encoded-password");
+        member.updateRefreshToken("refresh-token");
+
+        Group group = Group.builder()
+                .title("종료된 방")
+                .deadline(LocalDate.now().minusDays(1))
+                .status(GroupStatus.FINISH)
+                .build();
+        GroupMember groupMember = GroupMember.create(group, member, GroupMemberRole.MEMBER);
+
+        when(memberRepository.findById(1L)).thenReturn(Optional.of(member));
+        when(groupMemberRepository.findAllByMemberId(1L))
+                .thenReturn(List.of(groupMember));
+
+        memberService.deleteMember(1L);
+
+        assertThat(groupMember.getStatus()).isEqualTo(GroupMemberStatus.LEFT);
+        assertThat(member.getStatus()).isEqualTo(MemberStatus.WITHDRAWN);
+        assertThat(member.getRefreshToken()).isNull();
+        verify(memberRepository, never()).delete(any(Member.class));
     }
 
     @Test

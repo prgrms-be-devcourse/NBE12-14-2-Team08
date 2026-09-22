@@ -11,9 +11,11 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
-import org.springframework.context.annotation.Import;
+import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
+import org.springframework.boot.SpringBootConfiguration;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.context.ContextConfiguration;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -27,8 +29,18 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @WebMvcTest(controllers = AuthAndExceptionTest.TestController.class)
-@Import({WebMvcConfig.class, LoginMemberArgumentResolver.class, GlobalExceptionHandler.class})
+@AutoConfigureMockMvc(addFilters = false)
+@ContextConfiguration(classes = {
+        AuthAndExceptionTest.TestApplication.class,
+        AuthAndExceptionTest.TestController.class,
+        WebMvcConfig.class,
+        LoginMemberArgumentResolver.class,
+        GlobalExceptionHandler.class
+})
 class AuthAndExceptionTest {
+
+    @SpringBootConfiguration
+    static class TestApplication {}
 
     @Autowired
     private MockMvc mockMvc;

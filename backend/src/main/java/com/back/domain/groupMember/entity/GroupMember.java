@@ -38,11 +38,27 @@ public class GroupMember extends BaseEntity {
     @Column(nullable = false)
     private GroupMemberRole role;
 
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 20)
+    @Builder.Default
+    private GroupMemberStatus status = GroupMemberStatus.ACTIVE;
+
     public static GroupMember create(Group group, Member member, GroupMemberRole role) {
         GroupMember groupMember = new GroupMember();
         groupMember.group = group;
         groupMember.member = member;
         groupMember.role = role;
+        groupMember.status = GroupMemberStatus.ACTIVE;
         return groupMember;
+    }
+
+    public void changeRole(GroupMemberRole role) {
+        if (role != null) {
+            this.role = role;
+        }
+    }
+
+    public void leave() {
+        this.status = GroupMemberStatus.LEFT;
     }
 }
