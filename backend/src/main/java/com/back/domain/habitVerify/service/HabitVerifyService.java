@@ -65,7 +65,7 @@ public class HabitVerifyService {
 
         HabitVerify habitVerify = HabitVerify.create(
                 habit, verifyDate,
-                request.status(), request.description(),
+                request.description(),
                 request.imageUrl()
         );
 
@@ -119,7 +119,6 @@ public class HabitVerifyService {
                         );
 
         habitVerify.update(
-                request.status(),
                 request.description(),
                 request.imageUrl()
         );
