@@ -40,8 +40,10 @@ public class PenaltyVerifyController {
     }
 
     @GetMapping("/penalties/{id}")
-    public PenaltyVerifyDetailResponse getDetail(@PathVariable Long id) {
-        return penaltyVerifyService.getDetail(id);
+    public PenaltyVerifyDetailResponse getDetail(
+        @LoginMemberId Long MemberId,
+        @PathVariable Long id) {
+        return penaltyVerifyService.getDetail(MemberId, id);
     }
 
     @GetMapping("/groups/{groupId}/penalties/count")

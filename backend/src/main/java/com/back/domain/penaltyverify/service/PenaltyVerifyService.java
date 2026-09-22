@@ -113,8 +113,22 @@ public class PenaltyVerifyService {
             .toList();
     }
 
-    public PenaltyVerifyDetailResponse getDetail(Long id) {
-        return PenaltyVerifyDetailResponse.from(findById(id));
+    public PenaltyVerifyDetailResponse getDetail(Long memberId, Long id) {
+
+        PenaltyVerify penaltyVerify = penaltyVerifyRepository.findById(id)
+            .orElseThrow(() -> new NoSuchElementException("벌칙을 찾을 수 없습니다."));
+
+        boolean isMember = groupMemberRepository.existsByGroupIdAndMemberId(
+            penaltyVerify.getHabit().getGroupMember().getGroup().getId(),memberId
+        );
+
+
+
+        if (!isMember){
+            throw new AccessDeniedException("같은 그룹의 멤버만 조회할 수 있습니다.");
+        }
+
+        return PenaltyVerifyDetailResponse.from(penaltyVerify);
     }
 
     public long getCount(Long groupId, Long memberId) {
