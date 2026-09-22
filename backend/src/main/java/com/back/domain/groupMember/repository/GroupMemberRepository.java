@@ -42,4 +42,6 @@ public interface GroupMemberRepository extends JpaRepository<GroupMember, Long> 
     List<GroupMember> findAllByMemberId(Long memberId); //특정 회원이 들어갔던 방 정보 불러오기
 
     long countByGroupId(Long groupId);
+
+    boolean existsByIdAndGroupId(Long groupMemberId, Long groupId);
 }
