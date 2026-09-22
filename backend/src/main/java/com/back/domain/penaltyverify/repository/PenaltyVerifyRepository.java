@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.Optional;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
@@ -38,4 +39,7 @@ public interface PenaltyVerifyRepository extends JpaRepository<PenaltyVerify, Lo
     @EntityGraph(attributePaths = {"groupMember", "groupMember.member", "habit"})
     List<PenaltyVerify> findByGroupMemberIdOrderByIdDesc(Long groupMemberId);
 
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Query("delete from PenaltyVerify pv where pv.groupMember.id = :groupMemberId")
+    void deleteByGroupMemberId(@Param("groupMemberId") Long groupMemberId);
 }

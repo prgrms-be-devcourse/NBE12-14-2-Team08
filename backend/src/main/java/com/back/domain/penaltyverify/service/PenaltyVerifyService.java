@@ -16,6 +16,7 @@ import java.time.LocalDate;
 import java.util.List;
 import java.util.NoSuchElementException;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -29,14 +30,11 @@ public class PenaltyVerifyService {
     private final HabitRepository habitRepository;
 
     @Transactional
-    public void createPenaltyVerify(
-            Habit habit
-    ) {
+    public void createPenaltyVerify(Habit habit) {
         PenaltyVerify penaltyVerify = PenaltyVerify.create(
-                habit.getGroupMember(),
-                habit
+            habit.getGroupMember(),
+            habit
         );
-
         penaltyVerifyRepository.save(penaltyVerify);
     }
 
@@ -81,9 +79,7 @@ public class PenaltyVerifyService {
     public List<PenaltyVerifyDetailResponse> bulkApprove(Long memberId, Long groupId,
         BulkActionRequest request) {
         validateOwner(memberId, groupId);
-        // groupId로 스코프를 좁혀서 조회 -> 요청 ids에 타 그룹 벌칙이 섞여도 그 항목은 애초에 조회되지 않음
-        List<PenaltyVerify> targets = penaltyVerifyRepository.findAllByIdInAndGroupId(request.ids(),
-            groupId);
+        List<PenaltyVerify> targets = penaltyVerifyRepository.findAllByIdInAndGroupId(request.ids(), groupId);
         targets.forEach(PenaltyVerify::approve);
         return targets.stream().map(PenaltyVerifyDetailResponse::from).toList();
     }
@@ -92,41 +88,58 @@ public class PenaltyVerifyService {
     public List<PenaltyVerifyDetailResponse> bulkReject(Long memberId, Long groupId,
         BulkActionRequest request) {
         validateOwner(memberId, groupId);
-        List<PenaltyVerify> targets = penaltyVerifyRepository.findAllByIdInAndGroupId(request.ids(),
-            groupId);
+        List<PenaltyVerify> targets = penaltyVerifyRepository.findAllByIdInAndGroupId(request.ids(), groupId);
         targets.forEach(PenaltyVerify::reject);
         return targets.stream().map(PenaltyVerifyDetailResponse::from).toList();
     }
 
-    public List<PenaltyVerifySummaryResponse> getPendingByGroup(Long groupId) {
+    // 방장만 대기 목록 조회 가능
+    public List<PenaltyVerifySummaryResponse> getPendingByGroup(Long memberId, Long groupId) {
+        GroupMember requester = groupMemberRepository.findByGroupIdAndMemberId(groupId, memberId)
+            .orElseThrow(() -> new AccessDeniedException("해당 방의 멤버가 아닙니다."));
+
+        if (requester.getRole() != GroupMemberRole.OWNER) {
+            throw new AccessDeniedException("방장만 대기 목록을 조회할 수 있습니다.");
+        }
+
         return penaltyVerifyRepository.findPendingByGroupId(groupId).stream()
             .map(PenaltyVerifySummaryResponse::from)
             .toList();
     }
 
-    public PenaltyVerifyDetailResponse getDetail(Long id) {
-        return PenaltyVerifyDetailResponse.from(findById(id));
+    public PenaltyVerifyDetailResponse getDetail(Long memberId, Long id) {
+        PenaltyVerify penaltyVerify = findById(id);
+
+        boolean isMember = groupMemberRepository.existsByGroupIdAndMemberId(
+            penaltyVerify.getHabit().getGroupMember().getGroup().getId(), memberId
+        );
+
+        if (!isMember) {
+            throw new AccessDeniedException("같은 그룹의 멤버만 조회할 수 있습니다.");
+        }
+
+        return PenaltyVerifyDetailResponse.from(penaltyVerify);
     }
 
     public long getCount(Long groupId, Long memberId) {
-        return penaltyVerifyRepository.countByGroupMember_Group_IdAndGroupMember_Member_Id(groupId,
-            memberId);
+        return penaltyVerifyRepository.countByGroupMember_Group_IdAndGroupMember_Member_Id(groupId, memberId);
     }
 
-    public List<PenaltyVerifySummaryResponse> getPenaltiesByGroupMember(Long groupId, Long groupMemberId) {
+    public List<PenaltyVerifySummaryResponse> getPenaltiesByGroupMember(Long memberId, Long groupId, Long groupMemberId) {
+        boolean isMember = groupMemberRepository.existsByGroupIdAndMemberId(groupId, memberId);
+        if (!isMember) {
+            throw new AccessDeniedException("같은 그룹의 멤버만 조회할 수 있습니다.");
+        }
 
-        boolean exists = groupMemberRepository.existsByIdAndGroupId(groupMemberId, groupId);
-        if (!exists) {
+        if (!groupMemberRepository.existsByIdAndGroupId(groupMemberId, groupId)) {
             throw new IllegalArgumentException("해당 그룹에 속하지 않은 멤버입니다.");
         }
 
         return penaltyVerifyRepository.findByGroupMemberIdOrderByIdDesc(groupMemberId).stream()
             .map(PenaltyVerifySummaryResponse::from)
             .toList();
-
     }
 
-    // 본인이 작성했거나, 해당 그룹의 방장인 경우에만 삭제 가능
     @Transactional
     public void delete(Long memberId, Long id) {
         PenaltyVerify penaltyVerify = findById(id);
@@ -152,11 +165,9 @@ public class PenaltyVerifyService {
         }
     }
 
-    // memberId가 groupId의 방장인지 여부만 반환 (예외 안 던짐 - delete에서 author 체크와 함께 써야 해서 분리)
     private boolean isGroupOwner(Long memberId, Long groupId) {
         return groupMemberRepository.findByGroupIdAndMemberId(groupId, memberId)
             .map(gm -> gm.getRole() == GroupMemberRole.OWNER)
             .orElse(false);
     }
-
 }

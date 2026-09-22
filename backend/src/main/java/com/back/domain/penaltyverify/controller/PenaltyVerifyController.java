@@ -54,25 +54,31 @@ public class PenaltyVerifyController {
     }
 
     @GetMapping("/penalties/{id}")
-    public PenaltyVerifyDetailResponse getDetail(@PathVariable Long id) {
-        return penaltyVerifyService.getDetail(id);
+    public PenaltyVerifyDetailResponse getDetail(
+        @LoginMemberId Long memberId,
+        @PathVariable Long id
+    ) {
+        return penaltyVerifyService.getDetail(memberId, id);
     }
 
     @GetMapping("/groups/{groupId}/penalties/count")
-    public ResponseEntity<Map<String, Long>> getCount(@PathVariable Long groupId,
-        @LoginMemberId Long memberId){
-        long count =  penaltyVerifyService.getCount(groupId, memberId);
+    public ResponseEntity<Map<String, Long>> getCount(
+        @PathVariable Long groupId,
+        @LoginMemberId Long memberId
+    ) {
+        long count = penaltyVerifyService.getCount(groupId, memberId);
         return ResponseEntity.ok(Map.of("count", count));
     }
 
     @GetMapping("/groups/{groupId}/members/{groupMemberId}/penalties")
     public List<PenaltyVerifySummaryResponse> getPenaltyList(
-        @PathVariable Long groupId, @PathVariable Long groupMemberId
-    ){
-        return penaltyVerifyService.getPenaltiesByGroupMember(groupId, groupMemberId);
+        @LoginMemberId Long memberId,
+        @PathVariable Long groupId,
+        @PathVariable Long groupMemberId
+    ) {
+        return penaltyVerifyService.getPenaltiesByGroupMember(memberId, groupId, groupMemberId);
     }
 
-    // 단건 승인
     @PatchMapping("/penalties/{id}/approve")
     public PenaltyVerifyDetailResponse approve(
         @LoginMemberId Long memberId,
@@ -90,8 +96,11 @@ public class PenaltyVerifyController {
     }
 
     @GetMapping("/groups/{groupId}/penalties/pending")
-    public List<PenaltyVerifySummaryResponse> getPending(@PathVariable Long groupId) {
-        return penaltyVerifyService.getPendingByGroup(groupId);
+    public List<PenaltyVerifySummaryResponse> getPending(
+        @LoginMemberId Long memberId,
+        @PathVariable Long groupId
+    ) {
+        return penaltyVerifyService.getPendingByGroup(memberId, groupId);
     }
 
     @PatchMapping("/groups/{groupId}/penalties/bulk-approve")
@@ -115,7 +124,8 @@ public class PenaltyVerifyController {
     @DeleteMapping("/penalties/{id}")
     public ResponseEntity<Void> delete(
         @LoginMemberId Long memberId,
-        @PathVariable Long id) {
+        @PathVariable Long id
+    ) {
         penaltyVerifyService.delete(memberId, id);
         return ResponseEntity.noContent().build();
     }
