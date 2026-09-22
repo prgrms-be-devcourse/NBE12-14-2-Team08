@@ -70,6 +70,7 @@ public class GroupService {
         return groupRepository.findMyGroupsWithCount(memberId);
     }
 
+    @Transactional
     public GroupResponse.Detail getGroupDetail(Long groupId, Long memberId) {
         Group group = groupRepository.findById(groupId)
                 .orElseThrow(() -> new EntityNotFoundException("존재하지 않는 그룹입니다."));
