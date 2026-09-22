@@ -15,6 +15,7 @@ import com.back.domain.member.repository.MemberRepository;
 import com.back.domain.penaltyverify.repository.PenaltyVerifyRepository;
 import com.back.global.exception.ForbiddenException;
 import com.back.global.exception.GroupLimitExceededException;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.NoSuchElementException;
 import lombok.RequiredArgsConstructor;
@@ -37,6 +38,10 @@ public class GroupMemberService {
     public void joinGroup(Long memberId, GroupRequest.Join request) {
         Group group = groupRepository.findByInviteCode(request.inviteCode())
                 .orElseThrow(() -> new NoSuchElementException("유효하지 않거나 존재하지 않는 초대 코드입니다."));
+
+        if (group.getStatus() == GroupStatus.FINISH || LocalDate.now().isAfter(group.getDeadline())) {
+            throw new IllegalStateException("이미 종료된 그룹입니다.");
+        }
 
         if (groupMemberRepository.existsByGroupIdAndMemberId(group.getId(), memberId)) {
             return;
@@ -118,9 +123,10 @@ public class GroupMemberService {
         }
 
         Group group = kickTarget.getGroup();
-        if (group.getStatus() == GroupStatus.FINISH) {
-            throw new IllegalStateException("이미 결산 종료된 그룹은 멤버를 추방할 수 없습니다.");
+        if (group.getStatus() == GroupStatus.FINISH || LocalDate.now().isAfter(group.getDeadline())) {
+            throw new IllegalStateException("이미 종료된 그룹은 멤버를 추방할 수 없습니다.");
         }
+
 
         deleteGroupMemberDataBulk(kickTarget.getId());
 

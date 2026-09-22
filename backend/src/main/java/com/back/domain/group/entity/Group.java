@@ -72,4 +72,8 @@ public class Group extends BaseEntity {
         }
     }
 
+    public void finish() {
+        this.status = GroupStatus.FINISH;
+    }
+
 }

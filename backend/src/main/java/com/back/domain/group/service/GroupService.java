@@ -3,6 +3,7 @@ package com.back.domain.group.service;
 import com.back.domain.group.dto.GroupRequest;
 import com.back.domain.group.dto.GroupResponse;
 import com.back.domain.group.entity.Group;
+import com.back.domain.group.entity.GroupStatus;
 import com.back.domain.group.repository.GroupRepository;
 import com.back.domain.groupMember.entity.GroupMember;
 import com.back.domain.groupMember.entity.GroupMemberRole;
@@ -10,15 +11,16 @@ import com.back.domain.groupMember.repository.GroupMemberRepository;
 import com.back.domain.member.entity.Member;
 import com.back.domain.member.repository.MemberRepository;
 import com.back.global.exception.ForbiddenException;
-import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-
+import java.time.LocalDate;
 import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.UUID;
+import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.scheduling.annotation.Scheduled;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @RequiredArgsConstructor
@@ -75,6 +77,10 @@ public class GroupService {
             throw new ForbiddenException("해당 그룹의 접근 권한이 없습니다.");
         }
 
+        if (group.getStatus() == GroupStatus.ACTIVE && LocalDate.now().isAfter(group.getDeadline())) {
+            group.finish();
+        }
+
         return GroupResponse.Detail.from(group, baseInviteUrl);
     }
 
@@ -82,6 +88,10 @@ public class GroupService {
     public void updateGroup(Long groupId, Long memberId, GroupRequest.Update request) {
         Group group = groupRepository.findById(groupId)
                 .orElseThrow(() -> new NoSuchElementException("존재하지 않는 그룹입니다."));
+
+        if (group.getStatus() == GroupStatus.FINISH || LocalDate.now().isAfter(group.getDeadline())) {
+            throw new IllegalStateException("이미 종료된 그룹은 수정할 수 없습니다.");
+        }
 
         GroupMember groupMember = groupMemberRepository.findByGroupIdAndMemberId(groupId, memberId)
                 .orElseThrow(() -> new ForbiddenException("해당 그룹의 접근 권한이 없습니다."));
@@ -110,6 +120,10 @@ public class GroupService {
         Group group = groupRepository.findById(groupId)
                 .orElseThrow(() -> new NoSuchElementException("존재하지 않는 그룹입니다."));
 
+        if (group.getStatus() == GroupStatus.FINISH || LocalDate.now().isAfter(group.getDeadline())) {
+            throw new IllegalStateException("이미 종료된 그룹은 삭제할 수 없습니다.");
+        }
+
         GroupMember groupMember = groupMemberRepository.findByGroupIdAndMemberId(groupId, memberId)
                 .orElseThrow(() -> new ForbiddenException("해당 그룹의 권한이 없습니다."));
 
@@ -118,6 +132,14 @@ public class GroupService {
         }
 
         groupRepository.delete(group);
+    }
+
+    @Transactional
+    @Scheduled(cron = "1 0 0 * * *")
+    public void autoCloseExpiredGroups() {
+        LocalDate today = LocalDate.now();
+
+        groupRepository.bulkFinishExpiredGroups(today);
     }
 
     private String generateUniqueInviteCode() {
