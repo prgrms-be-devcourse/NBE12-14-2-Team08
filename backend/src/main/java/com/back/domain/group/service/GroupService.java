@@ -8,6 +8,7 @@ import com.back.domain.group.repository.GroupRepository;
 import com.back.domain.groupMember.entity.GroupMember;
 import com.back.domain.groupMember.entity.GroupMemberRole;
 import com.back.domain.groupMember.repository.GroupMemberRepository;
+import com.back.domain.groupMember.service.GroupMemberService;
 import com.back.domain.member.entity.Member;
 import com.back.domain.member.repository.MemberRepository;
 import com.back.global.exception.BusinessRuleException;
@@ -31,6 +32,7 @@ public class GroupService {
     private final PasswordEncoder passwordEncoder;
     private final GroupMemberRepository groupMemberRepository;
     private final MemberRepository memberRepository;
+    private final GroupMemberService groupMemberService;
 
     @Value("${app.invite-base-url}")
     private String baseInviteUrl;
@@ -133,6 +135,14 @@ public class GroupService {
             throw new ForbiddenException("그룹 삭제는 방장만 가능합니다.");
         }
 
+        long totalMemberCount = groupMemberRepository.countByGroupId(groupId);
+        if (totalMemberCount > 1) {
+            throw new BusinessRuleException("그룹을 삭제하려면 방장을 제외한 모든 멤버가 퇴장해야 합니다.");
+        }
+
+        groupMemberService.deleteGroupMemberDataBulk(groupMember.getId());
+
+        groupMemberRepository.delete(groupMember);
         groupRepository.delete(group);
     }
 
