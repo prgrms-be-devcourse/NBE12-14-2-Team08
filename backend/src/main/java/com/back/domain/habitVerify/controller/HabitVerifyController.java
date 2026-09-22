@@ -32,7 +32,6 @@ public class HabitVerifyController {
                         request,
                         memberId
                 );
-
         return ResponseEntity
                 .status(HttpStatus.CREATED)
                 .body(response);
@@ -73,7 +72,6 @@ public class HabitVerifyController {
             @PathVariable Long verificationId,
             @LoginMemberId Long memberId
     ) {
-
         habitVerifyService.delete(
                 habitId,
                 verificationId,

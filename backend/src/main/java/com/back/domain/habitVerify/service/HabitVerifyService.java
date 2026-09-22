@@ -80,7 +80,14 @@ public class HabitVerifyService {
             HabitVerifyRequest request,
             Long memberId
     ) {
-
+        habitRepository.findByIdAndGroupMember_Member_Id(
+                habitId,
+                memberId
+        ).orElseThrow(() ->
+                new IllegalArgumentException(
+                        "권한이 없는 습관입니다."
+                )
+        );
         HabitVerify habitVerify =
                 habitVerifyRepository
                         .findByIdAndHabitId(
