@@ -3,6 +3,7 @@ package com.back.domain.habitVerify.controller;
 import com.back.domain.habitVerify.dto.HabitVerifyRequest;
 import com.back.domain.habitVerify.dto.HabitVerifyResponse;
 import com.back.domain.habitVerify.service.HabitVerifyService;
+import com.back.global.security.LoginMemberId;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -21,12 +22,15 @@ public class HabitVerifyController {
     @PostMapping
     public ResponseEntity<HabitVerifyResponse> create(
             @PathVariable Long habitId,
-            @Valid @RequestBody HabitVerifyRequest request
+            @Valid @RequestBody HabitVerifyRequest request,
+            @LoginMemberId Long memberId
     ) {
 
         HabitVerifyResponse response =
                 habitVerifyService.create(
-                        habitId, request
+                        habitId,
+                        request,
+                        memberId
                 );
 
         return ResponseEntity
@@ -36,11 +40,12 @@ public class HabitVerifyController {
 
     @GetMapping
     public ResponseEntity<List<HabitVerifyResponse>> findAll(
-            @PathVariable Long habitId
+            @PathVariable Long habitId,
+             @LoginMemberId Long memberId
     ) {
 
         return ResponseEntity.ok(
-                habitVerifyService.findAll(habitId)
+                habitVerifyService.findAll(habitId, memberId)
         );
     }
 
@@ -48,14 +53,16 @@ public class HabitVerifyController {
     public ResponseEntity<HabitVerifyResponse> update(
             @PathVariable Long habitId,
             @PathVariable Long verificationId,
-            @Valid @RequestBody HabitVerifyRequest request
+            @Valid @RequestBody HabitVerifyRequest request,
+            @LoginMemberId Long memberId
     ) {
 
         return ResponseEntity.ok(
                 habitVerifyService.update(
                         habitId,
                         verificationId,
-                        request
+                        request,
+                        memberId
                 )
         );
     }
@@ -63,12 +70,14 @@ public class HabitVerifyController {
     @DeleteMapping("/{verificationId}")
     public ResponseEntity<Void> delete(
             @PathVariable Long habitId,
-            @PathVariable Long verificationId
+            @PathVariable Long verificationId,
+            @LoginMemberId Long memberId
     ) {
 
         habitVerifyService.delete(
                 habitId,
-                verificationId
+                verificationId,
+                memberId
         );
 
         return ResponseEntity.noContent().build();

@@ -21,10 +21,12 @@ public class HabitVerifyService {
     @Transactional
     public HabitVerifyResponse create(
             Long habitId,
-            HabitVerifyRequest request
+            HabitVerifyRequest request,
+            Long memberId
+
     ) {
 
-        Habit habit = habitRepository.findById(habitId)
+        Habit habit = habitRepository.findByIdAndGroupMember_Member_Id(habitId, memberId)
                 .orElseThrow(() ->
                         new IllegalArgumentException(
                                 "존재하지 않는 습관입니다."
@@ -57,9 +59,13 @@ public class HabitVerifyService {
 
     @Transactional(readOnly = true)
     public List<HabitVerifyResponse> findAll(
-            Long habitId
-    ) {
-
+            Long habitId, Long memberId
+    ){ habitRepository.findByIdAndGroupMember_Member_Id(
+            habitId,
+            memberId
+    ).orElseThrow(() ->
+            new IllegalArgumentException("권한이 없는 습관입니다.")
+    );
         return habitVerifyRepository
                 .findAllByHabitIdOrderByVerifyDateDesc(habitId)
                 .stream()
@@ -71,7 +77,8 @@ public class HabitVerifyService {
     public HabitVerifyResponse update(
             Long habitId,
             Long verificationId,
-            HabitVerifyRequest request
+            HabitVerifyRequest request,
+            Long memberId
     ) {
 
         HabitVerify habitVerify =
@@ -113,9 +120,17 @@ public class HabitVerifyService {
     @Transactional
     public void delete(
             Long habitId,
-            Long verificationId
+            Long verificationId,
+            Long memberId
     ) {
-
+        habitRepository.findByIdAndGroupMember_Member_Id(
+                habitId,
+                memberId
+        ).orElseThrow(() ->
+                new IllegalArgumentException(
+                        "권한이 없는 습관입니다."
+                )
+        );
         HabitVerify habitVerify =
                 habitVerifyRepository
                         .findByIdAndHabitId(
