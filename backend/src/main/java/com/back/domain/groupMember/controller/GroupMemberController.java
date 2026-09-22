@@ -10,6 +10,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -62,5 +63,14 @@ public class GroupMemberController {
             @LoginMemberId Long memberId) {
         groupMemberService.kickMember(groupId, groupMemberId, memberId);
         return ResponseEntity.noContent().build();
+    }
+
+    @PatchMapping("/{groupId}/members/{groupMemberId}/delegate")
+    public ResponseEntity<Void> transferOwner(
+            @PathVariable Long groupId,
+            @PathVariable Long groupMemberId,
+            @LoginMemberId Long memberId) {
+        groupMemberService.transferOwner(groupId, groupMemberId, memberId);
+        return ResponseEntity.ok().build();
     }
 }

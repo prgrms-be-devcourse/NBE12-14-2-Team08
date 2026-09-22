@@ -102,4 +102,28 @@ public class GroupMemberService {
 
         groupMemberRepository.delete(kickTarget);
     }
+
+    @Transactional
+    public void transferOwner(Long groupId, Long groupMemberId, Long memberId) {
+        GroupMember currentOwner = groupMemberRepository.findByGroupIdAndMemberId(groupId, memberId)
+                .orElseThrow(() -> new NoSuchElementException("해당 그룹의 접근 권한이 없습니다."));
+
+        if (currentOwner.getRole() != GroupMemberRole.OWNER) {
+            throw new ForbiddenException("방장 권한 위임은 현재 방장만 가능합니다.");
+        }
+
+        GroupMember nextOwner = groupMemberRepository.findById(groupMemberId)
+                .orElseThrow(() -> new NoSuchElementException("권한을 위임할 대상 멤버가 존재하지 않습니다."));
+
+        if (!nextOwner.getGroup().getId().equals(groupId)) {
+            throw new IllegalArgumentException("해당 그룹에 속한 멤버가 아닙니다.");
+        }
+
+        if (nextOwner.getId().equals(currentOwner.getId())) {
+            throw new IllegalStateException("자기 자신에게 방장 권한을 위임할 수 없습니다.");
+        }
+
+        currentOwner.changeRole(GroupMemberRole.MEMBER);
+        nextOwner.changeRole(GroupMemberRole.OWNER);
+    }
 }
