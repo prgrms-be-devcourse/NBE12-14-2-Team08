@@ -2,13 +2,17 @@ package com.back.domain.groupMember.service;
 
 import com.back.domain.group.dto.GroupRequest;
 import com.back.domain.group.entity.Group;
+import com.back.domain.group.entity.GroupStatus;
 import com.back.domain.group.repository.GroupRepository;
 import com.back.domain.groupMember.dto.GroupMemberResponse;
 import com.back.domain.groupMember.entity.GroupMember;
 import com.back.domain.groupMember.entity.GroupMemberRole;
 import com.back.domain.groupMember.repository.GroupMemberRepository;
+import com.back.domain.habit.repository.HabitRepository;
+import com.back.domain.habitVerify.repository.HabitVerifyRepository;
 import com.back.domain.member.entity.Member;
 import com.back.domain.member.repository.MemberRepository;
+import com.back.domain.penaltyverify.repository.PenaltyVerifyRepository;
 import com.back.global.exception.ForbiddenException;
 import com.back.global.exception.GroupLimitExceededException;
 import java.util.List;
@@ -24,6 +28,10 @@ public class GroupMemberService {
     private final GroupMemberRepository groupMemberRepository;
     private final GroupRepository groupRepository;
     private final MemberRepository memberRepository;
+
+    private final HabitRepository habitRepository;
+    private final HabitVerifyRepository habitVerifyRepository;
+    private final PenaltyVerifyRepository penaltyVerifyRepository;
 
     @Transactional
     public void joinGroup(Long memberId, GroupRequest.Join request) {
@@ -51,7 +59,7 @@ public class GroupMemberService {
         groupMemberRepository.save(groupMember);
     }
 
-    public List<GroupMemberResponse.Simple> getGroupMembers (Long groupId, Long memberId) {
+    public List<GroupMemberResponse.Simple> getGroupMembers(Long groupId, Long memberId) {
         if (!groupMemberRepository.existsByGroupIdAndMemberId(groupId, memberId)) {
             throw new NoSuchElementException("해당 그룹의 접근 권한이 없거나 존재하지 않는 그룹입니다.");
         }
@@ -73,11 +81,20 @@ public class GroupMemberService {
         GroupMember groupMember = groupMemberRepository.findByGroupIdAndMemberId(groupId, memberId)
                 .orElseThrow(() -> new NoSuchElementException("해당 그룹의 멤버가 아닙니다."));
 
+        Group group = groupMember.getGroup();
         if (groupMember.getRole() == GroupMemberRole.OWNER) {
-            throw new IllegalStateException("방장은 그룹을 탈퇴할 수 없습니다. 방 삭제 기능을 이용해 주세요.");
+            if (group.getStatus() == GroupStatus.ACTIVE) {
+                throw new IllegalStateException("방장은 그룹 활성화 상태에서 그룹을 바로 탈퇴할 수 없습니다. 권한 위임 후 탈퇴해 주세요.");
+            }
         }
 
-        groupMemberRepository.delete(groupMember);
+        if (group.getStatus() == GroupStatus.ACTIVE) {
+            deleteGroupMemberDataBulk(groupMember.getId());
+
+            groupMemberRepository.delete(groupMember);
+        } else if (group.getStatus() == GroupStatus.FINISH) {
+            groupMember.leave();
+        }
     }
 
     @Transactional
@@ -100,7 +117,28 @@ public class GroupMemberService {
             throw new IllegalStateException("방장 스스로를 추방할 수 없습니다. 방 삭제를 이용해 주세요.");
         }
 
+        Group group = kickTarget.getGroup();
+        if (group.getStatus() == GroupStatus.FINISH) {
+            throw new IllegalStateException("이미 결산 종료된 그룹은 멤버를 추방할 수 없습니다.");
+        }
+
+        deleteGroupMemberDataBulk(kickTarget.getId());
+
         groupMemberRepository.delete(kickTarget);
+    }
+
+    private void deleteGroupMemberDataBulk(Long groupMemberId) {
+        List<Long> habitIds = habitRepository.findIdsByGroupMemberId(groupMemberId);
+
+        if (!habitIds.isEmpty()) {
+            habitVerifyRepository.deleteByHabitIds(habitIds);
+        }
+
+        penaltyVerifyRepository.deleteByGroupMemberId(groupMemberId);
+
+        if (!habitIds.isEmpty()) {
+            habitRepository.deleteByIds(habitIds);
+        }
     }
 
     @Transactional
