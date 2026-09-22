@@ -35,3 +35,10 @@ jwt:
   secret: ${JWT_SECRET:local-development-jwt-secret-key-1234567890}
   access-expiration: ${JWT_ACCESS_EXPIRATION:1800000}
 
+supabase:
+  url: "https://akddfxudxdicwjpaword.supabase.co"
+  service-role-key: ${SUPABASE_SERVICE_ROLE_KEY:}
+  storage:
+    habit-bucket: "habit-verifications"
+    penalty-bucket: "penalty-verifications"
+    url-expiration-seconds: 300
