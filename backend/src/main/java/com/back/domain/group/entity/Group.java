@@ -3,6 +3,8 @@ package com.back.domain.group.entity;
 import com.back.global.entity.BaseEntity;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.Table;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
@@ -37,6 +39,11 @@ public class Group extends BaseEntity {
 
     private int memberLimit;
 
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 20)
+    @Builder.Default
+    private GroupStatus status = GroupStatus.ACTIVE;
+
     public void updateGroup(String title, String description, LocalDate deadline, String penalty, String password,
                             int memberLimit) {
 
@@ -63,6 +70,10 @@ public class Group extends BaseEntity {
         if (memberLimit > 0) {
             this.memberLimit = memberLimit;
         }
+    }
+
+    public void finish() {
+        this.status = GroupStatus.FINISH;
     }
 
 }
