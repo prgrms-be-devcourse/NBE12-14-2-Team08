@@ -12,6 +12,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
+import java.time.ZoneId;
 import java.util.List;
 
 @Service
@@ -36,7 +37,9 @@ public class HabitVerifyService {
                                 "존재하지 않는 습관입니다."
                         )
                 );
-        LocalDate verifyDate = LocalDate.now();
+        //한국시간기준
+        LocalDate verifyDate = LocalDate.now(ZoneId.of("Asia/Seoul"));
+
 
         boolean alreadyExists =
                 habitVerifyRepository.existsByHabitIdAndVerifyDate(

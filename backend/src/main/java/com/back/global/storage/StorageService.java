@@ -11,6 +11,20 @@ public class StorageService {
 
     private final StorageProperties properties;
     private final SupabaseStorageClient supabaseStorageClient;
+//.jpg, .jpeg, .png, .webp 형식인지 검증하는 메서드
+    private void validateImageExtension(String extension) {
+
+        String normalizedExtension = extension.toLowerCase();
+
+        if (!normalizedExtension.equals(".jpg") && !normalizedExtension.equals(".jpeg") &&
+                !normalizedExtension.equals(".png") && !normalizedExtension.equals(".webp")) {
+
+            throw new IllegalArgumentException(
+                    "허용되지 않는 이미지 파일 형식입니다."
+
+            );
+        }
+    }
 
     // 습관 인증 사진 업로드 URL 발급
     public UploadUrlResponse createHabitUploadUrl(
@@ -29,6 +43,7 @@ public class StorageService {
         }
 
         String extension = filename.substring(dotIndex);
+        validateImageExtension(extension);
 
         // Storage에 저장할 파일 경로
         String path =
@@ -46,7 +61,10 @@ public class StorageService {
 
         // 프론트가 사용할 업로드 URL
         String uploadUrl =
-                properties.url() + signedPath;
+                properties.url()
+                        + "/storage/v1"
+                        + signedPath;
+
 
         // 업로드 후 사용할 이미지 URL
         String publicUrl =
