@@ -34,7 +34,7 @@ public interface GroupRequest {
     ) {}
 
     record Join(
-            @NotBlank(message = "초대 코드는 필수입니다.")
-            String inviteCode
+            @NotBlank(message = "비밀번호는 필수입니다.")
+            String password
     ) {}
 }

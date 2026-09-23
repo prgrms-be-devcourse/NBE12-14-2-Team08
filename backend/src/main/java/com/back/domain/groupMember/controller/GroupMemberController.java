@@ -23,11 +23,12 @@ import org.springframework.web.bind.annotation.RestController;
 public class GroupMemberController {
     private final GroupMemberService groupMemberService;
 
-    @PostMapping("/join")
+    @PostMapping("/join/{inviteCode}")
     public ResponseEntity<Void> joinGroup(
+            @PathVariable String inviteCode,
             @LoginMemberId Long memberId,
             @Valid @RequestBody GroupRequest.Join request) {
-        groupMemberService.joinGroup(memberId, request);
+        groupMemberService.joinGroup(inviteCode, memberId, request);
         return ResponseEntity.ok().build();
     }
 
