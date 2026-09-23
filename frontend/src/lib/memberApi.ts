@@ -45,7 +45,7 @@ async function errorMessage(response: Response): Promise<string> {
   }
 }
 
-async function request<T>(path: string, options: RequestInit = {}, authenticated = false): Promise<T> {
+export async function apiRequest<T>(path: string, options: RequestInit = {}, authenticated = false): Promise<T> {
   const send = (accessToken?: string) => fetch(`${API_BASE_URL}${path}`, {
     ...options,
     headers: {
@@ -85,26 +85,30 @@ async function request<T>(path: string, options: RequestInit = {}, authenticated
     throw new Error('로그인이 만료되었습니다. 다시 로그인해주세요.');
   }
   if (!response.ok) throw new Error(await errorMessage(response));
-  if (response.status === 204) return undefined as T;
-  return response.json() as Promise<T>;
+  const responseBody = await response.text();
+  if (!responseBody) return undefined as T;
+  return JSON.parse(responseBody) as T;
 }
 
 export const memberApi = {
   signup: (nickname: string, username: string, password: string) =>
-    request<MemberResponse>('/members', {
+    apiRequest<MemberResponse>('/members', {
       method: 'POST',
       body: JSON.stringify({ nickname, username, password }),
     }),
   login: (username: string, password: string) =>
-    request<AuthSession>('/auth/login', {
+    apiRequest<AuthSession>('/auth/login', {
       method: 'POST',
       body: JSON.stringify({ username, password }),
     }),
-  getMe: () => request<MemberResponse>('/members/me', {}, true),
-  updateMe: (nickname: string, password?: string) =>
-    request<MemberResponse>('/members/me', {
+  getMe: () => apiRequest<MemberResponse>('/members/me', {}, true),
+  updateMe: (nickname: string, currentPassword?: string, newPassword?: string) =>
+    apiRequest<MemberResponse>('/members/me', {
       method: 'PATCH',
-      body: JSON.stringify({ nickname, ...(password ? { password } : {}) }),
+      body: JSON.stringify({
+        nickname,
+        ...(newPassword ? { currentPassword, newPassword } : {}),
+      }),
     }, true),
-  deleteMe: () => request<void>('/members/me', { method: 'DELETE' }, true),
+  deleteMe: () => apiRequest<void>('/members/me', { method: 'DELETE' }, true),
 };

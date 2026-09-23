@@ -1,9 +1,5 @@
-import { MemberNavigation } from '../../components/MemberNavigation';
+import { MainPage } from '../../views/MainPage';
 
-export default function MainPage() {
-  return (
-    <main>
-      <MemberNavigation />
-    </main>
-  );
+export default function Page() {
+  return <MainPage />;
 }

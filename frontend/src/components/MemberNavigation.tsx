@@ -17,13 +17,13 @@ export function MemberNavigation({ embedded = false }: { embedded?: boolean }) {
 
   return (
     <nav className={embedded ? 'flex justify-end' : 'flex justify-end px-4 pt-4'} aria-label="회원 페이지 이동">
-      <div className="inline-flex overflow-hidden rounded-lg border border-slate-900 bg-white">
+      <div className="inline-flex overflow-hidden rounded-lg border border-emerald-300 bg-white">
         <button
           type="button"
           onClick={() => router.push('/main')}
           aria-current={isMainPage ? 'page' : undefined}
-          className={`min-w-24 px-4 py-2 text-sm font-semibold text-slate-900 ${
-            isMainPage ? 'bg-slate-200' : 'bg-white hover:bg-slate-50'
+          className={`min-w-24 px-4 py-2 text-sm font-semibold ${
+            isMainPage ? 'bg-emerald-500 text-white' : 'bg-white text-slate-600 hover:bg-emerald-50 hover:text-emerald-700'
           }`}
         >
           방 목록
@@ -32,8 +32,8 @@ export function MemberNavigation({ embedded = false }: { embedded?: boolean }) {
           type="button"
           onClick={() => router.push('/mypage')}
           aria-current={isMyPage ? 'page' : undefined}
-          className={`min-w-24 border-l border-slate-900 px-4 py-2 text-sm font-semibold text-slate-900 ${
-            isMyPage ? 'bg-slate-200' : 'bg-white hover:bg-slate-50'
+          className={`min-w-24 border-l border-emerald-300 px-4 py-2 text-sm font-semibold ${
+            isMyPage ? 'bg-emerald-500 text-white' : 'bg-white text-slate-600 hover:bg-emerald-50 hover:text-emerald-700'
           }`}
         >
           마이페이지

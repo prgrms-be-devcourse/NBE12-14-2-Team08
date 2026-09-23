@@ -6,15 +6,18 @@ import { useMember } from '../context/MemberContext';
 import { DeleteAccountModal } from '../components/DeleteAccountModal';
 import { MemberNavigation } from '../components/MemberNavigation';
 import { ProfileAvatar } from '../components/ProfileAvatar';
+import { ProfileUpdateModal } from '../components/ProfileUpdateModal';
 
 export const MyPage: React.FC = () => {
   const { currentUser, authReady, updateProfile, logout, deleteAccount } = useMember();
   const router = useRouter();
   const [nameEdit, setNameEdit] = useState<{ userId: string; value: string } | null>(null);
   const name = nameEdit && nameEdit.userId === currentUser?.id ? nameEdit.value : currentUser?.name || '';
+  const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
+  const [newPasswordConfirm, setNewPasswordConfirm] = useState('');
   const [showDeleteModal, setShowDeleteModal] = useState(false);
-  const [error, setError] = useState('');
+  const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
   const [isSaving, setIsSaving] = useState(false);
 
 
@@ -41,17 +44,41 @@ export const MyPage: React.FC = () => {
     event.preventDefault();
     const trimmedName = name.trim();
     if (!trimmedName) {
-      setError('닉네임을 입력해주세요.');
+      setFeedback({ type: 'error', message: '닉네임을 입력해주세요.' });
       return;
     }
-    setError('');
+
+    const isChangingPassword = Boolean(currentPassword || newPassword || newPasswordConfirm);
+    if (isChangingPassword && !currentPassword) {
+      setFeedback({ type: 'error', message: '기존 비밀번호를 입력해주세요.' });
+      return;
+    }
+    if (isChangingPassword && !newPassword) {
+      setFeedback({ type: 'error', message: '새 비밀번호를 입력해주세요.' });
+      return;
+    }
+    if (isChangingPassword && newPassword !== newPasswordConfirm) {
+      setFeedback({ type: 'error', message: '새 비밀번호가 서로 일치하지 않습니다.' });
+      return;
+    }
+
     setIsSaving(true);
     try {
-      await updateProfile(trimmedName, newPassword || undefined);
+      await updateProfile(
+        trimmedName,
+        isChangingPassword ? currentPassword : undefined,
+        isChangingPassword ? newPassword : undefined,
+      );
+      setCurrentPassword('');
       setNewPassword('');
+      setNewPasswordConfirm('');
       setNameEdit(null);
+      setFeedback({ type: 'success', message: '변경사항이 성공적으로 저장되었습니다.' });
     } catch (caught) {
-      setError(caught instanceof Error ? caught.message : '프로필을 저장하지 못했습니다.');
+      setFeedback({
+        type: 'error',
+        message: caught instanceof Error ? caught.message : '프로필을 저장하지 못했습니다.',
+      });
     } finally {
       setIsSaving(false);
     }
@@ -66,14 +93,14 @@ export const MyPage: React.FC = () => {
             <h1 className="mt-2 text-2xl font-extrabold tracking-tight text-slate-900">마이페이지</h1>
           </div>
           <div className="flex flex-col items-end gap-3">
+            <MemberNavigation embedded />
             <button
               type="button"
               onClick={logout}
-              className="rounded-xl bg-slate-100 px-4 py-2 text-sm font-bold text-slate-600 transition-colors hover:bg-slate-200"
+              className="rounded-lg bg-slate-100 px-3 py-1.5 text-xs font-bold text-slate-600 transition-colors hover:bg-slate-200"
             >
               로그아웃
             </button>
-            <MemberNavigation embedded />
           </div>
         </div>
 
@@ -107,15 +134,26 @@ export const MyPage: React.FC = () => {
                 value={name}
                 onChange={(event) => {
                   setNameEdit({ userId: currentUser.id, value: event.target.value });
-                  setError('');
                 }}
                 className="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
               />
             </div>
             <div>
-              <label htmlFor="mypage-password" className="mb-1.5 block text-sm font-bold text-slate-700">새 비밀번호 (선택)</label>
+              <label htmlFor="mypage-current-password" className="mb-1.5 block text-sm font-bold text-slate-700">기존 비밀번호</label>
               <input
-                id="mypage-password"
+                id="mypage-current-password"
+                type="password"
+                autoComplete="current-password"
+                value={currentPassword}
+                onChange={(event) => setCurrentPassword(event.target.value)}
+                placeholder="비밀번호를 변경할 때만 입력하세요"
+                className="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+              />
+            </div>
+            <div>
+              <label htmlFor="mypage-new-password" className="mb-1.5 block text-sm font-bold text-slate-700">새 비밀번호</label>
+              <input
+                id="mypage-new-password"
                 type="password"
                 autoComplete="new-password"
                 value={newPassword}
@@ -124,7 +162,18 @@ export const MyPage: React.FC = () => {
                 className="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
               />
             </div>
-            {error && <p role="alert" className="text-sm font-semibold text-rose-600">{error}</p>}
+            <div>
+              <label htmlFor="mypage-new-password-confirm" className="mb-1.5 block text-sm font-bold text-slate-700">새 비밀번호 확인</label>
+              <input
+                id="mypage-new-password-confirm"
+                type="password"
+                autoComplete="new-password"
+                value={newPasswordConfirm}
+                onChange={(event) => setNewPasswordConfirm(event.target.value)}
+                placeholder="새 비밀번호를 한 번 더 입력하세요"
+                className="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+              />
+            </div>
           </div>
 
           <div className="mt-10 flex flex-wrap items-center justify-between gap-3 border-t border-slate-100 pt-6">
@@ -150,6 +199,12 @@ export const MyPage: React.FC = () => {
         isOpen={showDeleteModal}
         onClose={() => setShowDeleteModal(false)}
         onConfirm={deleteAccount}
+      />
+      <ProfileUpdateModal
+        isOpen={feedback !== null}
+        type={feedback?.type ?? 'success'}
+        message={feedback?.message ?? ''}
+        onClose={() => setFeedback(null)}
       />
     </div>
   );

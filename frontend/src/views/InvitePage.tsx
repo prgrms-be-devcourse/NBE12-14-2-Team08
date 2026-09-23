@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { RoomPasswordModal } from '../components/RoomPasswordModal';
 import { useMember } from '../context/MemberContext';
+import { groupApi } from '../lib/groupApi';
 
 const INVITE_PREVIEW = {
   title: '초대받은 방',
@@ -62,8 +63,9 @@ export function InvitePage() {
           onClose={() => setShowPasswordModal(false)}
           roomTitle={INVITE_PREVIEW.title}
           roomDescription={INVITE_PREVIEW.description}
-          onSubmit={async () => {
-            throw new Error('비밀번호 확인 API가 아직 연결되지 않았습니다.');
+          onSubmit={async (password) => {
+            await groupApi.join(invitecode, password);
+            router.push('/main');
           }}
         />
       </section>

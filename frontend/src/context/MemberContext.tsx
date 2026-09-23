@@ -21,7 +21,7 @@ interface MemberContextValue {
   authReady: boolean;
   login: (username: string, password: string, redirectTo?: string) => Promise<void>;
   signup: (nickname: string, username: string, password: string) => Promise<void>;
-  updateProfile: (nickname: string, password?: string) => Promise<void>;
+  updateProfile: (nickname: string, currentPassword?: string, newPassword?: string) => Promise<void>;
   logout: () => void;
   deleteAccount: () => Promise<void>;
 }
@@ -72,8 +72,8 @@ export function MemberProvider({ children }: { children: React.ReactNode }) {
     router.push('/login');
   };
 
-  const updateProfile = async (nickname: string, password?: string) => {
-    setCurrentUser(toUser(await memberApi.updateMe(nickname, password)));
+  const updateProfile = async (nickname: string, currentPassword?: string, newPassword?: string) => {
+    setCurrentUser(toUser(await memberApi.updateMe(nickname, currentPassword, newPassword)));
   };
 
   const logout = () => {
