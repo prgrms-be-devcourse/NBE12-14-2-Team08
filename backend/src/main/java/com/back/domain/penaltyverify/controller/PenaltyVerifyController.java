@@ -4,8 +4,12 @@ import com.back.domain.penaltyverify.dto.BulkActionRequest;
 import com.back.domain.penaltyverify.dto.PenaltyVerifyDetailResponse;
 import com.back.domain.penaltyverify.dto.PenaltyVerifySummaryResponse;
 import com.back.domain.penaltyverify.dto.SubmitPenaltyVerifyRequest;
+import com.back.domain.penaltyverify.service.PenaltyStorageService;
 import com.back.domain.penaltyverify.service.PenaltyVerifyService;
 import com.back.global.security.LoginMemberId;
+import com.back.global.storage.UploadUrlRequest;
+import com.back.global.storage.UploadUrlResponse;
+import io.swagger.v3.oas.annotations.Operation;
 import jakarta.validation.Valid;
 import java.util.List;
 import java.util.Map;
@@ -27,7 +31,7 @@ import org.springframework.web.bind.annotation.RestController;
 public class PenaltyVerifyController {
 
     private final PenaltyVerifyService penaltyVerifyService;
-
+    private final PenaltyStorageService penaltyStorageService;
 
     @PostMapping("/habits/{habitId}/penalties")
     public ResponseEntity<PenaltyVerifyDetailResponse> submit(
@@ -39,16 +43,29 @@ public class PenaltyVerifyController {
             .body(penaltyVerifyService.submit(memberId, habitId, request));
     }
 
+    @Operation(summary = "벌칙 인증 사진 업로드용 서명 URL 발급")
+    @PostMapping("/penalties/upload-url")
+    public ResponseEntity<UploadUrlResponse> getUploadUrl(
+        @LoginMemberId Long memberId,
+        @Valid @RequestBody UploadUrlRequest request
+    ) {
+        UploadUrlResponse response = penaltyStorageService.createUploadUrl(memberId, request.filename());
+        return ResponseEntity.ok(response);
+    }
+
     @GetMapping("/penalties/{id}")
     public PenaltyVerifyDetailResponse getDetail(
         @LoginMemberId Long memberId,
-        @PathVariable Long id) {
+        @PathVariable Long id
+    ) {
         return penaltyVerifyService.getDetail(memberId, id);
     }
 
     @GetMapping("/groups/{groupId}/penalties/count")
-    public ResponseEntity<Map<String, Long>> getCount(@PathVariable Long groupId,
-        @LoginMemberId Long memberId) {
+    public ResponseEntity<Map<String, Long>> getCount(
+        @PathVariable Long groupId,
+        @LoginMemberId Long memberId
+    ) {
         long count = penaltyVerifyService.getCount(groupId, memberId);
         return ResponseEntity.ok(Map.of("count", count));
     }
@@ -62,7 +79,6 @@ public class PenaltyVerifyController {
         return penaltyVerifyService.getPenaltiesByGroupMember(memberId, groupId, groupMemberId);
     }
 
-    // 단건 승인
     @PatchMapping("/penalties/{id}/approve")
     public PenaltyVerifyDetailResponse approve(
         @LoginMemberId Long memberId,
@@ -71,7 +87,6 @@ public class PenaltyVerifyController {
         return penaltyVerifyService.approve(memberId, id);
     }
 
-    // 단건 거절
     @PatchMapping("/penalties/{id}/reject")
     public PenaltyVerifyDetailResponse reject(
         @LoginMemberId Long memberId,
@@ -83,8 +98,8 @@ public class PenaltyVerifyController {
     @GetMapping("/groups/{groupId}/penalties/pending")
     public List<PenaltyVerifySummaryResponse> getPending(
         @LoginMemberId Long memberId,
-        @PathVariable Long groupId) {
-
+        @PathVariable Long groupId
+    ) {
         return penaltyVerifyService.getPendingByGroup(memberId, groupId);
     }
 
@@ -109,7 +124,8 @@ public class PenaltyVerifyController {
     @DeleteMapping("/penalties/{id}")
     public ResponseEntity<Void> delete(
         @LoginMemberId Long memberId,
-        @PathVariable Long id) {
+        @PathVariable Long id
+    ) {
         penaltyVerifyService.delete(memberId, id);
         return ResponseEntity.noContent().build();
     }

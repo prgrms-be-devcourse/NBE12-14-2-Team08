@@ -6,6 +6,9 @@ import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.List;
 import java.util.Optional;
+import org.springframework.data.jpa.repository.Modifying;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 public interface HabitRepository extends JpaRepository<Habit, Long> {
 
@@ -37,4 +40,10 @@ public interface HabitRepository extends JpaRepository<Habit, Long> {
 
     // 그룹 단위 주간 판정 대상(그룹 내 활성 습관 전체) 조회용
     List<Habit> findAllByGroupMember_Group_IdAndStatus(Long groupId, HabitStatus status);
+    @Query("select h.id from Habit h where h.groupMember.id = :groupMemberId")
+    List<Long> findIdsByGroupMemberId(@Param("groupMemberId") Long groupMemberId);
+
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Query("delete from Habit h where h.id in :habitIds")
+    void deleteByIds(@Param("habitIds") List<Long> habitIds);
 }

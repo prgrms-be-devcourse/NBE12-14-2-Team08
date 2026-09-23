@@ -2,6 +2,7 @@ package com.back.domain.groupMember.repository;
 
 import com.back.domain.groupMember.dto.GroupMemberResponse;
 import com.back.domain.groupMember.entity.GroupMember;
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -37,5 +38,10 @@ public interface GroupMemberRepository extends JpaRepository<GroupMember, Long> 
 
     boolean existsByMemberId(Long memberId);
 
+    @EntityGraph(attributePaths = "group")
+    List<GroupMember> findAllByMemberId(Long memberId); //특정 회원이 들어갔던 방 정보 불러오기
+
     long countByGroupId(Long groupId);
+
+    boolean existsByIdAndGroupId(Long groupMemberId, Long groupId);
 }

@@ -40,6 +40,7 @@ public interface GroupResponse {
             String title,
             String description,
             int memberLimit,
-            Long currentMemberCount
+            Long currentMemberCount,
+            String status
     ) {}
 }

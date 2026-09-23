@@ -12,6 +12,7 @@ import com.back.domain.habit.entity.Habit;
 import com.back.domain.habit.repository.HabitRepository;
 import com.back.domain.member.entity.Member;
 import com.back.domain.member.repository.MemberRepository;
+import com.back.domain.member.service.AuthTokenService;
 import com.back.domain.penaltyverify.entity.PenaltyVerify;
 import com.back.domain.penaltyverify.repository.PenaltyVerifyRepository;
 import java.time.LocalDate;
@@ -34,6 +35,7 @@ class PenaltyVerifyControllerTest {
     @Autowired private MockMvc mockMvc;
     @Autowired private JsonMapper jsonMapper;
     @Autowired private MemberRepository memberRepository;
+    @Autowired private AuthTokenService authTokenService;
     @Autowired private GroupRepository groupRepository;
     @Autowired private GroupMemberRepository groupMemberRepository;
     @Autowired private HabitRepository habitRepository;
@@ -44,6 +46,7 @@ class PenaltyVerifyControllerTest {
     private Long groupMemberId;
     private Long habitId;
     private Long submittedPenaltyVerifyId;
+    private String accessToken;
 
     @BeforeEach
     void setUp() {
@@ -63,6 +66,7 @@ class PenaltyVerifyControllerTest {
             Member.create("유저A", "usera", "password")
         );
         memberId = memberA.getId();
+        accessToken = authTokenService.createAccessToken(memberId);
 
         GroupMember groupMemberA = groupMemberRepository.save(
             GroupMember.create(group, memberA, GroupMemberRole.OWNER)
@@ -102,7 +106,7 @@ class PenaltyVerifyControllerTest {
         );
 
         mockMvc.perform(post("/api/habits/{habitId}/penalties", habitId)
-                .header("X-User-Id", memberId.toString())
+                .header("Authorization", "Bearer " + accessToken)
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(body))
             .andExpect(status().isCreated())
@@ -114,7 +118,8 @@ class PenaltyVerifyControllerTest {
     @Test
     @DisplayName("존재하는 벌칙 인증 상세 조회 성공")
     void 존재하는_벌칙_인증_상세_조회_성공() throws Exception {
-        mockMvc.perform(get("/api/penalties/{id}", submittedPenaltyVerifyId))
+        mockMvc.perform(get("/api/penalties/{id}", submittedPenaltyVerifyId)
+                .header("Authorization", "Bearer " + accessToken))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.status").value("PENDING"))
             .andExpect(jsonPath("$.description").value("미리 만들어둔 벌칙 인증"));
@@ -123,7 +128,8 @@ class PenaltyVerifyControllerTest {
     @Test
     @DisplayName("특정 그룹 멤버의 전체 벌칙 기록 목록 최신순 조회 성공")
     void 그룹_멤버별_벌칙_목록_조회_성공() throws Exception {
-        mockMvc.perform(get("/api/groups/{groupId}/members/{groupMemberId}/penalties", groupId, groupMemberId))
+        mockMvc.perform(get("/api/groups/{groupId}/members/{groupMemberId}/penalties", groupId, groupMemberId)
+                .header("Authorization", "Bearer " + accessToken))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.length()").value(1))
             .andExpect(jsonPath("$[0].habitTitle").value("기상 후 운동"))

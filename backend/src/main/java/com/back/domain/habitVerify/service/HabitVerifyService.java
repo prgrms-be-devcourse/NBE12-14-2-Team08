@@ -6,9 +6,12 @@ import com.back.domain.habitVerify.dto.HabitVerifyRequest;
 import com.back.domain.habitVerify.dto.HabitVerifyResponse;
 import com.back.domain.habitVerify.entity.HabitVerify;
 import com.back.domain.habitVerify.repository.HabitVerifyRepository;
+import com.back.global.storage.StorageService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.time.LocalDate;
 import java.util.List;
 
 @Service
@@ -17,6 +20,7 @@ public class HabitVerifyService {
 
     private final HabitRepository habitRepository;
     private final HabitVerifyRepository habitVerifyRepository;
+    private final StorageService storageService;
 
     @Transactional
     public HabitVerifyResponse create(
@@ -32,11 +36,12 @@ public class HabitVerifyService {
                                 "존재하지 않는 습관입니다."
                         )
                 );
+        LocalDate verifyDate = LocalDate.now();
 
         boolean alreadyExists =
                 habitVerifyRepository.existsByHabitIdAndVerifyDate(
                         habitId,
-                        request.verifyDate()
+                        verifyDate
                 );
 
         if (alreadyExists) {
@@ -44,10 +49,23 @@ public class HabitVerifyService {
                     "해당 날짜에 이미 인증 기록이 있습니다."
             );
         }
+        if (request.imageUrl() != null) {
+
+            boolean exists =
+                    storageService.existsHabitImage(
+                            request.imageUrl()
+                    );
+
+            if (!exists) {
+                throw new IllegalArgumentException(
+                        "업로드된 이미지를 확인할 수 없습니다."
+                );
+            }
+        }
 
         HabitVerify habitVerify = HabitVerify.create(
-                habit, request.verifyDate(),
-                request.status(), request.description(),
+                habit, verifyDate,
+                request.description(),
                 request.imageUrl()
         );
 
@@ -100,23 +118,7 @@ public class HabitVerifyService {
                                 )
                         );
 
-        boolean alreadyExists =
-                habitVerifyRepository
-                        .existsByHabitIdAndVerifyDateAndIdNot(
-                                habitId,
-                                request.verifyDate(),
-                                verificationId
-                        );
-
-        if (alreadyExists) {
-            throw new IllegalArgumentException(
-                    "해당 날짜에 이미 인증 기록이 있습니다."
-            );
-        }
-
         habitVerify.update(
-                request.verifyDate(),
-                request.status(),
                 request.description(),
                 request.imageUrl()
         );
