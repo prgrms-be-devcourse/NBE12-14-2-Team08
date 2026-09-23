@@ -224,11 +224,15 @@ class MemberServiceTest {
 
         UpdateMemberRequest request = new UpdateMemberRequest(
                 "updated_user",
+                "oldPassword123",
                 "newPassword123"
         );
 
         when(memberRepository.findById(1L))
                 .thenReturn(Optional.of(member));
+
+        when(passwordEncoder.matches("oldPassword123", "old-encoded-password"))
+                .thenReturn(true);
 
         when(passwordEncoder.encode("newPassword123"))
                 .thenReturn("new-encoded-password");
@@ -241,6 +245,59 @@ class MemberServiceTest {
         assertThat(response.nickname()).isEqualTo("updated_user");
         assertThat(member.getPassword())
                 .isEqualTo("new-encoded-password");
+    }
+
+    @Test
+    @DisplayName("기존 비밀번호가 일치하지 않으면 회원 정보 수정 실패")
+    void updateMemberFailWhenCurrentPasswordDoesNotMatch() {
+        Member member = createMember(
+                1L,
+                "habit_user",
+                "user@example.com",
+                "old-encoded-password"
+        );
+
+        UpdateMemberRequest request = new UpdateMemberRequest(
+                "updated_user",
+                "wrongPassword",
+                "newPassword123"
+        );
+
+        when(memberRepository.findById(1L)).thenReturn(Optional.of(member));
+        when(passwordEncoder.matches("wrongPassword", "old-encoded-password")).thenReturn(false);
+
+        assertThatThrownBy(() -> memberService.updateMember(1L, request))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("기존 비밀번호가 일치하지 않습니다.");
+
+        assertThat(member.getPassword()).isEqualTo("old-encoded-password");
+        verify(passwordEncoder, never()).encode("newPassword123");
+    }
+
+    @Test
+    @DisplayName("새 비밀번호 없이 닉네임만 수정 성공")
+    void updateNicknameWithoutPassword() {
+        Member member = createMember(
+                1L,
+                "habit_user",
+                "user@example.com",
+                "old-encoded-password"
+        );
+
+        UpdateMemberRequest request = new UpdateMemberRequest(
+                "updated_user",
+                null,
+                null
+        );
+
+        when(memberRepository.findById(1L)).thenReturn(Optional.of(member));
+
+        MemberResponse response = memberService.updateMember(1L, request);
+
+        assertThat(response.nickname()).isEqualTo("updated_user");
+        assertThat(member.getPassword()).isEqualTo("old-encoded-password");
+        verify(passwordEncoder, never()).matches(any(), any());
+        verify(passwordEncoder, never()).encode(any(CharSequence.class));
     }
 
     @Test

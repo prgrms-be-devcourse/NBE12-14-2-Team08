@@ -95,8 +95,16 @@ public class MemberService {
             member.updateNickname(request.nickname());
         }
 
-        if (request.password() != null && !request.password().isBlank()) {
-            String encodedPassword = passwordEncoder.encode(request.password());
+        if (request.newPassword() != null && !request.newPassword().isBlank()) {
+            if (request.currentPassword() == null || request.currentPassword().isBlank()) {
+                throw new IllegalArgumentException("기존 비밀번호를 입력해주세요.");
+            }
+
+            if (!passwordEncoder.matches(request.currentPassword(), member.getPassword())) {
+                throw new IllegalArgumentException("기존 비밀번호가 일치하지 않습니다.");
+            }
+
+            String encodedPassword = passwordEncoder.encode(request.newPassword());
             member.updatePassword(encodedPassword);
         }
 
