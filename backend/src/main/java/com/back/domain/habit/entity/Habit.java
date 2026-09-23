@@ -77,4 +77,5 @@ public class Habit extends BaseEntity {
 
         this.status = HabitStatus.FAILED;
     }
+
 }

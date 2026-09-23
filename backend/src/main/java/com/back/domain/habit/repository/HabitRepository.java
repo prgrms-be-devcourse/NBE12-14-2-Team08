@@ -35,6 +35,11 @@ public interface HabitRepository extends JpaRepository<Habit, Long> {
             HabitStatus status
     );
 
+    // 스케줄러가 주기적으로 순회하며 자동 승인/판정을 적용할 대상 조회용
+    List<Habit> findAllByStatus(HabitStatus status);
+
+    // 그룹 단위 주간 판정 대상(그룹 내 활성 습관 전체) 조회용
+    List<Habit> findAllByGroupMember_Group_IdAndStatus(Long groupId, HabitStatus status);
     @Query("select h.id from Habit h where h.groupMember.id = :groupMemberId")
     List<Long> findIdsByGroupMemberId(@Param("groupMemberId") Long groupMemberId);
 
