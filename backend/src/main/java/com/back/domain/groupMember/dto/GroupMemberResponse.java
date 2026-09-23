@@ -7,6 +7,7 @@ public interface GroupMemberResponse {
             Long memberId,
             String nickname,
             String role,
+            Long habitId,
             String habitTitle,
             String habitDescription
     ) {}
