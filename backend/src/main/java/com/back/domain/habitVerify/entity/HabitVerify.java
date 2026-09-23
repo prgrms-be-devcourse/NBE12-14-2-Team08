@@ -60,4 +60,14 @@ public class HabitVerify extends BaseEntity {
         this.description = description;
         this.imageUrl = imageUrl;
     }
+
+    public void approve() {
+        if (this.status != HabitVerifyStatus.PENDING) {
+            throw new IllegalStateException(
+                    "검토 대기 상태가 아닙니다. 현재 상태: " + this.status
+            );
+        }
+
+        this.status = HabitVerifyStatus.APPROVED;
+    }
 }
