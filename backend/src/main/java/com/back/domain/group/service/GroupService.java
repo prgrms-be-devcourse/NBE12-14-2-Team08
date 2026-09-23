@@ -68,8 +68,8 @@ public class GroupService {
         return GroupResponse.Detail.from(savedGroup, baseInviteUrl);
     }
 
-    public List<GroupResponse.Simple> getGroupSimpleList(Long memberId) {
-        return groupRepository.findMyGroupsWithCount(memberId);
+    public List<GroupResponse.Simple> getGroupSimpleList(Long memberId, GroupStatus status) {
+        return groupRepository.findMyGroupsWithCount(memberId, status);
     }
 
     @Transactional
