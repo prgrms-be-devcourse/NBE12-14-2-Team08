@@ -9,8 +9,10 @@ public record PenaltyVerifySummaryResponse (
     Long id,
     LocalDate verifyDate,
     String habitTitle,
+    String description,
     String memberNickname,
     String imageUrl,
+    String penaltyText,
     PenaltyVerifyStatus status
 ){
     public static PenaltyVerifySummaryResponse from(PenaltyVerify py){
@@ -18,8 +20,10 @@ public record PenaltyVerifySummaryResponse (
             py.getId(),
             py.getVerifyDate(),
             py.getHabitTitle(),
+            py.getDescription(),
             py.getGroupMember().getMember().getNickname(),
             py.getImageUrl(),
+            py.getPenaltyText(),
             py.getStatus()
         );
     }

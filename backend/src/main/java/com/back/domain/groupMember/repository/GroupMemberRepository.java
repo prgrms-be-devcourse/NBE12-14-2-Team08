@@ -14,10 +14,10 @@ import java.util.Optional;
 @Repository
 public interface GroupMemberRepository extends JpaRepository<GroupMember, Long> {
     @Query("select new com.back.domain.groupMember.dto.GroupMemberResponse$Simple(" +
-            "gm.id, m.id, m.nickname, cast(gm.role as string), h.title, h.description) " +
+            "gm.id, m.id, m.nickname, cast(gm.role as string), h.id, h.title, h.description) " +
             "from GroupMember gm " +
             "join gm.member m " +
-            "left join Habit h on h.groupMember.id = gm.id " +
+            "left join Habit h on h.groupMember.id = gm.id and h.status = com.back.domain.habit.entity.HabitStatus.ACTIVE " +
             "where gm.group.id = :groupId")
     List<GroupMemberResponse.Simple> findByGroupIdWithHabit(
             @Param("groupId") Long groupId);
