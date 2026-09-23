@@ -61,9 +61,10 @@ class HabitControllerTest {
         ownerToken = authTokenService.createAccessToken(ownerId);
 
         // 2. 방장이 그룹 생성 (그룹 생성 시 방장은 자동으로 OWNER GroupMember가 됨)
+        // deadline은 null이면 가입 시 서비스에서 NPE가 나므로 미래 날짜로 지정한다.
         String createGroupBody = jsonMapper.writeValueAsString(
                 new GroupRequest.Create(
-                        "테스트 그룹", "설명", null, "커피 사기",
+                        "테스트 그룹", "설명", LocalDate.now().plusMonths(1), "커피 사기",
                         "1234", 5
                 )
         );
@@ -83,12 +84,12 @@ class HabitControllerTest {
         memberId = createMember("member01", "멤버1");
         memberToken = authTokenService.createAccessToken(memberId);
 
-        // 4. 일반 멤버가 초대 코드로 그룹 가입
+        // 4. 일반 멤버가 초대 코드 + 그룹 비밀번호로 그룹 가입
         String joinBody = jsonMapper.writeValueAsString(
-                new GroupRequest.Join(inviteCode)
+                new GroupRequest.Join("1234")
         );
 
-        mockMvc.perform(post("/api/groups/join")
+        mockMvc.perform(post("/api/groups/join/{inviteCode}", inviteCode)
                         .header("Authorization", "Bearer " + memberToken)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(joinBody))
@@ -152,9 +153,13 @@ class HabitControllerTest {
     private void createBackdatedVerify(LocalDate verifyDate, HabitVerifyStatus status) {
         Habit habit = habitRepository.findById(habitId).orElseThrow();
 
+        // HabitVerify.create는 항상 PENDING으로 생성하므로, APPROVED가 필요하면 승인 처리까지 이어서 한다.
         HabitVerify habitVerify = HabitVerify.create(
-                habit, verifyDate, status, "테스트 인증", "https://x.com/a.jpg"
+                habit, verifyDate, "테스트 인증", "https://x.com/a.jpg"
         );
+        if (status == HabitVerifyStatus.APPROVED) {
+            habitVerify.approve();
+        }
         habitVerifyRepository.save(habitVerify);
 
         ReflectionTestUtils.setField(habitVerify, "createDate", LocalDateTime.now().minusDays(3));
