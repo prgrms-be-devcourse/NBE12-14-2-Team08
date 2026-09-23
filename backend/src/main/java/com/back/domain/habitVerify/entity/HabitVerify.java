@@ -58,4 +58,11 @@ public class HabitVerify extends BaseEntity {
         this.description = description;
         this.imageUrl = imageUrl;
     }
+    public void approve() {
+        this.status = HabitVerifyStatus.APPROVED;
+    }
+
+    public void reject() {
+        this.status = HabitVerifyStatus.REJECTED;
+    }
 }
