@@ -93,7 +93,7 @@ public class HabitService {
     public HabitResponse getActiveHabit(Long memberId, Long groupId) {
 
         Habit habit = habitRepository
-                .findByGroupMember_IdAndGroupMember_Group_IdAndStatus(
+                .findByGroupMember_Member_IdAndGroupMember_Group_IdAndStatus(
                         memberId,
                         groupId,
                         HabitStatus.ACTIVE
@@ -109,7 +109,7 @@ public class HabitService {
     public List<HabitResponse> getFailedHabits(Long memberId, Long groupId) {
 
         return habitRepository
-                .findAllByGroupMember_IdAndGroupMember_Group_IdAndStatusOrderByCreateDateDesc(
+                .findAllByGroupMember_Member_IdAndGroupMember_Group_IdAndStatusOrderByCreateDateDesc(
                         memberId,
                         groupId,
                         HabitStatus.FAILED

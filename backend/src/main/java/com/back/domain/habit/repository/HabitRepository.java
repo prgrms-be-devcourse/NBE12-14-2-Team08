@@ -23,13 +23,13 @@ public interface HabitRepository extends JpaRepository<Habit, Long> {
     );
 
 
-    Optional<Habit> findByGroupMember_IdAndGroupMember_Group_IdAndStatus(
+    Optional<Habit> findByGroupMember_Member_IdAndGroupMember_Group_IdAndStatus(
             Long memberId,
             Long groupId,
             HabitStatus status
     );
 
-    List<Habit> findAllByGroupMember_IdAndGroupMember_Group_IdAndStatusOrderByCreateDateDesc(
+    List<Habit> findAllByGroupMember_Member_IdAndGroupMember_Group_IdAndStatusOrderByCreateDateDesc(
             Long memberId,
             Long groupId,
             HabitStatus status

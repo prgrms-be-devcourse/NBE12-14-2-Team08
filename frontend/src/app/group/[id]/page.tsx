@@ -11,7 +11,7 @@ export default async function Page({
         <main className="p-8 space-y-4">
             <h1 className="text-xl font-bold">그룹 {id}</h1>
             <nav className="flex flex-col gap-2">
-                <Link href={`/group/${id}/habit/1`} className="underline">
+                <Link href={`/group/${id}/member/1`} className="underline">
                     습관 1 상세로 이동
                 </Link>
                 <Link href={`/admin/group/${id}/verification`} className="underline">
