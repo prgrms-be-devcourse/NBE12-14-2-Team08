@@ -2,6 +2,7 @@ package com.back.domain.group.controller;
 
 import com.back.domain.group.dto.GroupRequest;
 import com.back.domain.group.dto.GroupResponse;
+import com.back.domain.group.entity.GroupStatus;
 import com.back.domain.group.service.GroupService;
 import com.back.global.security.LoginMemberId;
 import jakarta.validation.Valid;
@@ -16,6 +17,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
@@ -35,8 +37,9 @@ public class GroupController {
 
     @GetMapping
     public ResponseEntity<List<GroupResponse.Simple>> getGroupSimpleList(
-            @LoginMemberId Long memberId) {
-        List<GroupResponse.Simple> response = groupService.getGroupSimpleList(memberId);
+            @LoginMemberId Long memberId,
+            @RequestParam(value = "status", defaultValue = "ACTIVE") GroupStatus status) {
+        List<GroupResponse.Simple> response = groupService.getGroupSimpleList(memberId, status);
         return ResponseEntity.ok(response);
     }
 
