@@ -59,6 +59,9 @@ public class HabitVerify extends BaseEntity {
         this.imageUrl = imageUrl;
     }
 
+
+
+
     public void approve() {
         if (this.status != HabitVerifyStatus.PENDING) {
             throw new IllegalStateException(
@@ -68,4 +71,23 @@ public class HabitVerify extends BaseEntity {
 
         this.status = HabitVerifyStatus.APPROVED;
     }
-}
+
+    public void reject() {
+        this.status = HabitVerifyStatus.REJECTED;
+    }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
