@@ -20,6 +20,7 @@ import com.back.global.exception.GroupLimitExceededException;
 import java.time.LocalDate;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -35,10 +36,16 @@ public class GroupMemberService {
     private final HabitVerifyRepository habitVerifyRepository;
     private final PenaltyVerifyRepository penaltyVerifyRepository;
 
+    private final PasswordEncoder passwordEncoder;
+
     @Transactional
-    public void joinGroup(Long memberId, GroupRequest.Join request) {
-        Group group = groupRepository.findByInviteCode(request.inviteCode())
+    public void joinGroup(String inviteCode, Long memberId, GroupRequest.Join request) {
+        Group group = groupRepository.findByInviteCode(inviteCode)
                 .orElseThrow(() -> new EntityNotFoundException("유효하지 않거나 존재하지 않는 초대 코드입니다."));
+
+        if (!passwordEncoder.matches(request.password(), group.getPassword())) {
+            throw new ForbiddenException("그룹 비밀번호가 일치하지 않습니다.");
+        }
 
         if (group.getStatus() == GroupStatus.FINISH || LocalDate.now().isAfter(group.getDeadline())) {
             throw new BusinessRuleException("이미 종료된 그룹입니다.");
