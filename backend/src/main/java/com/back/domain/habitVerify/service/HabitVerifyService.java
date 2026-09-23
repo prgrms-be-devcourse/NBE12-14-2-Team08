@@ -43,9 +43,7 @@ public class HabitVerifyService {
                                 "존재하지 않는 습관입니다."
                         )
                 );
-        //한국시간기준
-        LocalDate verifyDate = LocalDate.now(ZoneId.of("Asia/Seoul"));
-
+        LocalDate verifyDate = LocalDate.now();
 
         boolean alreadyExists =
                 habitVerifyRepository.existsByHabitIdAndVerifyDate(
