@@ -2,6 +2,7 @@ package com.back.domain.member.dto;
 
 public record UpdateMemberRequest(
         String nickname,
-        String password
+        String currentPassword,
+        String newPassword
 ) {
 }
