@@ -12,12 +12,12 @@ import com.back.domain.habitVerify.entity.HabitVerify;
 import com.back.domain.habitVerify.repository.HabitVerifyRepository;
 import com.back.global.storage.StorageService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import com.back.domain.habitVerify.dto.BulkActionRequest;
 
-import org.springframework.security.access.AccessDeniedException;
 import java.time.LocalDate;
-import java.time.ZoneId;
 import java.util.List;
 
 @Service
@@ -238,6 +238,48 @@ public class HabitVerifyService {
         habitVerify.reject();
 
         return HabitVerifyResponse.from(habitVerify);
+    }
+
+    @Transactional
+    public List<HabitVerifyResponse> bulkApprove(
+            Long memberId,
+            Long groupId,
+            BulkActionRequest request
+    ) {
+        validateOwner(memberId, groupId);
+
+        List<HabitVerify> targets =
+                habitVerifyRepository.findAllByIdInAndGroupId(
+                        request.ids(),
+                        groupId
+                );
+
+        targets.forEach(HabitVerify::approve);
+
+        return targets.stream()
+                .map(HabitVerifyResponse::from)
+                .toList();
+    }
+
+    @Transactional
+    public List<HabitVerifyResponse> bulkReject(
+            Long memberId,
+            Long groupId,
+            BulkActionRequest request
+    ) {
+        validateOwner(memberId, groupId);
+
+        List<HabitVerify> targets =
+                habitVerifyRepository.findAllByIdInAndGroupId(
+                        request.ids(),
+                        groupId
+                );
+
+        targets.forEach(HabitVerify::reject);
+
+        return targets.stream()
+                .map(HabitVerifyResponse::from)
+                .toList();
     }
     private void validateOwner(
             Long memberId,

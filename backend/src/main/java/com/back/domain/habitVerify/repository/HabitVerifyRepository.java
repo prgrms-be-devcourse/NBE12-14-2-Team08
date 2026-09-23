@@ -50,4 +50,16 @@ public interface HabitVerifyRepository
     List<HabitVerify> findPendingByGroupId(
             @Param("groupId") Long groupId
     );
+    @Query("""
+    SELECT hv
+    FROM HabitVerify hv
+    JOIN hv.habit h
+    JOIN h.groupMember gm
+    WHERE hv.id IN :ids
+      AND gm.group.id = :groupId
+    """)
+    List<HabitVerify> findAllByIdInAndGroupId(
+            @Param("ids") List<Long> ids,
+            @Param("groupId") Long groupId
+    );
 }
