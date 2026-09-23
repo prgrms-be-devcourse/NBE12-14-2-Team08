@@ -7,6 +7,7 @@ import com.back.domain.group.repository.GroupRepository;
 import com.back.domain.groupMember.dto.GroupMemberResponse;
 import com.back.domain.groupMember.entity.GroupMember;
 import com.back.domain.groupMember.entity.GroupMemberRole;
+import com.back.domain.groupMember.entity.GroupMemberStatus;
 import com.back.domain.groupMember.repository.GroupMemberRepository;
 import com.back.domain.habit.repository.HabitRepository;
 import com.back.domain.habitVerify.repository.HabitVerifyRepository;
@@ -67,6 +68,7 @@ public class GroupMemberService {
                 .group(group)
                 .member(member)
                 .role(GroupMemberRole.MEMBER)
+                .status(GroupMemberStatus.ACTIVE)
                 .build();
 
         groupMemberRepository.save(groupMember);

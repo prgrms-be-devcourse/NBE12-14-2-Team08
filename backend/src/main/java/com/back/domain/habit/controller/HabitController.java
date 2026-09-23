@@ -2,6 +2,7 @@ package com.back.domain.habit.controller;
 
 import com.back.domain.habit.dto.CreateHabitRequest;
 import com.back.domain.habit.dto.HabitResponse;
+import com.back.domain.habit.dto.HabitWeeklyCheckResponse;
 import com.back.domain.habit.entity.Habit;
 import com.back.domain.habit.service.HabitService;
 import com.back.global.security.LoginMemberId;
@@ -72,6 +73,16 @@ public class HabitController {
     ) {
         return ResponseEntity.ok(
                 habitService.getFailedHabits(memberId, groupId)
+        );
+    }
+
+    @PostMapping("/groups/{groupId}/weekly-check")
+    public ResponseEntity<List<HabitWeeklyCheckResponse>> checkWeeklyFailureForGroup(
+            @LoginMemberId Long memberId,
+            @PathVariable Long groupId
+    ) {
+        return ResponseEntity.ok(
+                habitService.checkWeeklyFailureForGroup(memberId, groupId)
         );
     }
 
