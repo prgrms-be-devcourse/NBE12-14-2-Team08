@@ -101,9 +101,13 @@ class HabitWeeklyCheckControllerTest {
     private Long createVerify(LocalDate verifyDate, HabitVerifyStatus status) {
         Habit habit = habitRepository.findById(habitId).orElseThrow();
 
+        // HabitVerify.create는 항상 PENDING으로 생성하므로, APPROVED가 필요하면 승인 처리까지 이어서 한다.
         HabitVerify verify = HabitVerify.create(
-                habit, verifyDate, status, "테스트 인증", "https://x.com/a.jpg"
+                habit, verifyDate, "테스트 인증", "https://x.com/a.jpg"
         );
+        if (status == HabitVerifyStatus.APPROVED) {
+            verify.approve();
+        }
         habitVerifyRepository.save(verify);
 
         ReflectionTestUtils.setField(verify, "createDate", LocalDateTime.now().minusDays(3));
