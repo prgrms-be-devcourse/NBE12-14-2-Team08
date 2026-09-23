@@ -3,7 +3,7 @@ package com.back.domain.groupMember.dto;
 public interface GroupMemberResponse {
 
     record Simple(
-            Long Id,
+            Long id,
             Long memberId,
             String nickname,
             String role,
