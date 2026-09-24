@@ -6,6 +6,7 @@ public interface GroupMemberResponse {
             Long id,
             Long memberId,
             String nickname,
+            String username,
             String role,
             Long habitId,
             String habitTitle,
@@ -16,6 +17,7 @@ public interface GroupMemberResponse {
             Long groupMemberId,
             Long memberId,
             String nickname,
+            String username,
             String role,
             int penaltyCount
     ) {}
