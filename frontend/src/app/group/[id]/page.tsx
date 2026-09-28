@@ -127,7 +127,7 @@ export default function GroupDetailPage({
 
     const handleLeaveGroup = async () => {
         if (currentRole === 'OWNER') {
-            alert('방장은 그룹 활성화 상태에서 바로 탈퇴할 수 없습니다.\n습관 상세 페이지에서 권한을 위임한 후 탈퇴해 주세요.');
+            alert('방장은 그룹 활성화 상태에서 바로 탈퇴할 수 없습니다.\n방 삭제를 이용해 주세요.');
             return;
         }
 
