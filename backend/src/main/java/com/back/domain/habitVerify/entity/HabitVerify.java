@@ -40,14 +40,16 @@ public class HabitVerify extends BaseEntity {
 
     public static HabitVerify create(
             Habit habit, LocalDate verifyDate,
-             String description,
+            String description,
             String imageUrl
 
     ) {
         HabitVerify habitVerify = new HabitVerify();
 
-        habitVerify.habit = habit; habitVerify.verifyDate = verifyDate;
-        habitVerify.status = HabitVerifyStatus.PENDING; habitVerify.description = description;
+        habitVerify.habit = habit;
+        habitVerify.verifyDate = verifyDate;
+        habitVerify.status = HabitVerifyStatus.PENDING;
+        habitVerify.description = description;
         habitVerify.imageUrl = imageUrl;
 
         return habitVerify;
@@ -58,8 +60,6 @@ public class HabitVerify extends BaseEntity {
         this.description = description;
         this.imageUrl = imageUrl;
     }
-
-
 
 
     public void approve() {
@@ -75,6 +75,7 @@ public class HabitVerify extends BaseEntity {
     public void reject() {
         this.status = HabitVerifyStatus.REJECTED;
     }
+}
 
 
 
