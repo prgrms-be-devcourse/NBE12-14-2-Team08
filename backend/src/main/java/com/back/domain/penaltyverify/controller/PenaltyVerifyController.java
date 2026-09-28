@@ -43,6 +43,16 @@ public class PenaltyVerifyController {
             .body(penaltyVerifyService.submit(memberId, habitId, request));
     }
 
+    @Operation(summary = "반려된 벌칙 인증 재제출")
+    @PatchMapping("/penalties/{id}/resubmit")
+    public PenaltyVerifyDetailResponse resubmit(
+        @LoginMemberId Long memberId,
+        @PathVariable Long id,
+        @Valid @RequestBody SubmitPenaltyVerifyRequest request
+    ) {
+        return penaltyVerifyService.resubmit(memberId, id, request);
+    }
+
     @Operation(summary = "벌칙 인증 사진 업로드용 서명 URL 발급")
     @PostMapping("/penalties/upload-url")
     public ResponseEntity<UploadUrlResponse> getUploadUrl(
