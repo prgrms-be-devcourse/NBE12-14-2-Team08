@@ -45,12 +45,25 @@ public interface GroupResponse {
         }
     }
 
+    record InvitePreview(
+            Long id,
+            String title,
+            String description,
+            LocalDate startDate,
+            LocalDate deadline,
+            String penalty,
+            int memberLimit,
+            long currentMemberCount,
+            GroupStatus status
+    ) {}
+
     record Simple(
             Long id,
             String title,
             String description,
             int memberLimit,
             Long currentMemberCount,
-            String status
+            String status,
+            String role
     ) {}
 }

@@ -2,23 +2,18 @@ package com.back.domain.group.controller;
 
 import com.back.domain.group.dto.GroupRequest;
 import com.back.domain.group.dto.GroupResponse;
+import com.back.domain.group.dto.SettlementResponse;
 import com.back.domain.group.entity.GroupStatus;
 import com.back.domain.group.service.GroupService;
+import com.back.domain.group.service.SettlementService;
 import com.back.global.security.LoginMemberId;
 import jakarta.validation.Valid;
-import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.DeleteMapping;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.PutMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 @RestController
 @RequiredArgsConstructor
@@ -26,6 +21,7 @@ import org.springframework.web.bind.annotation.RestController;
 public class GroupController {
 
     private final GroupService groupService;
+    private final SettlementService settlementService;
 
     @PostMapping
     public ResponseEntity<GroupResponse.Detail> createGroup(
@@ -40,6 +36,28 @@ public class GroupController {
             @LoginMemberId Long memberId,
             @RequestParam(value = "status", defaultValue = "ACTIVE") GroupStatus status) {
         List<GroupResponse.Simple> response = groupService.getGroupSimpleList(memberId, status);
+        return ResponseEntity.ok(response);
+    }
+
+    //초대 코드로 방 정보 일부 조회
+    @GetMapping("/invite/{inviteCode}")
+    public ResponseEntity<GroupResponse.InvitePreview> getInvitePreview(
+            @PathVariable String inviteCode
+    ) {
+        GroupResponse.InvitePreview response =
+                groupService.getInvitePreview(inviteCode);
+
+        return ResponseEntity.ok(response);
+    }
+    //결산 데이터 조회
+    @GetMapping("/{groupId}/settlement")
+    public ResponseEntity<SettlementResponse> getSettlement(
+            @PathVariable Long groupId,
+            @LoginMemberId Long memberId
+    ) {
+        SettlementResponse response =
+                settlementService.getSettlement(groupId, memberId);
+
         return ResponseEntity.ok(response);
     }
 
