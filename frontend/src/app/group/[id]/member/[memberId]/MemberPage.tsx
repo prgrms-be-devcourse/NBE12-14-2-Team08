@@ -125,10 +125,11 @@ export function MemberPage({ groupId, memberId }: Props) {
             setHabitDaysById(Object.fromEntries(validHabitEntries.map((e) => [e.habitId, e.days])));
             setHabitEndDateById(Object.fromEntries(validHabitEntries.map((e) => [e.habitId, e.endDate])));
 
-            const isOwnPage = currentUser?.id === String(memberRes.memberId);
-            if (isOwnPage) {
+            // 활성 습관 여부/식별자는 그룹 멤버 목록에 이미 포함되어 있어, 본인 여부와 무관하게
+            // 그룹의 아무 멤버나 대상 멤버의 도전 습관과 인증 캘린더를 조회할 수 있다 (조회만 가능).
+            if (target.habitId != null) {
                 try {
-                    const habitRes = await habitApi.getActiveHabit(groupId);
+                    const habitRes = await habitApi.getHabit(target.habitId);
                     setHabit(habitRes);
                     setVerifies(await habitApi.getHabitVerifications(habitRes.id));
                 } catch {
@@ -263,8 +264,8 @@ export function MemberPage({ groupId, memberId }: Props) {
                     </div>
                 </div>
 
-                {/* 도전 습관 & 액션 버튼 (본인 페이지에서만 표시) */}
-                {isMe && habit && (
+                {/* 도전 습관 정보는 같은 그룹 멤버라면 누구나 조회 가능, 액션 버튼은 본인만 */}
+                {habit ? (
                     <div className="mt-5 pt-5 border-t border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                         <div>
                             <span className="text-[11px] font-bold text-emerald-600 uppercase">도전 습관</span>
@@ -279,7 +280,7 @@ export function MemberPage({ groupId, memberId }: Props) {
                             </p>
                         </div>
 
-                        {habit.status === "ACTIVE" && (
+                        {isMe && habit.status === "ACTIVE" && (
                             <div className="flex items-center gap-2 shrink-0">
                                 <button
                                     onClick={() => setShowCertifyModal(true)}
@@ -302,27 +303,27 @@ export function MemberPage({ groupId, memberId }: Props) {
                             </span>
                         )}
                     </div>
-                )}
-
-                {isMe && !habit && (
+                ) : (
                     <div className="mt-5 pt-5 border-t border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                         <div>
                             <span className="text-[11px] font-bold text-emerald-600 uppercase">도전 습관</span>
                             <p className="text-sm text-slate-500 mt-0.5">아직 진행 중인 습관이 없습니다.</p>
                         </div>
-                        <button
-                            onClick={() => setShowCreateHabitModal(true)}
-                            className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl font-bold text-xs text-white bg-emerald-500 hover:bg-emerald-600 shadow-md shadow-emerald-500/20 transition-all cursor-pointer shrink-0"
-                        >
-                            <Plus className="w-4 h-4" />
-                            <span>습관을 추가해주세요</span>
-                        </button>
+                        {isMe && (
+                            <button
+                                onClick={() => setShowCreateHabitModal(true)}
+                                className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl font-bold text-xs text-white bg-emerald-500 hover:bg-emerald-600 shadow-md shadow-emerald-500/20 transition-all cursor-pointer shrink-0"
+                            >
+                                <Plus className="w-4 h-4" />
+                                <span>습관을 추가해주세요</span>
+                            </button>
+                        )}
                     </div>
                 )}
             </div>
 
             {/* 인증 캘린더 (본인 페이지에서만 표시) */}
-            {isMe && habit && <VerifyCalendar verifies={verifies} onSelectDay={setCertDetail} />}
+            {habit && <VerifyCalendar verifies={verifies} onSelectDay={setCertDetail} />}
 
             {/* 벌칙 기록 (실패한 습관 종류와 무관하게 이 멤버의 전체 벌칙) */}
             <div className="bg-white rounded-3xl border border-slate-200/90 shadow-sm p-6">
@@ -340,45 +341,27 @@ export function MemberPage({ groupId, memberId }: Props) {
                                     className="p-3.5 sm:p-4 rounded-2xl border border-slate-100 bg-slate-50/60"
                                 >
                                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                                        {isMe ? (
-                                            <button
-                                                type="button"
-                                                onClick={() =>
-                                                    setExpandedHabitId(isExpanded ? null : penalty.habitId)
-                                                }
-                                                className="text-left flex-1 rounded-xl -m-1.5 p-1.5 hover:bg-slate-100/80 transition-colors cursor-pointer"
-                                            >
-                                                <div className="flex items-center gap-2">
-                                                    <span className="text-sm font-semibold text-slate-700">
-                                                        {penalty.habitTitle}
+                                        <button
+                                            type="button"
+                                            onClick={() =>
+                                                setExpandedHabitId(isExpanded ? null : penalty.habitId)
+                                            }
+                                            className="text-left flex-1 rounded-xl -m-1.5 p-1.5 hover:bg-slate-100/80 transition-colors cursor-pointer"
+                                        >
+                                            <div className="flex items-center gap-2">
+                                                <span className="text-sm font-semibold text-slate-700">
+                                                    {penalty.habitTitle}
+                                                </span>
+                                                {habitDaysById[penalty.habitId] != null && (
+                                                    <span className="text-[10px] font-bold text-slate-400">
+                                                        주 {habitDaysById[penalty.habitId]}회
                                                     </span>
-                                                    {habitDaysById[penalty.habitId] != null && (
-                                                        <span className="text-[10px] font-bold text-slate-400">
-                                                            주 {habitDaysById[penalty.habitId]}회
-                                                        </span>
-                                                    )}
-                                                </div>
-                                                <p className="text-[11px] font-semibold text-slate-400 mt-0.5">
-                                                    {habitEndDateById[penalty.habitId] ? `~${habitEndDateById[penalty.habitId]}` : "-"}
-                                                </p>
-                                            </button>
-                                        ) : (
-                                            <div>
-                                                <div className="flex items-center gap-2">
-                                                    <span className="text-sm font-semibold text-slate-700">
-                                                        {penalty.habitTitle}
-                                                    </span>
-                                                    {habitDaysById[penalty.habitId] != null && (
-                                                        <span className="text-[10px] font-bold text-slate-400">
-                                                            주 {habitDaysById[penalty.habitId]}회
-                                                        </span>
-                                                    )}
-                                                </div>
-                                                <p className="text-[11px] font-semibold text-slate-400 mt-0.5">
-                                                    {habitEndDateById[penalty.habitId] ? `~${habitEndDateById[penalty.habitId]}` : "-"}
-                                                </p>
+                                                )}
                                             </div>
-                                        )}
+                                            <p className="text-[11px] font-semibold text-slate-400 mt-0.5">
+                                                {habitEndDateById[penalty.habitId] ? `~${habitEndDateById[penalty.habitId]}` : "-"}
+                                            </p>
+                                        </button>
                                         <div className="flex items-center gap-3 shrink-0">
                                             {(() => {
                                                 const meta = PENALTY_STATUS_META[penalty.status];
