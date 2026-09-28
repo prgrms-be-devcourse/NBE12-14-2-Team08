@@ -8,11 +8,12 @@ import {
     Calendar as CalendarIcon,
     CheckCircle2,
     Camera,
-    Coffee,
     Crown,
     AlertTriangle,
     Upload,
     Plus,
+    ChevronLeft,
+    ChevronRight,
 } from "lucide-react";
 import { useMember } from "@/context/MemberContext";
 import { ModalShell, ModalHeader, ModalActions } from "@/components/ModalKit";
@@ -253,8 +254,7 @@ export function MemberPage({ groupId, memberId }: Props) {
                         </div>
                     </div>
 
-                    <div className="flex items-center gap-3 bg-rose-50/80 border border-rose-100 px-4 py-2.5 rounded-2xl shrink-0">
-                        <Coffee className="w-4 h-4 text-rose-500" />
+                    <div className="flex items-center bg-rose-50/80 border border-rose-100 px-4 py-2.5 rounded-2xl shrink-0">
                         <div>
                             <span className="text-[10px] font-bold text-rose-400 uppercase">누적 벌칙</span>
                             <p className="text-sm font-black text-rose-600">벌칙 횟수 : {member.penaltyCount}회</p>
@@ -522,9 +522,31 @@ function VerifyCalendar({
     onSelectDay: (v: HabitVerifyResponse) => void;
 }) {
     const now = new Date();
-    const year = now.getFullYear();
-    const month = now.getMonth(); // 0-indexed
-    const today = now.getDate();
+    const todayYear = now.getFullYear();
+    const todayMonth = now.getMonth();
+    const todayDate = now.getDate();
+
+    const [year, setYear] = useState(todayYear);
+    const [month, setMonth] = useState(todayMonth); // 0-indexed
+
+    const goPrevMonth = () => {
+        if (month === 0) {
+            setYear((y) => y - 1);
+            setMonth(11);
+        } else {
+            setMonth((m) => m - 1);
+        }
+    };
+
+    const goNextMonth = () => {
+        if (month === 11) {
+            setYear((y) => y + 1);
+            setMonth(0);
+        } else {
+            setMonth((m) => m + 1);
+        }
+    };
+
     const daysInMonth = new Date(year, month + 1, 0).getDate();
     const startDayOfWeek = new Date(year, month, 1).getDay();
     const weekDays = ["일", "월", "화", "수", "목", "금", "토"];
@@ -547,7 +569,7 @@ function VerifyCalendar({
         cells.push({
             day,
             dateStr,
-            isToday: day === today,
+            isToday: year === todayYear && month === todayMonth && day === todayDate,
             verify: verifyByDate.get(dateStr),
         });
     }
@@ -557,10 +579,24 @@ function VerifyCalendar({
             <div className="grid grid-cols-3 items-center mb-4">
                 <div />
                 <div className="flex items-center justify-center gap-2">
+                    <button
+                        onClick={goPrevMonth}
+                        className="p-1 rounded-lg hover:bg-slate-100 transition-colors cursor-pointer"
+                        aria-label="이전 달"
+                    >
+                        <ChevronLeft className="w-4 h-4 text-slate-500" />
+                    </button>
                     <CalendarIcon className="w-4 h-4 text-emerald-600" />
                     <h3 className="text-sm font-extrabold text-slate-900">
                         {year}년 {month + 1}월
                     </h3>
+                    <button
+                        onClick={goNextMonth}
+                        className="p-1 rounded-lg hover:bg-slate-100 transition-colors cursor-pointer"
+                        aria-label="다음 달"
+                    >
+                        <ChevronRight className="w-4 h-4 text-slate-500" />
+                    </button>
                 </div>
                 <div className="flex items-center justify-end gap-2 text-[11px]">
                     <span className="flex items-center gap-1 text-slate-500">
@@ -570,6 +606,10 @@ function VerifyCalendar({
                     <span className="flex items-center gap-1 text-slate-500">
                         <span className="w-2.5 h-2.5 rounded-sm bg-amber-400 inline-block" />
                         검토중
+                    </span>
+                    <span className="flex items-center gap-1 text-slate-500">
+                        <span className="w-2.5 h-2.5 rounded-sm bg-rose-400 inline-block" />
+                        반려
                     </span>
                     <span className="flex items-center gap-1 text-slate-400">
                         <span className="w-2.5 h-2.5 rounded-sm bg-slate-200 inline-block" />
@@ -1096,7 +1136,7 @@ function PenaltyCertModal({
     return (
         <ModalShell borderClass="border-rose-100">
             <ModalHeader
-                title={isEditing ? "✏️ 벌칙 인증 수정하기" : "☕ 벌칙 인증하기"}
+                title={isEditing ? "✏️ 벌칙 인증 수정하기" : "벌칙 인증하기"}
                 subtitle={
                     isEditing
                         ? "반려된 내용을 수정해서 다시 제출해주세요."
@@ -1161,7 +1201,6 @@ function PenaltyDetailModal({ item, onClose }: { item: PenaltyVerifyDetail; onCl
         <ModalShell borderClass="border-rose-100" widthClass="max-w-sm">
             <ModalHeader
                 title="벌칙 수행 기록"
-                icon={<Coffee className="w-5 h-5 text-rose-600" />}
                 onClose={onClose}
                 titleClass="text-rose-600"
             />
