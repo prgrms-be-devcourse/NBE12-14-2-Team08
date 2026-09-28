@@ -40,20 +40,20 @@ public class GroupMemberService {
     private final PasswordEncoder passwordEncoder;
 
     @Transactional
-    public void joinGroup(String inviteCode, Long memberId, GroupRequest.Join request) {
+    public Long joinGroup(String inviteCode, Long memberId, GroupRequest.Join request) {
         Group group = groupRepository.findByInviteCode(inviteCode)
                 .orElseThrow(() -> new EntityNotFoundException("유효하지 않거나 존재하지 않는 초대 코드입니다."));
+
+        if (groupMemberRepository.existsByGroupIdAndMemberId(group.getId(), memberId)) {
+            return group.getId();
+        }
 
         if (!passwordEncoder.matches(request.password(), group.getPassword())) {
             throw new ForbiddenException("그룹 비밀번호가 일치하지 않습니다.");
         }
 
-        if (group.getStatus() == GroupStatus.FINISH || LocalDate.now().isAfter(group.getDeadline())) {
+        if (group.isFinished()) {
             throw new BusinessRuleException("이미 종료된 그룹입니다.");
-        }
-
-        if (groupMemberRepository.existsByGroupIdAndMemberId(group.getId(), memberId)) {
-            return;
         }
 
         long currentMemberCount = groupMemberRepository.countByGroupId(group.getId());
@@ -72,6 +72,8 @@ public class GroupMemberService {
                 .build();
 
         groupMemberRepository.save(groupMember);
+
+        return group.getId();
     }
 
     public List<GroupMemberResponse.Simple> getGroupMembers(Long groupId, Long memberId) {
@@ -97,17 +99,20 @@ public class GroupMemberService {
                 .orElseThrow(() -> new EntityNotFoundException("해당 그룹의 멤버가 아닙니다."));
 
         Group group = groupMember.getGroup();
+
+        boolean isFinished = group.isFinished();
+
         if (groupMember.getRole() == GroupMemberRole.OWNER) {
-            if (group.getStatus() == GroupStatus.ACTIVE) {
-                throw new BusinessRuleException("방장은 그룹 활성화 상태에서 그룹을 바로 탈퇴할 수 없습니다. 권한 위임 후 탈퇴해 주세요.");
+            if (!isFinished) {
+                throw new BusinessRuleException("방장은 그룹 활성화 상태에서 그룹을 탈퇴할 수 없습니다. 방 삭제를 이용해 주세요.");
             }
         }
 
-        if (group.getStatus() == GroupStatus.ACTIVE) {
+        if (!isFinished) {
             deleteGroupMemberDataBulk(groupMember.getId());
-
             groupMemberRepository.delete(groupMember);
-        } else if (group.getStatus() == GroupStatus.FINISH) {
+        }
+        else {
             groupMember.leave();
         }
     }
@@ -133,7 +138,7 @@ public class GroupMemberService {
         }
 
         Group group = kickTarget.getGroup();
-        if (group.getStatus() == GroupStatus.FINISH || LocalDate.now().isAfter(group.getDeadline())) {
+        if (group.isFinished()) {
             throw new BusinessRuleException("이미 종료된 그룹은 멤버를 추방할 수 없습니다.");
         }
 

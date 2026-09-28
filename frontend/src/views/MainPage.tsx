@@ -105,7 +105,10 @@ export function MainPage() {
           ) : (
             <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
               {groups.map((group) => (
-                <button key={group.id} type="button" onClick={() => router.push(`/group/${group.id}`)}
+                <button
+                  key={group.id}
+                  type="button"
+                  onClick={() => router.push(status === 'FINISH' ? `/group/${group.id}/settlement` : `/group/${group.id}`)}
                   className="group rounded-3xl border border-slate-200/80 bg-white p-6 text-left transition-all hover:border-emerald-400 hover:shadow-xl hover:shadow-emerald-500/5">
                   <div className="flex items-center justify-between gap-3">
                     <span className={`rounded-full px-2.5 py-1 text-[11px] font-bold ${

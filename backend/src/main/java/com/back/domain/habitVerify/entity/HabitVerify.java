@@ -39,9 +39,9 @@ public class HabitVerify extends BaseEntity {
     private String imageUrl;
 
     public static HabitVerify create(
-        Habit habit, LocalDate verifyDate,
-        String description,
-        String imageUrl
+            Habit habit, LocalDate verifyDate,
+            String description,
+            String imageUrl
 
     ) {
         HabitVerify habitVerify = new HabitVerify();
@@ -60,6 +60,8 @@ public class HabitVerify extends BaseEntity {
         this.description = description;
         this.imageUrl = imageUrl;
     }
+
+
 
 
     public void approve() {

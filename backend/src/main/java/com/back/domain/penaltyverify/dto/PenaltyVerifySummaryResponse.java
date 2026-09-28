@@ -7,6 +7,7 @@ import java.time.LocalDate;
 // 벌칙 요약 목록 (관리자 검토 및 사용자 벌칙 기록 공용)
 public record PenaltyVerifySummaryResponse (
     Long id,
+    Long habitId,
     LocalDate verifyDate,
     String habitTitle,
     String description,
@@ -18,6 +19,7 @@ public record PenaltyVerifySummaryResponse (
     public static PenaltyVerifySummaryResponse from(PenaltyVerify py){
         return new PenaltyVerifySummaryResponse(
             py.getId(),
+            py.getHabit().getId(),
             py.getVerifyDate(),
             py.getHabitTitle(),
             py.getDescription(),

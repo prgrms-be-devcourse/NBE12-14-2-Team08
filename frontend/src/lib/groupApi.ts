@@ -20,8 +20,33 @@ export interface CreateGroupRequest {
   memberLimit: number;
 }
 
+export interface UpdateGroupRequest {
+  title?: string;
+  description?: string;
+  deadline?: string;
+  penalty?: string;
+  password?: string;
+  memberLimit: number;
+}
+
 interface GroupDetail {
   id: number;
+}
+
+export interface JoinGroupResponse {
+  groupId: number;
+}
+
+export interface GroupInvitePreview {
+  id: number;
+  title: string;
+  description: string | null;
+  startDate: string;
+  deadline: string | null;
+  penalty: string | null;
+  memberLimit: number;
+  currentMemberCount: number;
+  status: GroupStatus;
 }
 
 export const groupApi = {
@@ -32,9 +57,16 @@ export const groupApi = {
       method: 'POST',
       body: JSON.stringify(request),
     }, true),
+  getInvitePreview: (inviteCode: string) =>
+    apiRequest<GroupInvitePreview>(`/groups/invite/${encodeURIComponent(inviteCode)}`),
   join: (inviteCode: string, password: string) =>
-    apiRequest<void>(`/groups/join/${encodeURIComponent(inviteCode)}`, {
+    apiRequest<JoinGroupResponse>(`/groups/join/${encodeURIComponent(inviteCode)}`, {
       method: 'POST',
       body: JSON.stringify({ password }),
+    }, true),
+  update: (groupId: number, request: UpdateGroupRequest) =>
+    apiRequest<void>(`/groups/${groupId}`, {
+      method: 'PUT',
+      body: JSON.stringify(request),
     }, true),
 };

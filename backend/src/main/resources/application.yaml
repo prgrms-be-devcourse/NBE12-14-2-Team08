@@ -28,7 +28,15 @@ management:
         include: health
 
 app:
-  invite-base-url: https://nbe-12-14-2-team08.vercel.app/
+  invite-base-url: ${INVITE_BASE_URL:http://localhost:3000/invite/}
+
+logging:
+  level:
+    org.hibernate.SQL: DEBUG
+    org.hibernate.orm.jdbc.bind: TRACE
+    org.hibernate.orm.jdbc.extract: TRACE
+    org.springframework.transaction.interceptor: TRACE
+    com.back: DEBUG
 
 
 jwt:

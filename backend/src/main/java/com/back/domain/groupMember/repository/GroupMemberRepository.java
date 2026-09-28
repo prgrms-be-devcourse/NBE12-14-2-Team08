@@ -14,7 +14,7 @@ import java.util.Optional;
 @Repository
 public interface GroupMemberRepository extends JpaRepository<GroupMember, Long> {
     @Query("select new com.back.domain.groupMember.dto.GroupMemberResponse$Simple(" +
-            "gm.id, m.id, m.nickname, cast(gm.role as string), h.id, h.title, h.description) " +
+            "gm.id, m.id, m.nickname, m.username, cast(gm.role as string), h.id, h.title, h.description) " +
             "from GroupMember gm " +
             "join gm.member m " +
             "left join Habit h on h.groupMember.id = gm.id and h.status = com.back.domain.habit.entity.HabitStatus.ACTIVE " +
@@ -23,12 +23,12 @@ public interface GroupMemberRepository extends JpaRepository<GroupMember, Long> 
             @Param("groupId") Long groupId);
 
     @Query("select new com.back.domain.groupMember.dto.GroupMemberResponse$Detail(" +
-            "gm.id, m.id, m.nickname, cast(gm.role as string), cast(count(pv) as int)) " +
+            "gm.id, m.id, m.nickname, m.username, cast(gm.role as string), cast(count(pv) as int)) " +
             "from GroupMember gm " +
             "join gm.member m " +
             "left join PenaltyVerify pv on pv.groupMember.id = gm.id " +
             "where gm.group.id = :groupId and gm.id = :groupMemberId " +
-            "group by gm.id, m.id, m.nickname, gm.role")
+            "group by gm.id, m.id, m.nickname, m.username, gm.role")
     Optional<GroupMemberResponse.Detail> findMemberDetailWithPenaltyCount(
             @Param("groupId") Long groupId,
             @Param("groupMemberId") Long groupMemberId);

@@ -60,11 +60,9 @@ public class StorageService {
                 );
 
         // 프론트가 사용할 업로드 URL
+        // Supabase가 반환하는 signedPath는 /storage/v1 기준 상대 경로라 직접 붙여야 함
         String uploadUrl =
-                properties.url()
-                        + "/storage/v1"
-                        + signedPath;
-
+                properties.url() + "/storage/v1" + signedPath;
 
         // 업로드 후 사용할 이미지 URL
         String publicUrl =

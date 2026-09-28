@@ -3,9 +3,10 @@ package com.back.domain.groupMember.dto;
 public interface GroupMemberResponse {
 
     record Simple(
-            Long id,
+            Long groupMemberId,
             Long memberId,
             String nickname,
+            String username,
             String role,
             Long habitId,
             String habitTitle,
@@ -16,7 +17,12 @@ public interface GroupMemberResponse {
             Long groupMemberId,
             Long memberId,
             String nickname,
+            String username,
             String role,
             int penaltyCount
+    ) {}
+
+    record JoinSuccess(
+            Long groupId
     ) {}
 }
