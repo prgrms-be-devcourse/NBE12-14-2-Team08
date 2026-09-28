@@ -104,7 +104,7 @@ public class GroupMemberService {
 
         if (groupMember.getRole() == GroupMemberRole.OWNER) {
             if (!isFinished) {
-                throw new BusinessRuleException("방장은 그룹 활성화 상태에서 그룹을 바로 탈퇴할 수 없습니다. 권한 위임 후 탈퇴해 주세요.");
+                throw new BusinessRuleException("방장은 그룹 활성화 상태에서 그룹을 탈퇴할 수 없습니다. 방 삭제를 이용해 주세요.");
             }
         }
 
