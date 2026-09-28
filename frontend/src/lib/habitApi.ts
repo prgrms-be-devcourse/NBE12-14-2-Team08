@@ -33,6 +33,17 @@ export interface GroupMemberDetail {
   penaltyCount: number;
 }
 
+export interface GroupMemberSimple {
+  groupMemberId: number;
+  memberId: number;
+  nickname: string;
+  username: string;
+  role: GroupMemberRole;
+  habitId: number | null;
+  habitTitle: string | null;
+  habitDescription: string | null;
+}
+
 export interface PenaltyVerifySummary {
   id: number;
   habitId: number;
@@ -76,6 +87,9 @@ export const habitApi = {
 
   failHabit: (habitId: number | string) =>
     apiRequest<void>(`/habits/fail/${habitId}`, { method: 'POST' }, true),
+
+  getGroupMembers: (groupId: number | string) =>
+    apiRequest<GroupMemberSimple[]>(`/groups/${groupId}/members`, {}, true),
 
   getGroupMember: (groupId: number | string, groupMemberId: number | string) =>
     apiRequest<GroupMemberDetail>(`/groups/${groupId}/members/${groupMemberId}`, {}, true),

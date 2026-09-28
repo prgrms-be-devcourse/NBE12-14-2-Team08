@@ -7,5 +7,5 @@ export default async function Page({
 }) {
     const { id, memberId } = await params;
 
-    return <MemberPage groupId={id} groupMemberId={memberId} />;
+    return <MemberPage groupId={id} memberId={memberId} />;
 }
