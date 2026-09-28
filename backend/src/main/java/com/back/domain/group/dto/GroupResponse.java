@@ -18,9 +18,10 @@ public interface GroupResponse {
             LocalDateTime createDate,
             String inviteLink,
             GroupStatus status,
-            boolean isJoined
+            boolean isJoined,
+            long currentMemberCount
     ) {
-        public static Detail from(Group group, String baseInviteUrl, boolean isJoined) {
+        public static Detail from(Group group, String baseInviteUrl, boolean isJoined, long currentMemberCount) {
             String fullInviteLink = baseInviteUrl + group.getInviteCode();
 
             GroupStatus currentStatus = group.getStatus();
@@ -40,7 +41,8 @@ public interface GroupResponse {
                     group.getCreateDate(),
                     fullInviteLink,
                     currentStatus,
-                    isJoined
+                    isJoined,
+                    currentMemberCount
             );
         }
     }

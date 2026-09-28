@@ -26,7 +26,7 @@ public class GroupMemberController {
     private final GroupMemberService groupMemberService;
     private final GroupService groupService;
 
-    @GetMapping("/join/{inviteCode}")
+    @GetMapping("/invite/{inviteCode}")
     public ResponseEntity<GroupResponse.Detail> getGroupByInviteCode(
             @PathVariable String inviteCode,
             @LoginMemberId Long memberId) {

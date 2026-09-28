@@ -4,25 +4,35 @@ import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { RoomPasswordModal } from '../components/RoomPasswordModal';
 import { useMember } from '../context/MemberContext';
-import { groupApi, type GroupInvitePreview } from '../lib/groupApi';
+import { groupApi, type GroupDetailResponse } from '../lib/groupApi';
 
 export function InvitePage() {
   const { invitecode } = useParams<{ invitecode: string }>();
   const router = useRouter();
   const { currentUser, authReady } = useMember();
   const [showPasswordModal, setShowPasswordModal] = useState(false);
-  const [preview, setPreview] = useState<GroupInvitePreview | null>(null);
+  const [preview, setPreview] = useState<GroupDetailResponse | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
 
   useEffect(() => {
-    if (!invitecode) return;
+    if (!authReady || !invitecode) return;
+
+    if (!currentUser) {
+      const invitePath = `/invite/${encodeURIComponent(invitecode)}`;
+      router.replace(`/login?redirect=${encodeURIComponent(invitePath)}`);
+      return;
+    }
 
     let cancelled = false;
 
-    groupApi.getInvitePreview(invitecode)
+    groupApi.getGroupByInviteCode(invitecode)
       .then((data) => {
-        if (!cancelled) setPreview(data);
+        if (!cancelled) {setPreview(data);
+          if (data.isJoined) {
+            router.push('/main');
+          }
+        }
       })
       .catch((caught) => {
         if (!cancelled) {
@@ -36,7 +46,13 @@ export function InvitePage() {
     return () => {
       cancelled = true;
     };
-  }, [invitecode]);
+  }, [invitecode, authReady, currentUser, router]);
+
+  useEffect(() => {
+    if (preview && preview.isJoined) {
+      router.replace(`/group/${preview.id}`);
+    }
+  }, [preview, router]);
 
   const handleJoinClick = () => {
     if (!authReady || !preview || preview.status === 'FINISH') return;
@@ -47,6 +63,14 @@ export function InvitePage() {
     }
     setShowPasswordModal(true);
   };
+
+  if (!authReady) {
+    return (
+        <main className="flex min-h-[85vh] items-center justify-center">
+          <div className="text-sm font-semibold text-slate-400">사용자 인증 확인 중...</div>
+        </main>
+    );
+  }
 
   return (
     <main className="flex min-h-[85vh] items-center justify-center px-4 py-10">

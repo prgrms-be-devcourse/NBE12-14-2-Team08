@@ -2,7 +2,6 @@ package com.back.domain.groupMember.service;
 
 import com.back.domain.group.dto.GroupRequest;
 import com.back.domain.group.entity.Group;
-import com.back.domain.group.entity.GroupStatus;
 import com.back.domain.group.repository.GroupRepository;
 import com.back.domain.groupMember.dto.GroupMemberResponse;
 import com.back.domain.groupMember.entity.GroupMember;
@@ -18,7 +17,6 @@ import com.back.global.exception.BusinessRuleException;
 import com.back.global.exception.EntityNotFoundException;
 import com.back.global.exception.ForbiddenException;
 import com.back.global.exception.GroupLimitExceededException;
-import java.time.LocalDate;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;

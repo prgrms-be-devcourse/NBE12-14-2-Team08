@@ -66,7 +66,7 @@ public class GroupService {
 
         groupMemberRepository.save(owner);
 
-        return GroupResponse.Detail.from(savedGroup, baseInviteUrl, true);
+        return GroupResponse.Detail.from(savedGroup, baseInviteUrl, true, 1L);
     }
 
     public List<GroupResponse.Simple> getGroupSimpleList(Long memberId, GroupStatus status) {
@@ -82,7 +82,9 @@ public class GroupService {
             throw new ForbiddenException("해당 그룹의 접근 권한이 없습니다.");
         }
 
-        return GroupResponse.Detail.from(group, baseInviteUrl, true);
+        long currentMemberCount = groupMemberRepository.countByGroupId(groupId);
+
+        return GroupResponse.Detail.from(group, baseInviteUrl, true, currentMemberCount);
     }
 
     @Transactional
@@ -200,21 +202,30 @@ public class GroupService {
     }
 
     public GroupResponse.Detail getGroupByInviteCode(String inviteCode, Long memberId) {
+        Group group = groupRepository.findByInviteCode(inviteCode)
+                .orElseThrow(() -> new EntityNotFoundException("유효하지 않거나 존재하지 않는 초대 코드입니다."));
+
+        long currentMemberCount = groupMemberRepository.countByGroupId(group.getId());
+
+        if (memberId == null) {
+            if (group.isFinished()) {
+                throw new BusinessRuleException("이미 종료된 그룹입니다.");
+            }
+            return GroupResponse.Detail.from(group, baseInviteUrl, false, currentMemberCount);
+        }
+
         if (!memberRepository.existsById(memberId)) {
             throw new EntityNotFoundException("존재하지 않는 회원입니다.");
         }
 
-        Group group = groupRepository.findByInviteCode(inviteCode)
-                .orElseThrow(() -> new EntityNotFoundException("유효하지 않거나 존재하지 않는 초대 코드입니다."));
-
         if (groupMemberRepository.existsByGroupIdAndMemberId(group.getId(), memberId)) {
-            return GroupResponse.Detail.from(group, baseInviteUrl, true);
+            return GroupResponse.Detail.from(group, baseInviteUrl, true, currentMemberCount);
         }
 
         if (group.isFinished()) {
             throw new BusinessRuleException("이미 종료된 그룹입니다.");
         }
 
-        return GroupResponse.Detail.from(group, baseInviteUrl, false);
+        return GroupResponse.Detail.from(group, baseInviteUrl, false, currentMemberCount);
     }
 }
