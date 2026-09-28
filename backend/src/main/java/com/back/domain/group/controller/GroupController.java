@@ -39,16 +39,6 @@ public class GroupController {
         return ResponseEntity.ok(response);
     }
 
-    //초대 코드로 방 정보 일부 조회
-    @GetMapping("/invite/{inviteCode}")
-    public ResponseEntity<GroupResponse.InvitePreview> getInvitePreview(
-            @PathVariable String inviteCode
-    ) {
-        GroupResponse.InvitePreview response =
-                groupService.getInvitePreview(inviteCode);
-
-        return ResponseEntity.ok(response);
-    }
     //결산 데이터 조회
     @GetMapping("/{groupId}/settlement")
     public ResponseEntity<SettlementResponse> getSettlement(
