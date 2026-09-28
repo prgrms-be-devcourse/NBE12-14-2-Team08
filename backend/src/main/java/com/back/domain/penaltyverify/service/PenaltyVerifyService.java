@@ -60,6 +60,25 @@ public class PenaltyVerifyService {
     }
 
     @Transactional
+    public PenaltyVerifyDetailResponse resubmit(Long memberId, Long id, SubmitPenaltyVerifyRequest request) {
+        ImageUrlValidator.validate(request.imageUrl());
+
+        PenaltyVerify penaltyVerify = findById(id);
+
+        if (!penaltyVerify.getGroupMember().getMember().getId().equals(memberId)) {
+            throw new IllegalStateException("본인의 벌칙만 재제출할 수 있습니다.");
+        }
+
+        penaltyVerify.resubmit(
+            LocalDate.now(),
+            request.description(),
+            request.imageUrl()
+        );
+
+        return PenaltyVerifyDetailResponse.from(penaltyVerify);
+    }
+
+    @Transactional
     public PenaltyVerifyDetailResponse approve(Long memberId, Long id) {
         PenaltyVerify penaltyVerify = findById(id);
         validateOwner(memberId, penaltyVerify.getGroupMember().getGroup().getId());

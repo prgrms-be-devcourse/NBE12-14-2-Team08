@@ -82,6 +82,18 @@ public class PenaltyVerify extends BaseEntity {
         this.status = PenaltyVerifyStatus.PENDING;
     }
 
+    public void resubmit(LocalDate verifyDate, String description, String imageUrl) {
+
+        if (this.status != PenaltyVerifyStatus.REJECTED) {
+            throw new IllegalStateException("반려된 벌칙만 재제출할 수 있습니다. 현재상태 " + this.status);
+        }
+
+        this.verifyDate = verifyDate;
+        this.description = description;
+        this.imageUrl = imageUrl;
+        this.status = PenaltyVerifyStatus.PENDING;
+    }
+
     public void approve() {
         if (this.status != PenaltyVerifyStatus.PENDING) {
             throw new IllegalStateException("승인 대기 상태가 아닙니다. 현재 상태 : " + this.status);
