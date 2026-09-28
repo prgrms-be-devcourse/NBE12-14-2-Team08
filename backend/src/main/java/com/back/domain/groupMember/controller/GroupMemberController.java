@@ -1,6 +1,8 @@
 package com.back.domain.groupMember.controller;
 
 import com.back.domain.group.dto.GroupRequest;
+import com.back.domain.group.dto.GroupResponse;
+import com.back.domain.group.service.GroupService;
 import com.back.domain.groupMember.dto.GroupMemberResponse;
 import com.back.domain.groupMember.service.GroupMemberService;
 import com.back.global.security.LoginMemberId;
@@ -22,14 +24,24 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/api/groups")
 public class GroupMemberController {
     private final GroupMemberService groupMemberService;
+    private final GroupService groupService;
+
+    @GetMapping("/join/{inviteCode}")
+    public ResponseEntity<GroupResponse.Detail> getGroupByInviteCode(
+            @PathVariable String inviteCode,
+            @LoginMemberId Long memberId) {
+
+        GroupResponse.Detail response = groupService.getGroupByInviteCode(inviteCode, memberId);
+        return ResponseEntity.ok(response);
+    }
 
     @PostMapping("/join/{inviteCode}")
-    public ResponseEntity<Void> joinGroup(
+    public ResponseEntity<GroupMemberResponse.JoinSuccess> joinGroup(
             @PathVariable String inviteCode,
             @LoginMemberId Long memberId,
             @Valid @RequestBody GroupRequest.Join request) {
-        groupMemberService.joinGroup(inviteCode, memberId, request);
-        return ResponseEntity.ok().build();
+        Long groupId = groupMemberService.joinGroup(inviteCode, memberId, request);
+        return ResponseEntity.ok(new GroupMemberResponse.JoinSuccess(groupId));
     }
 
     @GetMapping("/{groupId}/members")
