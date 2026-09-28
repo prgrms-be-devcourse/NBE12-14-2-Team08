@@ -40,32 +40,32 @@ public class HabitVerify extends BaseEntity {
 
     public static HabitVerify create(
             Habit habit, LocalDate verifyDate,
-             String description,
+            String description,
             String imageUrl
 
     ) {
         HabitVerify habitVerify = new HabitVerify();
 
-        habitVerify.habit = habit; habitVerify.verifyDate = verifyDate;
-        habitVerify.status = HabitVerifyStatus.PENDING; habitVerify.description = description;
+        habitVerify.habit = habit;
+        habitVerify.verifyDate = verifyDate;
+        habitVerify.status = HabitVerifyStatus.PENDING;
+        habitVerify.description = description;
         habitVerify.imageUrl = imageUrl;
 
         return habitVerify;
     }
 
     public void update(
-            String description, String imageUrl) {
+        String description, String imageUrl) {
         this.description = description;
         this.imageUrl = imageUrl;
     }
 
 
-
-
     public void approve() {
         if (this.status != HabitVerifyStatus.PENDING) {
             throw new IllegalStateException(
-                    "검토 대기 상태가 아닙니다. 현재 상태: " + this.status
+                "검토 대기 상태가 아닙니다. 현재 상태: " + this.status
             );
         }
 
@@ -73,9 +73,15 @@ public class HabitVerify extends BaseEntity {
     }
 
     public void reject() {
+        if (this.status != HabitVerifyStatus.PENDING) {
+            throw new IllegalStateException(
+                "검토 대기 상태가 아닙니다. 현재 상태: " + this.status
+            );
+        }
+
         this.status = HabitVerifyStatus.REJECTED;
     }
-
+}
 
 
 

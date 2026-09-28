@@ -65,7 +65,7 @@ public class GroupService {
 
         groupMemberRepository.save(owner);
 
-        return GroupResponse.Detail.from(savedGroup, baseInviteUrl);
+        return GroupResponse.Detail.from(savedGroup, baseInviteUrl, true);
     }
 
     public List<GroupResponse.Simple> getGroupSimpleList(Long memberId, GroupStatus status) {
@@ -81,11 +81,7 @@ public class GroupService {
             throw new ForbiddenException("해당 그룹의 접근 권한이 없습니다.");
         }
 
-        if (group.getStatus() == GroupStatus.ACTIVE && LocalDate.now().isAfter(group.getDeadline())) {
-            group.finish();
-        }
-
-        return GroupResponse.Detail.from(group, baseInviteUrl);
+        return GroupResponse.Detail.from(group, baseInviteUrl, true);
     }
 
     @Transactional
@@ -93,7 +89,7 @@ public class GroupService {
         Group group = groupRepository.findById(groupId)
                 .orElseThrow(() -> new EntityNotFoundException("존재하지 않는 그룹입니다."));
 
-        if (group.getStatus() == GroupStatus.FINISH || LocalDate.now().isAfter(group.getDeadline())) {
+        if (group.isFinished()) {
             throw new BusinessRuleException("이미 종료된 그룹은 수정할 수 없습니다.");
         }
 
@@ -102,6 +98,11 @@ public class GroupService {
 
         if (groupMember.getRole() != GroupMemberRole.OWNER) {
             throw new ForbiddenException("그룹 수정은 방장만 가능합니다.");
+        }
+
+        long currentMemberCount = groupMemberRepository.countByGroupId(groupId);
+        if (request.memberLimit() > 0 && request.memberLimit() < currentMemberCount) {
+            throw new BusinessRuleException("최대 제한 인원은 현재 참여 중인 멤버 수(" + currentMemberCount + "명)보다 적게 설정할 수 없습니다.");
         }
 
         String encodedPassword = null;
@@ -124,7 +125,7 @@ public class GroupService {
         Group group = groupRepository.findById(groupId)
                 .orElseThrow(() -> new EntityNotFoundException("존재하지 않는 그룹입니다."));
 
-        if (group.getStatus() == GroupStatus.FINISH || LocalDate.now().isAfter(group.getDeadline())) {
+        if (group.isFinished()) {
             throw new BusinessRuleException("이미 종료된 그룹은 삭제할 수 없습니다.");
         }
 
@@ -161,5 +162,24 @@ public class GroupService {
         } while (groupRepository.existsByInviteCode(inviteCode));
 
         return inviteCode;
+    }
+
+    public GroupResponse.Detail getGroupByInviteCode(String inviteCode, Long memberId) {
+        if (!memberRepository.existsById(memberId)) {
+            throw new EntityNotFoundException("존재하지 않는 회원입니다.");
+        }
+
+        Group group = groupRepository.findByInviteCode(inviteCode)
+                .orElseThrow(() -> new EntityNotFoundException("유효하지 않거나 존재하지 않는 초대 코드입니다."));
+
+        if (groupMemberRepository.existsByGroupIdAndMemberId(group.getId(), memberId)) {
+            return GroupResponse.Detail.from(group, baseInviteUrl, true);
+        }
+
+        if (group.isFinished()) {
+            throw new BusinessRuleException("이미 종료된 그룹입니다.");
+        }
+
+        return GroupResponse.Detail.from(group, baseInviteUrl, false);
     }
 }

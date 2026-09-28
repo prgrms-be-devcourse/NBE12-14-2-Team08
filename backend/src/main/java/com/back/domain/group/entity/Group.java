@@ -46,7 +46,6 @@ public class Group extends BaseEntity {
 
     public void updateGroup(String title, String description, LocalDate deadline, String penalty, String password,
                             int memberLimit) {
-
         if (title != null && !title.isBlank()) {
             this.title = title;
         }
@@ -72,8 +71,8 @@ public class Group extends BaseEntity {
         }
     }
 
-    public void finish() {
-        this.status = GroupStatus.FINISH;
+    public boolean isFinished() {
+        LocalDate today = LocalDate.now(java.time.ZoneId.of("Asia/Seoul"));
+        return this.status == GroupStatus.FINISH || today.isAfter(this.deadline);
     }
-
 }
