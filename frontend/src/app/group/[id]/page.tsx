@@ -243,7 +243,7 @@ export default function GroupDetailPage({
 
                     <div className="flex flex-col gap-3">
                         {members.map((m, index) => {
-                            const linkHref = `/group/${rawId}/member/${m.id}`;
+                            const linkHref = `/group/${rawId}/member/${m.memberId}`;
 
                             return (
                                 <div
