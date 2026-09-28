@@ -4,6 +4,7 @@ import com.back.domain.groupMember.entity.GroupMember;
 import com.back.domain.groupMember.entity.GroupMemberRole;
 import com.back.domain.groupMember.repository.GroupMemberRepository;
 import com.back.domain.habit.entity.Habit;
+import com.back.domain.habit.entity.HabitStatus;
 import com.back.domain.habit.repository.HabitRepository;
 import com.back.domain.habitVerify.dto.HabitVerifyRequest;
 import com.back.domain.habitVerify.dto.HabitVerifyResponse;
@@ -17,7 +18,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import com.back.domain.habitVerify.dto.BulkActionRequest;
 
+import java.time.DayOfWeek;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Service
@@ -136,6 +139,84 @@ public class HabitVerifyService {
         );
 
         return HabitVerifyResponse.from(habitVerify);
+    }
+
+    @Transactional
+    public HabitVerifyResponse resubmit(
+            Long habitId,
+            Long verificationId,
+            HabitVerifyRequest request,
+            Long memberId
+    ) {
+        Habit habit = habitRepository.findByIdAndGroupMember_Member_Id(
+                habitId,
+                memberId
+        ).orElseThrow(() ->
+                new IllegalArgumentException(
+                        "권한이 없는 습관입니다."
+                )
+        );
+
+        if (habit.getStatus() != HabitStatus.ACTIVE) {
+            throw new IllegalStateException(
+                    "이미 종료된 습관의 인증은 수정할 수 없습니다."
+            );
+        }
+
+        HabitVerify habitVerify =
+                habitVerifyRepository
+                        .findByIdAndHabitId(
+                                verificationId,
+                                habitId
+                        )
+                        .orElseThrow(() ->
+                                new IllegalArgumentException(
+                                        "존재하지 않는 인증 기록입니다."
+                                )
+                        );
+
+        LocalDateTime deadline = calculateEntryDeadline(habit, habitVerify);
+        if (!LocalDateTime.now().isBefore(deadline)) {
+            throw new IllegalStateException(
+                    "마감일이 지나 더 이상 수정할 수 없습니다."
+            );
+        }
+
+        if (request.imageUrl() != null) {
+            boolean exists =
+                    storageService.existsHabitImage(
+                            request.imageUrl()
+                    );
+
+            if (!exists) {
+                throw new IllegalArgumentException(
+                        "업로드된 이미지를 확인할 수 없습니다."
+                );
+            }
+        }
+
+        habitVerify.resubmit(
+                request.description(),
+                request.imageUrl()
+        );
+
+        return HabitVerifyResponse.from(habitVerify);
+    }
+
+    // 이 인증 건이 제출된 주간 구간의 마감 시각(다음 마감 요일 00시)을 계산한다.
+    // 방 생성 요일 기준 주간 판정 로직(HabitService.evaluateWeeklyResult)과 동일한 규칙을 사용해,
+    // 반려된 인증은 그 주간 판정이 시작되기 전까지만 수정할 수 있도록 한다.
+    private LocalDateTime calculateEntryDeadline(Habit habit, HabitVerify habitVerify) {
+        DayOfWeek deadlineDayOfWeek = habit.getGroupMember().getGroup().getCreateDate().getDayOfWeek();
+        LocalDateTime submittedAt = habitVerify.getCreateDate();
+
+        int daysSincePeriodStart =
+                (submittedAt.getDayOfWeek().getValue() - deadlineDayOfWeek.getValue() + 7) % 7;
+        LocalDateTime periodStart = submittedAt.toLocalDate()
+                .minusDays(daysSincePeriodStart)
+                .atStartOfDay();
+
+        return periodStart.plusWeeks(1);
     }
 
     @Transactional

@@ -66,6 +66,23 @@ public class HabitVerifyController {
         );
     }
 
+    @PatchMapping("/{verificationId}/resubmit")
+    public ResponseEntity<HabitVerifyResponse> resubmit(
+            @PathVariable Long habitId,
+            @PathVariable Long verificationId,
+            @Valid @RequestBody HabitVerifyRequest request,
+            @LoginMemberId Long memberId
+    ) {
+        return ResponseEntity.ok(
+                habitVerifyService.resubmit(
+                        habitId,
+                        verificationId,
+                        request,
+                        memberId
+                )
+        );
+    }
+
     @DeleteMapping("/{verificationId}")
     public ResponseEntity<Void> delete(
             @PathVariable Long habitId,

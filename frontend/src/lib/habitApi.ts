@@ -103,6 +103,16 @@ export const habitApi = {
       body: JSON.stringify(body),
     }, true),
 
+  resubmitHabitVerification: (
+    habitId: number | string,
+    verificationId: number | string,
+    body: { description: string | null; imageUrl: string | null }
+  ) =>
+    apiRequest<HabitVerifyResponse>(`/habits/${habitId}/verifications/${verificationId}/resubmit`, {
+      method: 'PATCH',
+      body: JSON.stringify(body),
+    }, true),
+
   getHabitUploadUrl: (habitId: number | string, filename: string) =>
     apiRequest<UploadUrlResponse>(`/storage/habits/${habitId}/upload-url`, {
       method: 'POST',
