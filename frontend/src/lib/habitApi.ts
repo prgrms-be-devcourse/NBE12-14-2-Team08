@@ -73,9 +73,6 @@ export const habitApi = {
   getHabit: (habitId: number | string) =>
     apiRequest<HabitResponse>(`/habits/${habitId}`, {}, true),
 
-  getActiveHabit: (groupId: number | string) =>
-    apiRequest<HabitResponse>(`/groups/${groupId}/habits/active`, {}, true),
-
   createHabit: (
     groupId: number | string,
     body: { title: string; description: string | null; days: number }

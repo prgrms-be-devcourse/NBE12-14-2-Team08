@@ -85,12 +85,17 @@ public class HabitVerifyService {
     @Transactional(readOnly = true)
     public List<HabitVerifyResponse> findAll(
             Long habitId, Long memberId
-    ){ habitRepository.findByIdAndGroupMember_Member_Id(
-            habitId,
-            memberId
-    ).orElseThrow(() ->
-            new IllegalArgumentException("권한이 없는 습관입니다.")
-    );
+    ){
+        Habit habit = habitRepository.findById(habitId)
+                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 습관입니다."));
+
+        Long groupId = habit.getGroupMember().getGroup().getId();
+        boolean isGroupMember = groupMemberRepository.existsByGroupIdAndMemberId(groupId, memberId);
+
+        if (!isGroupMember) {
+            throw new IllegalArgumentException("같은 그룹의 멤버만 조회할 수 있습니다.");
+        }
+
         return habitVerifyRepository
                 .findAllByHabitIdOrderByVerifyDateDesc(habitId)
                 .stream()
