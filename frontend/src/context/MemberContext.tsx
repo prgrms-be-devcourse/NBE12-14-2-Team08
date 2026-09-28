@@ -78,6 +78,13 @@ export function MemberProvider({ children }: { children: React.ReactNode }) {
 
   const logout = () => {
     clearAuthSession();
+
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('accessToken');
+
+      document.cookie = "JSESSIONID=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
+    }
+
     setCurrentUser(null);
     router.push('/login');
   };

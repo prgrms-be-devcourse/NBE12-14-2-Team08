@@ -1,3 +1,5 @@
+import Header from "@/components/Header";
+
 import type { Metadata } from 'next';
 import './globals.css';
 import { MemberProvider } from '../context/MemberContext';
@@ -23,7 +25,7 @@ export default function RootLayout({
         />
       </head>
       <body className="bg-slate-50 text-slate-900 antialiased selection:bg-emerald-200 selection:text-emerald-900">
-        <MemberProvider>{children}</MemberProvider>
+        <MemberProvider><Header />{children}</MemberProvider>
       </body>
     </html>
   );
