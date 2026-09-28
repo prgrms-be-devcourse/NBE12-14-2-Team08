@@ -21,12 +21,52 @@ import {
     uploadFileToSignedUrl,
     type HabitResponse,
     type HabitVerifyResponse,
+    type HabitVerifyStatus,
     type GroupMemberDetail,
+    type PenaltyVerifyStatus,
     type PenaltyVerifySummary,
     type PenaltyVerifyDetail,
 } from "@/lib/habitApi";
 
 type Props = { groupId: string; memberId: string };
+
+const PENALTY_STATUS_META: Record<PenaltyVerifyStatus, {
+    statusLabel: string; // 상태 표시용 텍스트 (동그라미 옆, 모달 안)
+    dotClassName: string; // 상태 표시 동그라미 색상
+    badgeClassName: string; // 모달 안 상태 배지 색상
+    action: "cert" | "detail";
+}> = {
+    REQUIRED: {
+        statusLabel: "미인증",
+        dotClassName: "bg-white border border-slate-300",
+        badgeClassName: "text-slate-600 bg-slate-100",
+        action: "cert",
+    },
+    PENDING: {
+        statusLabel: "인증중",
+        dotClassName: "bg-amber-400",
+        badgeClassName: "text-amber-700 bg-amber-100",
+        action: "detail",
+    },
+    APPROVED: {
+        statusLabel: "인증완료",
+        dotClassName: "bg-emerald-500",
+        badgeClassName: "text-emerald-700 bg-emerald-100",
+        action: "detail",
+    },
+    REJECTED: {
+        statusLabel: "인증실패",
+        dotClassName: "bg-rose-500",
+        badgeClassName: "text-rose-700 bg-rose-100",
+        action: "cert",
+    },
+};
+
+// 상태와 분리된 버튼: 제출/재제출은 "벌칙 시행하기", 조회는 "벌칙 확인하기"
+const PENALTY_ACTION_BUTTON_LABEL: Record<"cert" | "detail", string> = {
+    cert: "벌칙 시행하기",
+    detail: "벌칙 확인하기",
+};
 
 export function MemberPage({ groupId, memberId }: Props) {
     const router = useRouter();
@@ -34,13 +74,16 @@ export function MemberPage({ groupId, memberId }: Props) {
 
     const [member, setMember] = useState<GroupMemberDetail | null>(null);
     const [penalties, setPenalties] = useState<PenaltyVerifySummary[]>([]);
+    const [habitDaysById, setHabitDaysById] = useState<Record<number, number>>({});
     const [habit, setHabit] = useState<HabitResponse | null>(null);
     const [verifies, setVerifies] = useState<HabitVerifyResponse[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<Error | null>(null);
 
     const [activePenalty, setActivePenalty] = useState<PenaltyVerifySummary | null>(null);
+    const [activePenaltyDetail, setActivePenaltyDetail] = useState<PenaltyVerifyDetail | null>(null);
     const [penaltyDetail, setPenaltyDetail] = useState<PenaltyVerifyDetail | null>(null);
+    const [expandedHabitId, setExpandedHabitId] = useState<number | null>(null);
     const [showCertifyModal, setShowCertifyModal] = useState(false);
     const [showFailModal, setShowFailModal] = useState(false);
     const [showCreateHabitModal, setShowCreateHabitModal] = useState(false);
@@ -64,6 +107,21 @@ export function MemberPage({ groupId, memberId }: Props) {
             ]);
             setMember(memberRes);
             setPenalties(penaltiesRes);
+
+            const uniqueHabitIds = Array.from(new Set(penaltiesRes.map((p) => p.habitId)));
+            const habitDaysEntries = await Promise.all(
+                uniqueHabitIds.map(async (habitId) => {
+                    try {
+                        const habitRes = await habitApi.getHabit(habitId);
+                        return [habitId, habitRes.days] as const;
+                    } catch {
+                        return null;
+                    }
+                })
+            );
+            setHabitDaysById(
+                Object.fromEntries(habitDaysEntries.filter((entry): entry is readonly [number, number] => entry !== null))
+            );
 
             const isOwnPage = currentUser?.id === String(memberRes.memberId);
             if (isOwnPage) {
@@ -118,6 +176,35 @@ export function MemberPage({ groupId, memberId }: Props) {
     const rows = [...penalties].sort((a, b) =>
         (b.verifyDate ?? "9999-99-99").localeCompare(a.verifyDate ?? "9999-99-99")
     );
+
+    const openPenaltyDetail = async (penaltyId: number) => {
+        try {
+            const detail = await habitApi.getPenaltyDetail(penaltyId);
+            setPenaltyDetail(detail);
+        } catch {
+            // 상세 조회 실패 시 조용히 무시 (요약 정보는 이미 화면에 있음)
+        }
+    };
+
+    const openPenaltyAction = async (penalty: PenaltyVerifySummary) => {
+        const meta = PENALTY_STATUS_META[penalty.status];
+        if (meta.action !== "cert") {
+            await openPenaltyDetail(penalty.id);
+            return;
+        }
+        if (penalty.status === "REJECTED") {
+            // 반려된 벌칙은 기존 제출 내용을 불러와 수정 형태로 다시 제출할 수 있도록 한다.
+            try {
+                const detail = await habitApi.getPenaltyDetail(penalty.id);
+                setActivePenaltyDetail(detail);
+            } catch {
+                setActivePenaltyDetail(null);
+            }
+        } else {
+            setActivePenaltyDetail(null);
+        }
+        setActivePenalty(penalty);
+    };
 
     return (
         <div className="max-w-4xl mx-auto px-4 sm:px-6 py-6 md:py-8">
@@ -238,62 +325,91 @@ export function MemberPage({ groupId, memberId }: Props) {
 
             {/* 벌칙 기록 (실패한 습관 종류와 무관하게 이 멤버의 전체 벌칙) */}
             <div className="bg-white rounded-3xl border border-slate-200/90 shadow-sm p-6">
-                <h3 className="text-sm font-extrabold text-slate-900 mb-4 flex items-center justify-between">
-                    <span>벌칙 기록</span>
-                    <span className="text-xs font-normal text-slate-400">최근 벌칙 타임라인</span>
-                </h3>
+                <h3 className="text-sm font-extrabold text-slate-900 mb-4">벌칙 기록</h3>
 
                 {rows.length === 0 ? (
                     <p className="text-xs text-slate-400">아직 기록이 없습니다.</p>
                 ) : (
                     <div className="space-y-3">
-                        {rows.map((penalty) => (
-                            <div
-                                key={penalty.id}
-                                className="p-3.5 sm:p-4 rounded-2xl border border-slate-100 bg-slate-50/60 flex flex-col sm:flex-row sm:items-center justify-between gap-3"
-                            >
-                                <div>
-                                    <div className="flex items-center gap-2 mb-1">
-                                        <span className="text-xs font-bold text-slate-500">
-                                            {penalty.verifyDate ?? "미제출"}
-                                        </span>
-                                        <span className="text-xs font-extrabold text-slate-900">{penalty.habitTitle}</span>
-                                    </div>
-                                    <p className="text-[11px] text-slate-400">벌칙 대상 기록입니다.</p>
-                                </div>
-                                <div className="flex items-center gap-2 shrink-0">
-                                    <span className="text-xs font-bold text-rose-600 px-2.5 py-1 rounded-xl bg-rose-100">
-                                        미인증
-                                    </span>
-                                    {penalty.status === "REQUIRED" ? (
-                                        isMe && (
+                        {rows.map((penalty) => {
+                            const isExpanded = expandedHabitId === penalty.habitId;
+                            return (
+                                <div
+                                    key={penalty.id}
+                                    className="p-3.5 sm:p-4 rounded-2xl border border-slate-100 bg-slate-50/60"
+                                >
+                                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                                        {isMe ? (
                                             <button
-                                                onClick={() => setActivePenalty(penalty)}
-                                                className="flex items-center gap-1 text-xs font-bold text-white bg-rose-500 hover:bg-rose-600 px-3 py-1.5 rounded-xl shadow-xs transition-all cursor-pointer"
-                                            >
-                                                <Coffee className="w-3.5 h-3.5" />
-                                                <span>벌칙 수행하기</span>
-                                            </button>
-                                        )
-                                    ) : (
-                                        <button
-                                            onClick={async () => {
-                                                try {
-                                                    const detail = await habitApi.getPenaltyDetail(penalty.id);
-                                                    setPenaltyDetail(detail);
-                                                } catch {
-                                                    // 상세 조회 실패 시 조용히 무시 (요약 정보는 이미 화면에 있음)
+                                                type="button"
+                                                onClick={() =>
+                                                    setExpandedHabitId(isExpanded ? null : penalty.habitId)
                                                 }
-                                            }}
-                                            className="flex items-center gap-1 text-xs font-bold text-rose-700 bg-rose-100 hover:bg-rose-200 px-3 py-1.5 rounded-xl transition-colors cursor-pointer"
-                                        >
-                                            <Coffee className="w-3.5 h-3.5" />
-                                            <span>벌칙완료 확인</span>
-                                        </button>
-                                    )}
+                                                className="text-left flex-1 rounded-xl -m-1.5 p-1.5 hover:bg-slate-100/80 transition-colors cursor-pointer"
+                                            >
+                                                <div className="flex items-center gap-2">
+                                                    <span className="text-xs font-semibold text-slate-400">
+                                                        {penalty.verifyDate ?? "미제출"}
+                                                    </span>
+                                                    <span className="text-sm font-semibold text-slate-700">
+                                                        {penalty.habitTitle}
+                                                    </span>
+                                                    {habitDaysById[penalty.habitId] != null && (
+                                                        <span className="text-[10px] font-bold text-slate-400">
+                                                            주 {habitDaysById[penalty.habitId]}회
+                                                        </span>
+                                                    )}
+                                                </div>
+                                            </button>
+                                        ) : (
+                                            <div>
+                                                <div className="flex items-center gap-2">
+                                                    <span className="text-xs font-semibold text-slate-400">
+                                                        {penalty.verifyDate ?? "미제출"}
+                                                    </span>
+                                                    <span className="text-sm font-semibold text-slate-700">
+                                                        {penalty.habitTitle}
+                                                    </span>
+                                                    {habitDaysById[penalty.habitId] != null && (
+                                                        <span className="text-[10px] font-bold text-slate-400">
+                                                            주 {habitDaysById[penalty.habitId]}회
+                                                        </span>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        )}
+                                        <div className="flex items-center gap-3 shrink-0">
+                                            {(() => {
+                                                const meta = PENALTY_STATUS_META[penalty.status];
+                                                const isActionable = meta.action === "detail" || isMe;
+
+                                                return (
+                                                    <>
+                                                        <div className="flex items-center gap-1.5">
+                                                            <span className={`w-2.5 h-2.5 rounded-full shrink-0 ${meta.dotClassName}`} />
+                                                            <span className="text-xs font-bold text-slate-700">
+                                                                {meta.statusLabel}
+                                                            </span>
+                                                        </div>
+
+                                                        {isActionable && (
+                                                            <button
+                                                                onClick={() => openPenaltyAction(penalty)}
+                                                                className="w-[110px] text-center text-xs font-bold text-rose-600 bg-rose-50 border border-rose-300 hover:bg-rose-100 px-2.5 py-1.5 rounded-full transition-colors cursor-pointer"
+                                                            >
+                                                                {PENALTY_ACTION_BUTTON_LABEL[meta.action]}
+                                                            </button>
+                                                        )}
+                                                    </>
+                                                );
+                                            })()}
+                                        </div>
+                                    </div>
+
+                                    {isExpanded && <HabitHistoryHeatmap habitId={penalty.habitId} />}
                                 </div>
-                            </div>
-                        ))}
+                            );
+                        })}
                     </div>
                 )}
             </div>
@@ -342,15 +458,40 @@ export function MemberPage({ groupId, memberId }: Props) {
 
             {activePenalty && (
                 <PenaltyCertModal
-                    onClose={() => setActivePenalty(null)}
-                    onSubmit={async (file, description) => {
-                        const { uploadUrl, publicUrl } = await habitApi.getPenaltyUploadUrl(file.name);
-                        await uploadFileToSignedUrl(uploadUrl, file);
-                        await habitApi.submitPenalty(activePenalty.habitId, {
-                            description: description || null,
-                            imageUrl: publicUrl,
-                        });
+                    status={activePenalty.status}
+                    initial={
+                        activePenaltyDetail
+                            ? { description: activePenaltyDetail.description, imageUrl: activePenaltyDetail.imageUrl }
+                            : null
+                    }
+                    onClose={() => {
                         setActivePenalty(null);
+                        setActivePenaltyDetail(null);
+                    }}
+                    onSubmit={async (file, description, existingImageUrl) => {
+                        let imageUrl = existingImageUrl;
+                        if (file) {
+                            const { uploadUrl, publicUrl } = await habitApi.getPenaltyUploadUrl(file.name);
+                            await uploadFileToSignedUrl(uploadUrl, file);
+                            imageUrl = publicUrl;
+                        }
+                        if (!imageUrl) {
+                            throw new Error("벌칙 인증 사진은 필수입니다.");
+                        }
+
+                        if (activePenalty.status === "REJECTED") {
+                            await habitApi.resubmitPenalty(activePenalty.id, {
+                                description: description || null,
+                                imageUrl,
+                            });
+                        } else {
+                            await habitApi.submitPenalty(activePenalty.habitId, {
+                                description: description || null,
+                                imageUrl,
+                            });
+                        }
+                        setActivePenalty(null);
+                        setActivePenaltyDetail(null);
                         await load();
                     }}
                 />
@@ -486,6 +627,161 @@ function VerifyCalendar({
             <p className="text-[11px] text-slate-400 mt-3 text-center">
                 💡 인증이 등록된 날짜를 클릭하면 사진과 내용을 상세히 볼 수 있습니다.
             </p>
+        </div>
+    );
+}
+
+// ---------- 벌칙 기록: 습관 인증 히스토리 히트맵 ----------
+
+const HEATMAP_STATUS_LABEL: Record<HabitVerifyStatus, string> = {
+    APPROVED: "성공",
+    PENDING: "검토중",
+    REJECTED: "반려",
+};
+
+function HabitHistoryHeatmap({ habitId }: { habitId: number }) {
+    const [habit, setHabit] = useState<HabitResponse | null>(null);
+    const [verifies, setVerifies] = useState<HabitVerifyResponse[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
+
+    useEffect(() => {
+        let cancelled = false;
+        (async () => {
+            try {
+                setLoading(true);
+                setError(null);
+                const [habitRes, verifiesRes] = await Promise.all([
+                    habitApi.getHabit(habitId),
+                    habitApi.getHabitVerifications(habitId),
+                ]);
+                if (!cancelled) {
+                    setHabit(habitRes);
+                    setVerifies(verifiesRes);
+                }
+            } catch (err) {
+                if (!cancelled) {
+                    setError(err instanceof Error ? err.message : "히스토리를 불러오지 못했습니다.");
+                }
+            } finally {
+                if (!cancelled) setLoading(false);
+            }
+        })();
+        return () => {
+            cancelled = true;
+        };
+    }, [habitId]);
+
+    if (loading) {
+        return <p className="mt-3 pt-3 border-t border-slate-100 text-[11px] text-slate-400">불러오는 중...</p>;
+    }
+
+    if (error || !habit) {
+        return (
+            <p className="mt-3 pt-3 border-t border-slate-100 text-[11px] text-rose-500">
+                {error || "습관 정보를 찾을 수 없습니다."}
+            </p>
+        );
+    }
+
+    const pad = (n: number) => n.toString().padStart(2, "0");
+    const toDateStr = (d: Date) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+
+    const verifyByDate = new Map(verifies.map((v) => [v.verifyDate, v]));
+    const habitStartStr = habit.createDate.slice(0, 10);
+    const todayStr = toDateStr(new Date());
+
+    const start = new Date(habitStartStr);
+    start.setDate(start.getDate() - start.getDay());
+    const end = new Date();
+    end.setDate(end.getDate() + (6 - end.getDay()));
+
+    const weeks: string[][] = [];
+    const cursor = new Date(start);
+    while (cursor <= end) {
+        const week: string[] = [];
+        for (let i = 0; i < 7; i++) {
+            week.push(toDateStr(cursor));
+            cursor.setDate(cursor.getDate() + 1);
+        }
+        weeks.push(week);
+    }
+
+    const colorFor = (dateStr: string) => {
+        if (dateStr < habitStartStr || dateStr > todayStr) return "bg-transparent";
+        const status = verifyByDate.get(dateStr)?.status;
+        if (status === "APPROVED") return "bg-emerald-500";
+        if (status === "PENDING") return "bg-amber-400";
+        if (status === "REJECTED") return "bg-rose-400";
+        return "bg-slate-200/70";
+    };
+
+    const DAY_LABELS = ["일", "월", "화", "수", "목", "금", "토"];
+    const SHOWN_DAY_INDEXES = new Set([1, 3, 5]); // 월, 수, 금만 표시
+
+    const monthLabels = weeks.map((week, wi) => {
+        const month = Number(week[0].slice(5, 7));
+        const prevMonth = wi > 0 ? Number(weeks[wi - 1][0].slice(5, 7)) : null;
+        return month !== prevMonth ? `${month}월` : null;
+    });
+
+    return (
+        <div className="mt-3 pt-3 border-t border-slate-100">
+            <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
+                <span className="text-[11px] text-slate-500">{habit.title} 인증 기록</span>
+                <div className="flex items-center gap-2 text-[10px] text-slate-400">
+                    <span className="flex items-center gap-1">
+                        <span className="w-2.5 h-2.5 rounded-sm bg-emerald-500 inline-block" />
+                        성공
+                    </span>
+                    <span className="flex items-center gap-1">
+                        <span className="w-2.5 h-2.5 rounded-sm bg-amber-400 inline-block" />
+                        미검토
+                    </span>
+                    <span className="flex items-center gap-1">
+                        <span className="w-2.5 h-2.5 rounded-sm bg-rose-400 inline-block" />
+                        반려
+                    </span>
+                    <span className="flex items-center gap-1">
+                        <span className="w-2.5 h-2.5 rounded-sm bg-slate-200/70 inline-block" />
+                        미제출
+                    </span>
+                </div>
+            </div>
+            <div className="flex overflow-x-auto pb-1">
+                <div className="flex flex-col gap-[3px] mr-1.5 shrink-0">
+                    <div className="h-3 mb-1" />
+                    {DAY_LABELS.map((label, di) => (
+                        <div key={di} className="w-4 h-3 text-[9px] leading-3 text-slate-400 text-right">
+                            {SHOWN_DAY_INDEXES.has(di) ? label : ""}
+                        </div>
+                    ))}
+                </div>
+                <div className="flex gap-[3px]">
+                    {weeks.map((week, wi) => (
+                        <div key={wi} className="flex flex-col gap-[3px]">
+                            <div className="h-3 mb-1 w-3 relative shrink-0">
+                                {monthLabels[wi] && (
+                                    <span className="absolute left-0 top-0 text-[9px] leading-3 text-slate-400 whitespace-nowrap">
+                                        {monthLabels[wi]}
+                                    </span>
+                                )}
+                            </div>
+                            {week.map((dateStr) => {
+                                const verify = verifyByDate.get(dateStr);
+                                const title = verify ? `${dateStr} · ${HEATMAP_STATUS_LABEL[verify.status]}` : dateStr;
+                                return (
+                                    <div
+                                        key={dateStr}
+                                        title={title}
+                                        className={`w-3 h-3 rounded-sm ${colorFor(dateStr)}`}
+                                    />
+                                );
+                            })}
+                        </div>
+                    ))}
+                </div>
+            </div>
         </div>
     );
 }
@@ -756,35 +1052,40 @@ function CertDetailModal({ item, onClose }: { item: HabitVerifyResponse; onClose
 // ---------- 모달: 벌칙 인증하기 ----------
 
 function PenaltyCertModal({
+    status,
+    initial,
     onClose,
     onSubmit,
 }: {
+    status: PenaltyVerifyStatus;
+    initial?: { description: string | null; imageUrl: string | null } | null;
     onClose: () => void;
-    onSubmit: (file: File, description: string) => Promise<void>;
+    onSubmit: (file: File | null, description: string, existingImageUrl: string | null) => Promise<void>;
 }) {
+    const isEditing = !!initial;
     const [file, setFile] = useState<File | null>(null);
-    const [preview, setPreview] = useState<string | null>(null);
-    const [description, setDescription] = useState("");
+    const [preview, setPreview] = useState<string | null>(initial?.imageUrl ?? null);
+    const [description, setDescription] = useState(initial?.description ?? "");
     const [submitting, setSubmitting] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
     const handleFile = (e: React.ChangeEvent<HTMLInputElement>) => {
         const f = e.target.files?.[0] ?? null;
         setFile(f);
-        setPreview(f ? URL.createObjectURL(f) : null);
+        setPreview(f ? URL.createObjectURL(f) : (initial?.imageUrl ?? null));
         setError(null);
     };
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!file) {
+        if (!file && !initial?.imageUrl) {
             setError("벌칙 수행 사진은 필수입니다.");
             return;
         }
         setSubmitting(true);
         setError(null);
         try {
-            await onSubmit(file, description);
+            await onSubmit(file, description, initial?.imageUrl ?? null);
         } catch (err) {
             setError(err instanceof Error ? err.message : "벌칙 인증 등록에 실패했습니다.");
         } finally {
@@ -795,11 +1096,20 @@ function PenaltyCertModal({
     return (
         <ModalShell borderClass="border-rose-100">
             <ModalHeader
-                title="☕ 벌칙 인증하기"
-                subtitle="벌칙을 수행한 사진과 내용을 남겨주세요."
+                title={isEditing ? "✏️ 벌칙 인증 수정하기" : "☕ 벌칙 인증하기"}
+                subtitle={
+                    isEditing
+                        ? "반려된 내용을 수정해서 다시 제출해주세요."
+                        : "벌칙을 수행한 사진과 내용을 남겨주세요."
+                }
                 onClose={onClose}
                 titleClass="text-rose-600"
             />
+            <span
+                className={`inline-block mt-2 text-xs font-bold px-2.5 py-1 rounded-xl ${PENALTY_STATUS_META[status].badgeClassName}`}
+            >
+                {PENALTY_STATUS_META[status].statusLabel}
+            </span>
             <form onSubmit={handleSubmit} className="mt-4 space-y-4">
                 <div>
                     <label className="block text-xs font-bold text-slate-700 mb-1">
@@ -814,7 +1124,7 @@ function PenaltyCertModal({
                         )}
                         <label className="absolute bottom-2 right-2 cursor-pointer px-3 py-1.5 bg-white/90 hover:bg-white text-slate-800 text-xs font-bold rounded-lg shadow-md flex items-center gap-1.5">
                             <Upload className="w-3.5 h-3.5" />
-                            <span>사진 업로드</span>
+                            <span>{isEditing ? "사진 변경" : "사진 업로드"}</span>
                             <input type="file" accept="image/*" onChange={handleFile} className="hidden" />
                         </label>
                     </div>
@@ -833,7 +1143,12 @@ function PenaltyCertModal({
 
                 {error && <p className="text-xs text-rose-500 font-semibold">{error}</p>}
 
-                <ModalActions onClose={onClose} submitting={submitting} submitLabel="벌칙 인증 등록" tone="rose" />
+                <ModalActions
+                    onClose={onClose}
+                    submitting={submitting}
+                    submitLabel={isEditing ? "수정 후 재제출" : "벌칙 인증 등록"}
+                    tone="rose"
+                />
             </form>
         </ModalShell>
     );
@@ -850,6 +1165,11 @@ function PenaltyDetailModal({ item, onClose }: { item: PenaltyVerifyDetail; onCl
                 onClose={onClose}
                 titleClass="text-rose-600"
             />
+            <span
+                className={`inline-block mt-2 text-xs font-bold px-2.5 py-1 rounded-xl ${PENALTY_STATUS_META[item.status].badgeClassName}`}
+            >
+                {PENALTY_STATUS_META[item.status].statusLabel}
+            </span>
             <div className="mt-3">
                 <p className="text-xs font-bold text-slate-500">{item.habitTitle}</p>
                 <p className="text-[11px] text-slate-400 mt-0.5">벌칙: {item.penaltyText}</p>

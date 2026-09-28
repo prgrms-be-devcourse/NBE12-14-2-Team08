@@ -126,6 +126,12 @@ export const habitApi = {
       body: JSON.stringify(body),
     }, true),
 
+  resubmitPenalty: (penaltyId: number | string, body: { description: string | null; imageUrl: string }) =>
+    apiRequest<PenaltyVerifyDetail>(`/penalties/${penaltyId}/resubmit`, {
+      method: 'PATCH',
+      body: JSON.stringify(body),
+    }, true),
+
   getPenaltyUploadUrl: (filename: string) =>
     apiRequest<UploadUrlResponse>('/penalties/upload-url', {
       method: 'POST',
