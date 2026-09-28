@@ -63,6 +63,7 @@ public interface GroupResponse {
             String description,
             int memberLimit,
             Long currentMemberCount,
-            String status
+            String status,
+            String role
     ) {}
 }

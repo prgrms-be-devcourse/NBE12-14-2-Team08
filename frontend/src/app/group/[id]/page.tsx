@@ -78,22 +78,16 @@ export default function GroupDetailPage({
 
                 setMembers(formattedMembers);
 
-                if (currentUser) {
-                    const me = formattedMembers.find(
-                        (m) =>
-                            m.nickname === currentUser.name ||
-                            String(m.memberId) === String(currentUser.id)
-                    );
+               if (currentUser) {
+            const me = formattedMembers.find(
+                (m) => String(m.memberId) === String(currentUser.id)
+            );
 
-                    if (me) {
-                        setCurrentRole(me.role);
-                    } else if (formattedMembers.length > 0 && formattedMembers[0].role === 'OWNER') {
-                        setCurrentRole(formattedMembers[0].role);
-                    }
-                }
-            } catch (memberErr: any) {
-                console.error('멤버 목록 조회 실패:', memberErr);
-            }
+            setCurrentRole(me?.role ?? 'MEMBER');
+        }
+    } catch (memberErr: any) {
+        console.error('멤버 목록 조회 실패:', memberErr);
+    }
         } catch (err: any) {
             console.error('그룹 정보 조회 에러:', err);
             alert(err.message || '그룹 정보를 불러오지 못했습니다.');
@@ -184,7 +178,16 @@ export default function GroupDetailPage({
                     <div className="flex items-start justify-between gap-2 mb-2">
                         <h1 className="text-xl font-black text-gray-900 flex items-center gap-1.5">
                             {group.title}
-                            <span className="text-lg">👑</span>
+                            {currentRole === 'OWNER' && (
+                                <span
+                                    className="text-lg"
+                                    role="img"
+                                    aria-label="방장"
+                                    title="방장"
+                                >
+                                    👑
+                                </span>
+                            )}
                         </h1>
                         <button
                             onClick={handleLeaveGroup}
