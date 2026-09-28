@@ -20,7 +20,7 @@ interface GroupDetailData {
 }
 
 interface GroupMemberItem {
-    id: number;
+    id: number;          // groupMemberId
     memberId: number;
     nickname: string;
     role: 'OWNER' | 'MEMBER';
@@ -164,7 +164,6 @@ export default function GroupDetailPage({
     return (
         <div className="min-h-screen bg-[#FAFCFA] p-6 text-gray-900 font-sans">
             <div className="mx-auto max-w-xl rounded-[40px] bg-white p-8 shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-gray-100">
-
                 <div className="flex items-center justify-between text-xs text-gray-400 font-bold mb-4">
                     <span>내기? 내기!</span>
                     <MemberNavigation embedded />
@@ -239,19 +238,12 @@ export default function GroupDetailPage({
 
                     <div className="flex flex-col gap-3">
                         {members.map((m, index) => {
-                            const hasHabit = !!m.habitId;
-                            const linkHref = hasHabit ? `/group/${rawId}/habit/${m.habitId}` : '#';
+                            const linkHref = `/group/${rawId}/member/${m.id}`;
 
                             return (
                                 <div
-                                    key={m.habitId ? `habit-${m.habitId}` : `member-${m.id}-${index}`}
-                                    onClick={() => {
-                                        if (hasHabit) {
-                                            router.push(linkHref);
-                                        } else {
-                                            alert(`${m.nickname} 님이 등록한 습관이 아직 없습니다.`);
-                                        }
-                                    }}
+                                    key={`member-${m.id}-${index}`}
+                                    onClick={() => router.push(linkHref)}
                                     className="flex items-center justify-between rounded-[22px] border-2 border-black p-4 bg-white shadow-sm hover:shadow-md hover:-translate-y-0.5 transition cursor-pointer"
                                 >
                                     <div className="flex flex-col">
@@ -286,7 +278,6 @@ export default function GroupDetailPage({
                         )}
                     </div>
                 </section>
-
             </div>
         </div>
     );
