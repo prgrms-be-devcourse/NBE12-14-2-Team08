@@ -53,6 +53,10 @@ public class SecurityConfig {
                                 "/api/auth/refresh"
                         ).permitAll()
                         .requestMatchers(
+                                HttpMethod.GET,
+                                "/api/groups/invite/**"
+                        ).permitAll()
+                        .requestMatchers(
                                 "/",
                                 "/h2-console/**",
                                 "/actuator/health",

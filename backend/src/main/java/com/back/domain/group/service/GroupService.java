@@ -14,15 +14,16 @@ import com.back.domain.member.repository.MemberRepository;
 import com.back.global.exception.BusinessRuleException;
 import com.back.global.exception.EntityNotFoundException;
 import com.back.global.exception.ForbiddenException;
-import java.time.LocalDate;
-import java.util.List;
-import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.time.LocalDate;
+import java.util.List;
+import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -162,6 +163,40 @@ public class GroupService {
         } while (groupRepository.existsByInviteCode(inviteCode));
 
         return inviteCode;
+    }
+    //초대 코드 받을 때 그룹 미리보기
+    public GroupResponse.InvitePreview getInvitePreview(
+            String inviteCode
+    ) {
+        Group group = groupRepository.findByInviteCode(inviteCode)
+                .orElseThrow(() ->
+                        new EntityNotFoundException(
+                                "유효하지 않거나 존재하지 않는 초대 코드입니다."
+                        )
+                );
+
+        long currentMemberCount =
+                groupMemberRepository.countByGroupId(group.getId());
+        
+        GroupStatus currentStatus = group.getStatus();
+
+        if (currentStatus == GroupStatus.ACTIVE
+                && group.getDeadline() != null
+                && LocalDate.now().isAfter(group.getDeadline())) {
+            currentStatus = GroupStatus.FINISH;
+        }
+
+        return new GroupResponse.InvitePreview(
+                group.getId(),
+                group.getTitle(),
+                group.getDescription(),
+                group.getCreateDate().toLocalDate(),
+                group.getDeadline(),
+                group.getPenalty(),
+                group.getMemberLimit(),
+                currentMemberCount,
+                currentStatus
+        );
     }
 
     public GroupResponse.Detail getGroupByInviteCode(String inviteCode, Long memberId) {

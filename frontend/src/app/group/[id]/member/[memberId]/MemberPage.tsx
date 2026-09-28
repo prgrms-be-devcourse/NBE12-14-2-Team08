@@ -26,9 +26,9 @@ import {
     type PenaltyVerifyDetail,
 } from "@/lib/habitApi";
 
-type Props = { groupId: string; groupMemberId: string };
+type Props = { groupId: string; memberId: string };
 
-export function MemberPage({ groupId, groupMemberId }: Props) {
+export function MemberPage({ groupId, memberId }: Props) {
     const router = useRouter();
     const { currentUser, authReady } = useMember();
 
@@ -49,6 +49,15 @@ export function MemberPage({ groupId, groupMemberId }: Props) {
     const load = useCallback(async () => {
         try {
             setError(null);
+
+            // 백엔드는 groupMemberId 기준으로 조회하므로, 라우트의 memberId를 그룹 멤버 목록에서 찾아 변환한다.
+            const groupMembers = await habitApi.getGroupMembers(groupId);
+            const target = groupMembers.find((m) => String(m.memberId) === String(memberId));
+            if (!target) {
+                throw new Error("멤버 정보를 찾을 수 없습니다.");
+            }
+            const groupMemberId = target.groupMemberId;
+
             const [memberRes, penaltiesRes] = await Promise.all([
                 habitApi.getGroupMember(groupId, groupMemberId),
                 habitApi.getPenaltiesByGroupMember(groupId, groupMemberId),
@@ -75,16 +84,16 @@ export function MemberPage({ groupId, groupMemberId }: Props) {
         } finally {
             setLoading(false);
         }
-    }, [groupId, groupMemberId, currentUser]);
+    }, [groupId, memberId, currentUser]);
 
     useEffect(() => {
         if (!authReady) return;
         if (!currentUser) {
-            router.replace(`/login?redirect=/group/${groupId}/member/${groupMemberId}`);
+            router.replace(`/login?redirect=/group/${groupId}/member/${memberId}`);
             return;
         }
         load();
-    }, [authReady, currentUser, load, router, groupId, groupMemberId]);
+    }, [authReady, currentUser, load, router, groupId, memberId]);
 
     if (!authReady || !currentUser) {
         return <CenteredMessage text="로그인 정보를 확인하는 중..." />;

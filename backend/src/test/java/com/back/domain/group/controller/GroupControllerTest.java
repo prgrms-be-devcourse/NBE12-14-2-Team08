@@ -26,6 +26,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.Collections;
 
+import static com.back.domain.group.entity.GroupStatus.ACTIVE;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
@@ -76,7 +77,7 @@ class GroupControllerTest {
         );
         GroupResponse.Detail response = new GroupResponse.Detail(
                 1L, "테스트 그룹", "설명", LocalDate.now(), LocalDate.now().plusDays(7),
-                "벌칙", "INVITE12", 5, LocalDateTime.now(), "http://base.url"
+                "벌칙", "INVITE12", 5, LocalDateTime.now(), "http://base.url", ACTIVE, true
         );
 
         given(groupService.createGroup(eq(testMemberId), any(GroupRequest.Create.class))).willReturn(response);
@@ -105,7 +106,7 @@ class GroupControllerTest {
     @Test
     @DisplayName("그룹 목록 조회 - 성공 (200 OK)")
     void getGroupSimpleList_Success() throws Exception {
-        given(groupService.getGroupSimpleList(testMemberId, GroupStatus.ACTIVE)).willReturn(Collections.emptyList());
+        given(groupService.getGroupSimpleList(testMemberId, ACTIVE)).willReturn(Collections.emptyList());
 
         mockMvc.perform(get("/api/groups")
                         .header("Authorization", "Bearer mock-jwt-token")
@@ -120,7 +121,7 @@ class GroupControllerTest {
         Long groupId = 1L;
         GroupResponse.Detail response = new GroupResponse.Detail(
                 groupId, "테스트 그룹", "설명", LocalDate.now(), LocalDate.now().plusDays(7),
-                "벌칙", "INVITE12", 5, LocalDateTime.now(), "http://base.url"
+                "벌칙", "INVITE12", 5, LocalDateTime.now(), "http://base.url", ACTIVE, true
         );
 
         given(groupService.getGroupDetail(groupId, testMemberId)).willReturn(response);

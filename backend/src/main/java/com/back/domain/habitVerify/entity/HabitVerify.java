@@ -62,6 +62,8 @@ public class HabitVerify extends BaseEntity {
     }
 
 
+
+
     public void approve() {
         if (this.status != HabitVerifyStatus.PENDING) {
             throw new IllegalStateException(

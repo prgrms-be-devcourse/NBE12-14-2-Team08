@@ -1,10 +1,11 @@
 'use client';
 
-import React, { useState, useEffect, use } from 'react';
+import React, { useState, useEffect, use, useCallback } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useMember } from '@/context/MemberContext';
 import { apiRequest } from '@/lib/memberApi';
+import { EditRoomModal } from '@/components/EditRoomModal';
 
 interface GroupDetailData {
     id: number;
@@ -42,6 +43,58 @@ export default function GroupDetailPage({
     const [members, setMembers] = useState<GroupMemberItem[]>([]);
     const [loading, setLoading] = useState(true);
     const [currentRole, setCurrentRole] = useState<'OWNER' | 'MEMBER'>('MEMBER');
+    const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+
+    const fetchGroupData = useCallback(async () => {
+        if (!rawId || isNaN(Number(rawId))) return;
+        const groupId = Number(rawId);
+
+        try {
+            const groupData = await apiRequest<any>(`/groups/${groupId}`, {}, true);
+            setGroup({
+                id: groupData.id || groupData.groupId || groupId,
+                title: groupData.title || '',
+                description: groupData.description || '',
+                startDate: groupData.startDate,
+                deadline: groupData.deadline,
+                penalty: groupData.penalty || '',
+                inviteCode: groupData.inviteCode || '',
+                memberLimit: groupData.memberLimit || 10,
+                inviteLink: groupData.inviteLink,
+            });
+
+            try {
+                const rawMembers = await apiRequest<any[]>(`/groups/${groupId}/members`, {}, true);
+
+                const formattedMembers: GroupMemberItem[] = (rawMembers || []).map((m: any) => ({
+                    id: m.groupMemberId || m.id,
+                    memberId: m.memberId,
+                    nickname: m.nickname || m.memberName || '',
+                    role: m.role || 'MEMBER',
+                    habitId: m.habitId || null,
+                    habitTitle: m.habitTitle || null,
+                    habitDescription: m.habitDescription || null,
+                }));
+
+                setMembers(formattedMembers);
+
+               if (currentUser) {
+            const me = formattedMembers.find(
+                (m) => String(m.memberId) === String(currentUser.id)
+            );
+
+            setCurrentRole(me?.role ?? 'MEMBER');
+        }
+    } catch (memberErr: any) {
+        console.error('멤버 목록 조회 실패:', memberErr);
+    }
+        } catch (err: any) {
+            console.error('그룹 정보 조회 에러:', err);
+            alert(err.message || '그룹 정보를 불러오지 못했습니다.');
+        } finally {
+            setLoading(false);
+        }
+    }, [rawId, currentUser]);
 
     useEffect(() => {
         if (!authReady) return;
@@ -56,64 +109,9 @@ export default function GroupDetailPage({
             return;
         }
 
-        const groupId = Number(rawId);
-
-        const fetchGroupData = async () => {
-            try {
-                setLoading(true);
-
-                const groupData = await apiRequest<any>(`/groups/${groupId}`, {}, true);
-                setGroup({
-                    id: groupData.id || groupData.groupId || groupId,
-                    title: groupData.title || '',
-                    description: groupData.description || '',
-                    startDate: groupData.startDate,
-                    deadline: groupData.deadline,
-                    penalty: groupData.penalty || '',
-                    inviteCode: groupData.inviteCode || '',
-                    memberLimit: groupData.memberLimit || 10,
-                    inviteLink: groupData.inviteLink,
-                });
-
-                try {
-                    const rawMembers = await apiRequest<any[]>(`/groups/${groupId}/members`, {}, true);
-
-                    const formattedMembers: GroupMemberItem[] = (rawMembers || []).map((m: any) => ({
-                        id: m.groupMemberId || m.id,
-                        memberId: m.memberId,
-                        nickname: m.nickname || m.memberName || '',
-                        role: m.role || 'MEMBER',
-                        habitId: m.habitId || null,
-                        habitTitle: m.habitTitle || null,
-                        habitDescription: m.habitDescription || null,
-                    }));
-
-                    setMembers(formattedMembers);
-
-                    const me = formattedMembers.find(
-                        (m) =>
-                            m.nickname === currentUser.name ||
-                            String(m.memberId) === String(currentUser.id)
-                    );
-
-                    if (me) {
-                        setCurrentRole(me.role);
-                    } else if (formattedMembers.length > 0 && formattedMembers[0].role === 'OWNER') {
-                        setCurrentRole(formattedMembers[0].role);
-                    }
-                } catch (memberErr: any) {
-                    console.error('멤버 목록 조회 실패:', memberErr);
-                }
-            } catch (err: any) {
-                console.error('그룹 정보 조회 에러:', err);
-                alert(err.message || '그룹 정보를 불러오지 못했습니다.');
-            } finally {
-                setLoading(false);
-            }
-        };
-
+        setLoading(true);
         fetchGroupData();
-    }, [rawId, authReady, currentUser, router]);
+    }, [rawId, authReady, currentUser, router, fetchGroupData]);
 
     const handleCopyInvite = () => {
         const inviteText = group?.inviteLink || group?.inviteCode || '';
@@ -180,7 +178,16 @@ export default function GroupDetailPage({
                     <div className="flex items-start justify-between gap-2 mb-2">
                         <h1 className="text-xl font-black text-gray-900 flex items-center gap-1.5">
                             {group.title}
-                            <span className="text-lg">👑</span>
+                            {currentRole === 'OWNER' && (
+                                <span
+                                    className="text-lg"
+                                    role="img"
+                                    aria-label="방장"
+                                    title="방장"
+                                >
+                                    👑
+                                </span>
+                            )}
                         </h1>
                         <button
                             onClick={handleLeaveGroup}
@@ -215,7 +222,7 @@ export default function GroupDetailPage({
                         {currentRole === 'OWNER' && (
                             <div className="flex items-center gap-2">
                                 <button
-                                    onClick={() => alert('방 설정 기능 준비 중입니다.')}
+                                    onClick={() => setIsEditModalOpen(true)}
                                     className="rounded-2xl border-2 border-black bg-white px-4 py-2 text-xs font-bold text-gray-800 hover:bg-gray-50 transition cursor-pointer shadow-sm"
                                 >
                                     방 설정
@@ -277,6 +284,23 @@ export default function GroupDetailPage({
                     </div>
                 </section>
             </div>
+
+            {group && (
+                <EditRoomModal
+                    isOpen={isEditModalOpen}
+                    onClose={() => setIsEditModalOpen(false)}
+                    groupId={group.id}
+                    initialData={{
+                        title: group.title,
+                        description: group.description,
+                        startDate: group.startDate || new Date().toISOString().slice(0, 10),
+                        deadline: group.deadline || '',
+                        memberLimit: group.memberLimit,
+                        penalty: group.penalty || '',
+                    }}
+                    onSuccess={fetchGroupData}
+                />
+            )}
         </div>
     );
 }
