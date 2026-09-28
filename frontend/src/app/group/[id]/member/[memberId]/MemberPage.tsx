@@ -16,7 +16,7 @@ import {
     ChevronRight,
 } from "lucide-react";
 import { useMember } from "@/context/MemberContext";
-import { ModalShell, ModalHeader, ModalActions } from "@/components/ModalKit";
+import { ModalShell, ModalHeader, ModalActions, ImageLightbox } from "@/components/ModalKit";
 import {
     habitApi,
     uploadFileToSignedUrl,
@@ -1094,6 +1094,7 @@ function CertDetailModal({
 }) {
     const meta = CERT_STATUS_META[item.status];
     const canEdit = isMe && item.status === "REJECTED";
+    const [showLightbox, setShowLightbox] = useState(false);
 
     return (
         <ModalShell borderClass={meta.borderClass} widthClass="max-w-sm">
@@ -1105,10 +1106,17 @@ function CertDetailModal({
             />
             <div className="mt-3">
                 {item.imageUrl && (
-                    <div className="w-full h-56 rounded-2xl overflow-hidden bg-slate-100 border border-slate-200 shadow-inner">
+                    <button
+                        type="button"
+                        onClick={() => setShowLightbox(true)}
+                        className="block w-full h-56 rounded-2xl overflow-hidden bg-slate-100 border border-slate-200 shadow-inner cursor-zoom-in"
+                    >
                         {/* eslint-disable-next-line @next/next/no-img-element */}
                         <img src={item.imageUrl} alt="인증 사진" className="w-full h-full object-cover" />
-                    </div>
+                    </button>
+                )}
+                {showLightbox && item.imageUrl && (
+                    <ImageLightbox src={item.imageUrl} alt="인증 사진" onClose={() => setShowLightbox(false)} />
                 )}
                 <div className="mt-3 bg-slate-50 p-3 rounded-xl border border-slate-100">
                     <p className="text-xs font-semibold text-slate-800 leading-relaxed">
@@ -1252,6 +1260,8 @@ function PenaltyCertModal({
 // ---------- 모달: 벌칙 수행 상세 ----------
 
 function PenaltyDetailModal({ item, onClose }: { item: PenaltyVerifyDetail; onClose: () => void }) {
+    const [showLightbox, setShowLightbox] = useState(false);
+
     return (
         <ModalShell borderClass="border-rose-100" widthClass="max-w-sm">
             <ModalHeader
@@ -1268,10 +1278,17 @@ function PenaltyDetailModal({ item, onClose }: { item: PenaltyVerifyDetail; onCl
                 <p className="text-xs font-bold text-slate-500">{item.habitTitle}</p>
                 <p className="text-[11px] text-slate-400 mt-0.5">벌칙: {item.penaltyText}</p>
                 {item.imageUrl && (
-                    <div className="mt-2.5 w-full h-56 rounded-2xl overflow-hidden bg-slate-100 border border-rose-200 shadow-inner">
+                    <button
+                        type="button"
+                        onClick={() => setShowLightbox(true)}
+                        className="block mt-2.5 w-full h-56 rounded-2xl overflow-hidden bg-slate-100 border border-rose-200 shadow-inner cursor-zoom-in"
+                    >
                         {/* eslint-disable-next-line @next/next/no-img-element */}
                         <img src={item.imageUrl} alt="벌칙 사진" className="w-full h-full object-cover" />
-                    </div>
+                    </button>
+                )}
+                {showLightbox && item.imageUrl && (
+                    <ImageLightbox src={item.imageUrl} alt="벌칙 사진" onClose={() => setShowLightbox(false)} />
                 )}
                 <div className="mt-3 bg-rose-50/50 p-3 rounded-xl border border-rose-100">
                     <p className="text-xs font-semibold text-rose-900 leading-relaxed">

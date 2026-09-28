@@ -51,6 +51,37 @@ export function ModalHeader({
     );
 }
 
+export function ImageLightbox({
+    src,
+    alt,
+    onClose,
+}: {
+    src: string;
+    alt: string;
+    onClose: () => void;
+}) {
+    return (
+        <div
+            className="fixed inset-0 z-[60] flex items-center justify-center bg-black/85 p-4 cursor-zoom-out"
+            onClick={onClose}
+        >
+            <button
+                onClick={onClose}
+                className="absolute top-4 right-4 p-2 rounded-full bg-white/10 hover:bg-white/20 text-white cursor-pointer"
+            >
+                <X className="w-6 h-6" />
+            </button>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+                src={src}
+                alt={alt}
+                className="max-w-full max-h-full object-contain rounded-lg cursor-default"
+                onClick={(e) => e.stopPropagation()}
+            />
+        </div>
+    );
+}
+
 export function ModalActions({
     onClose,
     submitting,
