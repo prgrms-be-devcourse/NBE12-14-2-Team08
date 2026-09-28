@@ -2,8 +2,10 @@ package com.back.domain.group.controller;
 
 import com.back.domain.group.dto.GroupRequest;
 import com.back.domain.group.dto.GroupResponse;
+import com.back.domain.group.dto.SettlementResponse;
 import com.back.domain.group.entity.GroupStatus;
 import com.back.domain.group.service.GroupService;
+import com.back.domain.group.service.SettlementService;
 import com.back.global.security.LoginMemberId;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -19,6 +21,7 @@ import java.util.List;
 public class GroupController {
 
     private final GroupService groupService;
+    private final SettlementService settlementService;
 
     @PostMapping
     public ResponseEntity<GroupResponse.Detail> createGroup(
@@ -43,6 +46,17 @@ public class GroupController {
     ) {
         GroupResponse.InvitePreview response =
                 groupService.getInvitePreview(inviteCode);
+
+        return ResponseEntity.ok(response);
+    }
+    //결산 데이터 조회
+    @GetMapping("/{groupId}/settlement")
+    public ResponseEntity<SettlementResponse> getSettlement(
+            @PathVariable Long groupId,
+            @LoginMemberId Long memberId
+    ) {
+        SettlementResponse response =
+                settlementService.getSettlement(groupId, memberId);
 
         return ResponseEntity.ok(response);
     }
