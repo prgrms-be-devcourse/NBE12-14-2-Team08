@@ -76,6 +76,7 @@ export function MemberPage({ groupId, memberId }: Props) {
     const [member, setMember] = useState<GroupMemberDetail | null>(null);
     const [penalties, setPenalties] = useState<PenaltyVerifySummary[]>([]);
     const [habitDaysById, setHabitDaysById] = useState<Record<number, number>>({});
+    const [habitEndDateById, setHabitEndDateById] = useState<Record<number, string>>({});
     const [habit, setHabit] = useState<HabitResponse | null>(null);
     const [verifies, setVerifies] = useState<HabitVerifyResponse[]>([]);
     const [loading, setLoading] = useState(true);
@@ -110,19 +111,19 @@ export function MemberPage({ groupId, memberId }: Props) {
             setPenalties(penaltiesRes);
 
             const uniqueHabitIds = Array.from(new Set(penaltiesRes.map((p) => p.habitId)));
-            const habitDaysEntries = await Promise.all(
+            const habitEntries = await Promise.all(
                 uniqueHabitIds.map(async (habitId) => {
                     try {
                         const habitRes = await habitApi.getHabit(habitId);
-                        return [habitId, habitRes.days] as const;
+                        return { habitId, days: habitRes.days, endDate: habitRes.modifyDate.slice(0, 10) };
                     } catch {
                         return null;
                     }
                 })
             );
-            setHabitDaysById(
-                Object.fromEntries(habitDaysEntries.filter((entry): entry is readonly [number, number] => entry !== null))
-            );
+            const validHabitEntries = habitEntries.filter((entry): entry is NonNullable<typeof entry> => entry !== null);
+            setHabitDaysById(Object.fromEntries(validHabitEntries.map((e) => [e.habitId, e.days])));
+            setHabitEndDateById(Object.fromEntries(validHabitEntries.map((e) => [e.habitId, e.endDate])));
 
             const isOwnPage = currentUser?.id === String(memberRes.memberId);
             if (isOwnPage) {
@@ -348,9 +349,6 @@ export function MemberPage({ groupId, memberId }: Props) {
                                                 className="text-left flex-1 rounded-xl -m-1.5 p-1.5 hover:bg-slate-100/80 transition-colors cursor-pointer"
                                             >
                                                 <div className="flex items-center gap-2">
-                                                    <span className="text-xs font-semibold text-slate-400">
-                                                        {penalty.verifyDate ?? "미제출"}
-                                                    </span>
                                                     <span className="text-sm font-semibold text-slate-700">
                                                         {penalty.habitTitle}
                                                     </span>
@@ -360,13 +358,13 @@ export function MemberPage({ groupId, memberId }: Props) {
                                                         </span>
                                                     )}
                                                 </div>
+                                                <p className="text-[11px] font-semibold text-slate-400 mt-0.5">
+                                                    {habitEndDateById[penalty.habitId] ? `~${habitEndDateById[penalty.habitId]}` : "-"}
+                                                </p>
                                             </button>
                                         ) : (
                                             <div>
                                                 <div className="flex items-center gap-2">
-                                                    <span className="text-xs font-semibold text-slate-400">
-                                                        {penalty.verifyDate ?? "미제출"}
-                                                    </span>
                                                     <span className="text-sm font-semibold text-slate-700">
                                                         {penalty.habitTitle}
                                                     </span>
@@ -376,6 +374,9 @@ export function MemberPage({ groupId, memberId }: Props) {
                                                         </span>
                                                     )}
                                                 </div>
+                                                <p className="text-[11px] font-semibold text-slate-400 mt-0.5">
+                                                    {habitEndDateById[penalty.habitId] ? `~${habitEndDateById[penalty.habitId]}` : "-"}
+                                                </p>
                                             </div>
                                         )}
                                         <div className="flex items-center gap-3 shrink-0">
