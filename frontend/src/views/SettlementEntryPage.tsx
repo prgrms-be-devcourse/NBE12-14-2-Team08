@@ -173,11 +173,11 @@ export function SettlementEntryPage({ groupId, preview = false }: SettlementEntr
       <div aria-hidden="true" className="absolute -right-32 bottom-10 h-80 w-80 rounded-full bg-violet-500/20 blur-3xl" />
 
       <div className="relative mx-auto flex min-h-[calc(100vh-3rem)] max-w-4xl flex-col">
-        <header className="flex items-center justify-between gap-4">
+        <header className="grid grid-cols-3 items-center gap-4">
           <button
             type="button"
             onClick={() => router.push('/main')}
-            className="rounded-full border border-white/15 bg-white/5 px-4 py-2 text-xs font-bold text-slate-200 backdrop-blur transition hover:bg-white/10"
+            className="justify-self-start rounded-full border border-white/15 bg-white/5 px-4 py-2 text-xs font-bold text-slate-200 backdrop-blur transition hover:bg-white/10"
           >
             ← 방 목록
           </button>
@@ -185,9 +185,7 @@ export function SettlementEntryPage({ groupId, preview = false }: SettlementEntr
             <p className="text-xs font-black tracking-[0.24em] text-emerald-300">내기? 내기!</p>
             <p className="mt-1 text-[10px] font-semibold text-slate-500">{settlement.groupTitle} 결산</p>
           </div>
-          <span className="rounded-full bg-emerald-300/10 px-3 py-1.5 text-[10px] font-bold text-emerald-200 ring-1 ring-emerald-300/20">
-            {preview ? '미리보기' : '실제 기록'}
-          </span>
+          <span aria-hidden="true" />
         </header>
 
         <div className="mt-6 h-1 overflow-hidden rounded-full bg-white/10">
