@@ -20,6 +20,15 @@ export interface CreateGroupRequest {
   memberLimit: number;
 }
 
+export interface UpdateGroupRequest {
+  title?: string;
+  description?: string;
+  deadline?: string;
+  penalty?: string;
+  password?: string;
+  memberLimit: number;
+}
+
 interface GroupDetail {
   id: number;
 }
@@ -36,5 +45,10 @@ export const groupApi = {
     apiRequest<void>(`/groups/join/${encodeURIComponent(inviteCode)}`, {
       method: 'POST',
       body: JSON.stringify({ password }),
+    }, true),
+  update: (groupId: number, request: UpdateGroupRequest) =>
+    apiRequest<void>(`/groups/${groupId}`, {
+      method: 'PUT',
+      body: JSON.stringify(request),
     }, true),
 };
