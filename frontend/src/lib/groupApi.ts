@@ -39,16 +39,20 @@ export interface JoinGroupResponse {
   groupId: number;
 }
 
-export interface GroupInvitePreview {
+export interface GroupDetailResponse {
   id: number;
   title: string;
   description: string | null;
   startDate: string;
   deadline: string | null;
   penalty: string | null;
+  inviteCode: string;
   memberLimit: number;
   currentMemberCount: number;
+  createDate: string;
+  inviteLink: string;
   status: GroupStatus;
+  isJoined: boolean;
 }
 
 export const groupApi = {
@@ -59,8 +63,8 @@ export const groupApi = {
       method: 'POST',
       body: JSON.stringify(request),
     }, true),
-  getInvitePreview: (inviteCode: string) =>
-    apiRequest<GroupInvitePreview>(`/groups/invite/${encodeURIComponent(inviteCode)}`),
+  getGroupByInviteCode: (inviteCode: string) =>
+    apiRequest<GroupDetailResponse>(`/groups/invite/${inviteCode}`, {}, true),
   join: (inviteCode: string, password: string) =>
     apiRequest<JoinGroupResponse>(`/groups/join/${encodeURIComponent(inviteCode)}`, {
       method: 'POST',
