@@ -664,9 +664,6 @@ function VerifyCalendar({
                     );
                 })}
             </div>
-            <p className="text-[11px] text-slate-400 mt-3 text-center">
-                💡 인증이 등록된 날짜를 클릭하면 사진과 내용을 상세히 볼 수 있습니다.
-            </p>
         </div>
     );
 }
