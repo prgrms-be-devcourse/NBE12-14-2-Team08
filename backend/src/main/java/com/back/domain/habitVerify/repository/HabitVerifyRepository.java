@@ -79,4 +79,16 @@ public interface HabitVerifyRepository
             @Param("ids") List<Long> ids,
             @Param("groupId") Long groupId
     );
+
+    @Query("""
+        SELECT hv
+        FROM HabitVerify hv
+        JOIN FETCH hv.habit h
+        JOIN FETCH h.groupMember gm
+        JOIN FETCH gm.member
+        WHERE gm.group.id = :groupId
+        """)
+    List<HabitVerify> findAllByGroupId(
+            @Param("groupId") Long groupId
+    );
 }

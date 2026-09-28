@@ -1,14 +1,15 @@
 package com.back.domain.penaltyverify.repository;
 
 import com.back.domain.penaltyverify.entity.PenaltyVerify;
-import java.util.List;
-import java.util.Optional;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
+
+import java.util.List;
+import java.util.Optional;
 
 @Repository
 public interface PenaltyVerifyRepository extends JpaRepository<PenaltyVerify, Long> {
@@ -42,4 +43,15 @@ public interface PenaltyVerifyRepository extends JpaRepository<PenaltyVerify, Lo
     @Modifying(clearAutomatically = true, flushAutomatically = true)
     @Query("delete from PenaltyVerify pv where pv.groupMember.id = :groupMemberId")
     void deleteByGroupMemberId(@Param("groupMemberId") Long groupMemberId);
+
+    @Query("""
+        SELECT pv
+        FROM PenaltyVerify pv
+        JOIN FETCH pv.groupMember gm
+        JOIN FETCH gm.member
+        WHERE gm.group.id = :groupId
+        """)
+    List<PenaltyVerify> findAllByGroupId(
+            @Param("groupId") Long groupId
+    );
 }
