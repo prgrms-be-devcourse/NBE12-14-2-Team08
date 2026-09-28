@@ -9,6 +9,8 @@ import com.back.domain.groupMember.entity.GroupMemberStatus;
 import com.back.domain.groupMember.repository.GroupMemberRepository;
 import com.back.domain.habit.entity.Habit;
 import com.back.domain.habit.repository.HabitRepository;
+import com.back.domain.habitVerify.entity.HabitVerify;
+import com.back.domain.habitVerify.repository.HabitVerifyRepository;
 import com.back.domain.member.entity.Member;
 import com.back.domain.member.repository.MemberRepository;
 import com.back.domain.member.service.AuthTokenService;
@@ -30,6 +32,7 @@ public class TestDataInit implements CommandLineRunner {
     private final GroupRepository groupRepository;
     private final GroupMemberRepository groupMemberRepository;
     private final HabitRepository habitRepository;
+    private final HabitVerifyRepository habitVerifyRepository;
     private final PenaltyVerifyRepository penaltyVerifyRepository;
     private final PasswordEncoder passwordEncoder;
     private final AuthTokenService authTokenService;
@@ -73,12 +76,19 @@ public class TestDataInit implements CommandLineRunner {
         GroupMember gmHyunwoo = createGroupMember(group1, hyunwoo, GroupMemberRole.MEMBER);
 
         // 1인당 1개씩 현재 진행 중인 [ACTIVE] 습관 생성 (그룹 상세 페이지에 뜰 습관들)
-        createActiveHabit(gmOwner, "아침 8시 기상하기", "기상 후 이불 개고 사진 찍기", 5);
-        createActiveHabit(gmChulsoo, "알고리즘 1문제 풀기", "백준 골드 문제 풀이", 7);
-        createActiveHabit(gmYounghee, "하루 물 2L 마시기", "텀블러 채우고 마실 때마다 체크", 7);
-        createActiveHabit(gmMinsoo, "매일 기술 블로그 1포스팅", "TIL 작성 및 잔디 심기", 5);
-        createActiveHabit(gmJiwon, "스쿼트 100회 하기", "하체 운동 및 스트레칭 30분", 3);
-        createActiveHabit(gmHyunwoo, "CS 전공 서적 30p 읽기", "네트워크/운영체제 정리", 5);
+        Habit hActiveOwner = createActiveHabit(gmOwner, "아침 8시 기상하기", "기상 후 이불 개고 사진 찍기", 5);
+        Habit hActiveChulsoo = createActiveHabit(gmChulsoo, "알고리즘 1문제 풀기", "백준 골드 문제 풀이", 7);
+        Habit hActiveYounghee = createActiveHabit(gmYounghee, "하루 물 2L 마시기", "텀블러 채우고 마실 때마다 체크", 7);
+        Habit hActiveMinsoo = createActiveHabit(gmMinsoo, "매일 기술 블로그 1포스팅", "TIL 작성 및 잔디 심기", 5);
+        Habit hActiveJiwon = createActiveHabit(gmJiwon, "스쿼트 100회 하기", "하체 운동 및 스트레칭 30분", 3);
+        Habit hActiveHyunwoo = createActiveHabit(gmHyunwoo, "CS 전공 서적 30p 읽기", "네트워크/운영체제 정리", 5);
+
+        // Group 1 [PENDING] 습관 인증 데이터 (관리자 습관 인증 대기 카드 테스트용)
+        createPendingHabitVerify(hActiveChulsoo, "백준 12865번 평범한 배낭 문제 DP로 풀어서 통과했습니다!", "https://images.unsplash.com/photo-1555066931-4365d14bab8c?w=600&auto=format&fit=crop&q=60");
+        createPendingHabitVerify(hActiveYounghee, "오늘 500ml 텀블러로 4번 채워서 2L 완수했습니다!", "https://images.unsplash.com/photo-1548839140-29a749e1bc4e?w=600&auto=format&fit=crop&q=60");
+        createPendingHabitVerify(hActiveMinsoo, "Spring JPA N+1 문제 해결 및 Fetch Join 정리 포스팅 올렸습니다.", "https://images.unsplash.com/photo-1499750310107-5fef28a66643?w=600&auto=format&fit=crop&q=60");
+        createPendingHabitVerify(hActiveJiwon, "스쿼트 25회 4세트 완료했습니다. 허벅지 불타네요!", "https://images.unsplash.com/photo-1517838277536-f5f99be501cd?w=600&auto=format&fit=crop&q=60");
+        createPendingHabitVerify(hActiveHyunwoo, "운영체제 가상 메모리와 페이징 기법 챕터 완독했습니다.", "https://images.unsplash.com/photo-1456513080510-7bf3a84b82f8?w=600&auto=format&fit=crop&q=60");
 
         // 과거에 실패하여 벌칙 인증이 걸려있는 [FAILED] 습관들 (관리자 대시보드 검토용)
         Habit hFailedChulsoo1 = createFailedHabit(gmChulsoo, "영어 단어 30개 외우기", "토익 보카 1챕터 암기", 7);
@@ -99,7 +109,6 @@ public class TestDataInit implements CommandLineRunner {
         createPendingPenalty(gmChulsoo, hFailedChulsoo2, "피곤해서 일기 쓰다 잠들었습니다.. 벌칙 룰대로 스타벅스 아이스 아메리카노 마시며 반성 중입니다.", "https://images.unsplash.com/photo-1511920170033-f8396924c348?w=600&auto=format&fit=crop&q=60");
         createPendingPenalty(gmYounghee, hFailedYounghee2, "야근하느라 스트레칭 실패했네요 ㅠㅠ 벌칙 수행으로 아침 일찍 스벅 와서 모닝커피 샀습니다!", "https://images.unsplash.com/photo-1501339847302-ac426a4a7cbb?w=600&auto=format&fit=crop&q=60");
         createPendingPenalty(gmMinsoo, hFailedMinsoo2, "다리가 아파서 엘리베이터 타버렸습니다. 방 공통 벌칙대로 스타벅스 디카페인 한 잔 구매 인증 제출합니다.", "https://images.unsplash.com/photo-1572442388796-11668ba67e53?w=600&auto=format&fit=crop&q=60");
-
 
         // ====================================================
         // [GROUP 2] 다른 팀: 헬스 & 피트니스 챌린지 (벌칙: 교촌치킨 쏘기)
@@ -124,12 +133,10 @@ public class TestDataInit implements CommandLineRunner {
         GroupMember gmOther1 = createGroupMember(group2, otherMember1, GroupMemberRole.MEMBER);
         GroupMember gmOther2 = createGroupMember(group2, otherMember2, GroupMemberRole.MEMBER);
 
-        // Group 2 각 1인당 1개씩 현재 진행 중인 [ACTIVE] 습관
         createActiveHabit(gmOtherOwner, "스트레칭 20분", "폼롤러 스트레칭 매일 하기", 3);
         createActiveHabit(gmOther1, "매일 벤치프레스 5세트", "가슴 운동 루틴 수행", 5);
         createActiveHabit(gmOther2, "야식 금지 (저녁 8시 이후)", "식단 조절하기", 7);
 
-        // Group 2 과거 실패한 [FAILED] 습관 및 벌칙 인증
         Habit hFailedOther1 = createFailedHabit(gmOther1, "매일 유산소 40분", "트레드밀 달리기", 5);
         Habit hFailedOther2 = createFailedHabit(gmOther2, "하루 단백질 100g 채우기", "닭가슴살 섭취", 7);
         Habit hFailedOtherOwner = createFailedHabit(gmOtherOwner, "스쿼트 150kg 도전", "하체 최고 중량 도전", 3);
@@ -139,9 +146,9 @@ public class TestDataInit implements CommandLineRunner {
         createPendingPenalty(gmOtherOwner, hFailedOtherOwner, "[다른 팀 데이터] 방장인데 하체 운동 실패했네요. 솔선수범해서 레드콤보 모바일 상품권 올립니다!", "https://images.unsplash.com/photo-1527477396000-e27163b481c2?w=600&auto=format&fit=crop&q=60");
 
         System.out.println("=================================================================");
-        System.out.println(">>> [TEST DATA INITIALIZED] 1인 1ACTIVE 습관 & 벌칙 데이터 세팅 완료!");
-        System.out.println(">>> [Group 1] ID: " + group1.getId() + " (스타벅스 벌칙 8건, ACTIVE 습관 6개)");
-        System.out.println(">>> [Group 2] ID: " + group2.getId() + " (치킨 벌칙 3건, ACTIVE 습관 3개)");
+        System.out.println(">>> [TEST DATA INITIALIZED] 습관/벌칙 PENDING 데이터 세팅 완료!");
+        System.out.println(">>> [Group 1] ID: " + group1.getId() + " (습관 인증 5건, 스타벅스 벌칙 8건)");
+        System.out.println(">>> [Group 2] ID: " + group2.getId() + " (치킨 벌칙 3건)");
         System.out.println("=================================================================");
     }
 
@@ -164,17 +171,21 @@ public class TestDataInit implements CommandLineRunner {
         return groupMemberRepository.save(gm);
     }
 
-    // 1인당 1개만 생성되는 현재 진행 중인 활성 습관
     private Habit createActiveHabit(GroupMember gm, String title, String desc, int days) {
         Habit habit = Habit.create(gm, title, desc, days);
         return habitRepository.save(habit);
     }
 
-    // 벌칙 대기 데이터 테스트용으로 생성되는 과거 실패 습관
     private Habit createFailedHabit(GroupMember gm, String title, String desc, int days) {
         Habit habit = Habit.create(gm, title, desc, days);
         habit.fail();
         return habitRepository.save(habit);
+    }
+
+    // 습관 인증 대기 데이터 생성 헬퍼 메서드
+    private void createPendingHabitVerify(Habit habit, String description, String imageUrl) {
+        HabitVerify hv = HabitVerify.create(habit, LocalDate.now(), description, imageUrl);
+        habitVerifyRepository.save(hv);
     }
 
     private void createPendingPenalty(GroupMember gm, Habit habit, String description, String imageUrl) {

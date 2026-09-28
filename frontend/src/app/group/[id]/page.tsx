@@ -3,21 +3,24 @@
 import React, { useState, useEffect, use } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { MemberNavigation } from '@/components/MemberNavigation';
+import { useMember } from '@/context/MemberContext';
+import { apiRequest } from '@/lib/memberApi';
 
 interface GroupDetailData {
     id: number;
     title: string;
     description: string;
-    startDate: string;
-    deadline: string;
-    penalty: string;
-    inviteCode: string;
+    startDate?: string;
+    deadline?: string;
+    penalty?: string;
+    inviteCode?: string;
     memberLimit: number;
     inviteLink?: string;
 }
 
 interface GroupMemberItem {
-    id: number; // groupMemberId
+    id: number;
     memberId: number;
     nickname: string;
     role: 'OWNER' | 'MEMBER';
@@ -32,81 +35,87 @@ export default function GroupDetailPage({
     params: Promise<{ id: string }> | { id: string };
 }) {
     const router = useRouter();
+    const { currentUser, authReady } = useMember();
     const resolvedParams = params instanceof Promise ? use(params) : params;
     const rawId = resolvedParams?.id;
-
-    const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8080';
 
     const [group, setGroup] = useState<GroupDetailData | null>(null);
     const [members, setMembers] = useState<GroupMemberItem[]>([]);
     const [loading, setLoading] = useState(true);
     const [currentRole, setCurrentRole] = useState<'OWNER' | 'MEMBER'>('MEMBER');
 
-    const getAuthHeader = () => {
-        const token = typeof window !== 'undefined' ? localStorage.getItem('accessToken') || '' : '';
-        return token.startsWith('Bearer ') ? token : `Bearer ${token}`;
-    };
-
-    // 1. groupId 유효성 검증 및 그룹/멤버 데이터 fetch
     useEffect(() => {
-        // 1번 수정: groupId가 없거나 숫자가 아닌 비정상적인 접근 차단 및 리다이렉트
+        if (!authReady) return;
+        if (!currentUser) {
+            router.replace('/login');
+            return;
+        }
+
         if (!rawId || isNaN(Number(rawId))) {
             alert('유효하지 않은 그룹 접근입니다.');
             router.replace('/main');
             return;
         }
 
-        const groupId = rawId;
+        const groupId = Number(rawId);
 
         const fetchGroupData = async () => {
             try {
                 setLoading(true);
 
-                // A. 그룹 기본 정보 조회
-                const groupRes = await fetch(`${API_BASE_URL}/api/groups/${groupId}`, {
-                    headers: { Authorization: getAuthHeader() },
+                const groupData = await apiRequest<any>(`/groups/${groupId}`, {}, true);
+                setGroup({
+                    id: groupData.id || groupData.groupId || groupId,
+                    title: groupData.title || '',
+                    description: groupData.description || '',
+                    startDate: groupData.startDate,
+                    deadline: groupData.deadline,
+                    penalty: groupData.penalty || '',
+                    inviteCode: groupData.inviteCode || '',
+                    memberLimit: groupData.memberLimit || 10,
+                    inviteLink: groupData.inviteLink,
                 });
 
-                if (!groupRes.ok) {
-                    throw new Error('그룹 정보를 불러오는 데 실패했습니다.');
-                }
-                const groupData: GroupDetailData = await groupRes.json();
-                setGroup(groupData);
+                try {
+                    const rawMembers = await apiRequest<any[]>(`/groups/${groupId}/members`, {}, true);
 
-                // B. 그룹 멤버 및 습관 목록 조회
-                const memberRes = await fetch(`${API_BASE_URL}/api/groups/${groupId}/members`, {
-                    headers: { Authorization: getAuthHeader() },
-                });
+                    const formattedMembers: GroupMemberItem[] = (rawMembers || []).map((m: any) => ({
+                        id: m.groupMemberId || m.id,
+                        memberId: m.memberId,
+                        nickname: m.nickname || m.memberName || '',
+                        role: m.role || 'MEMBER',
+                        habitId: m.habitId || null,
+                        habitTitle: m.habitTitle || null,
+                        habitDescription: m.habitDescription || null,
+                    }));
 
-                if (memberRes.ok) {
-                    const memberData: GroupMemberItem[] = await memberRes.json();
-                    setMembers(memberData);
+                    setMembers(formattedMembers);
 
-                    const myNickname = typeof window !== 'undefined' ? localStorage.getItem('nickname') : null;
-                    const myMemberId = typeof window !== 'undefined' ? localStorage.getItem('memberId') : null;
-
-                    const me = memberData.find(
-                        (m) => m.nickname === myNickname || String(m.memberId) === myMemberId
+                    const me = formattedMembers.find(
+                        (m) =>
+                            m.nickname === currentUser.name ||
+                            String(m.memberId) === String(currentUser.id)
                     );
 
                     if (me) {
                         setCurrentRole(me.role);
-                    } else if (memberData.length > 0 && memberData[0].role === 'OWNER') {
-                        setCurrentRole(memberData[0].role);
+                    } else if (formattedMembers.length > 0 && formattedMembers[0].role === 'OWNER') {
+                        setCurrentRole(formattedMembers[0].role);
                     }
+                } catch (memberErr: any) {
+                    console.error('멤버 목록 조회 실패:', memberErr);
                 }
             } catch (err: any) {
-                console.error(err);
-                alert(err.message || '데이터를 불러오지 못했습니다.');
+                console.error('그룹 정보 조회 에러:', err);
+                alert(err.message || '그룹 정보를 불러오지 못했습니다.');
             } finally {
                 setLoading(false);
             }
         };
 
         fetchGroupData();
-    }, [rawId, API_BASE_URL, router]);
+    }, [rawId, authReady, currentUser, router]);
 
-    // 초대 링크 / 코드 복사
     const handleCopyInvite = () => {
         const inviteText = group?.inviteLink || group?.inviteCode || '';
         if (!inviteText) return;
@@ -119,7 +128,6 @@ export default function GroupDetailPage({
         }
     };
 
-    // 방 탈퇴 처리
     const handleLeaveGroup = async () => {
         if (currentRole === 'OWNER') {
             alert('방장은 그룹 활성화 상태에서 바로 탈퇴할 수 없습니다.\n습관 상세 페이지에서 권한을 위임한 후 탈퇴해 주세요.');
@@ -129,20 +137,11 @@ export default function GroupDetailPage({
         if (!confirm('정말 이 방에서 탈퇴하시겠습니까?')) return;
 
         try {
-            const res = await fetch(`${API_BASE_URL}/api/groups/${rawId}/leave`, {
-                method: 'DELETE',
-                headers: { Authorization: getAuthHeader() },
-            });
-
-            if (!res.ok) {
-                const errorMsg = await res.text();
-                throw new Error(errorMsg || '방 탈퇴 처리에 실패했습니다.');
-            }
-
+            await apiRequest<void>(`/groups/${rawId}/leave`, { method: 'DELETE' }, true);
             alert('그룹에서 탈퇴했습니다.');
             router.push('/main');
         } catch (err: any) {
-            alert(err.message);
+            alert(err.message || '방 탈퇴 처리에 실패했습니다.');
         }
     };
 
@@ -166,9 +165,9 @@ export default function GroupDetailPage({
         <div className="min-h-screen bg-[#FAFCFA] p-6 text-gray-900 font-sans">
             <div className="mx-auto max-w-xl rounded-[40px] bg-white p-8 shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-gray-100">
 
-                {/* 네비게이션 헤더 */}
                 <div className="flex items-center justify-between text-xs text-gray-400 font-bold mb-4">
                     <span>내기? 내기!</span>
+                    <MemberNavigation embedded />
                 </div>
 
                 <div className="mb-6">
@@ -180,7 +179,6 @@ export default function GroupDetailPage({
                     </Link>
                 </div>
 
-                {/* 1. 상단 그룹 메인 정보 카드 */}
                 <section className="mb-8 rounded-[32px] border-2 border-black p-6 bg-white shadow-sm">
                     <div className="flex items-start justify-between gap-2 mb-2">
                         <h1 className="text-xl font-black text-gray-900 flex items-center gap-1.5">
@@ -209,7 +207,6 @@ export default function GroupDetailPage({
             </span>
                     </div>
 
-                    {/* 버튼 영역 (초대 링크 복사 & 방장 전용 관리 버튼) */}
                     <div className="mt-6 flex flex-wrap items-center justify-between gap-2 pt-2">
                         <button
                             onClick={handleCopyInvite}
@@ -218,11 +215,10 @@ export default function GroupDetailPage({
                             초대 링크 복사
                         </button>
 
-                        {/* 방장(OWNER)일 때만 노출되는 관리 구역 */}
                         {currentRole === 'OWNER' && (
                             <div className="flex items-center gap-2">
                                 <button
-                                    onClick={() => alert('방 설정 모달 또는 페이지로 이동')}
+                                    onClick={() => alert('방 설정 기능 준비 중입니다.')}
                                     className="rounded-2xl border-2 border-black bg-white px-4 py-2 text-xs font-bold text-gray-800 hover:bg-gray-50 transition cursor-pointer shadow-sm"
                                 >
                                     방 설정
@@ -238,7 +234,6 @@ export default function GroupDetailPage({
                     </div>
                 </section>
 
-                {/* 2. 하단 팀원별 습관 목록 */}
                 <section>
                     <h2 className="text-sm font-black text-gray-800 mb-3 px-1">습관</h2>
 
@@ -259,7 +254,6 @@ export default function GroupDetailPage({
                                     }}
                                     className="flex items-center justify-between rounded-[22px] border-2 border-black p-4 bg-white shadow-sm hover:shadow-md hover:-translate-y-0.5 transition cursor-pointer"
                                 >
-                                    {/* 좌측: 유저 정보 */}
                                     <div className="flex flex-col">
                                         <div className="flex items-center gap-1.5">
                                             <span className="text-sm font-black text-gray-900">{m.nickname}</span>
@@ -270,7 +264,6 @@ export default function GroupDetailPage({
                     </span>
                                     </div>
 
-                                    {/* 우측: 습관 타이틀 및 설명 */}
                                     <div className="flex items-center gap-3 text-right">
                                         <div>
                                             <div className="text-xs font-black text-gray-800">
