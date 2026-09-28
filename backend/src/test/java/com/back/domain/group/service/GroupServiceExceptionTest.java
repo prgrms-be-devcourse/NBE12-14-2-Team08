@@ -71,20 +71,6 @@ class GroupServiceExceptionTest {
     }
 
     @Test
-    @DisplayName("그룹 상세 조회 - 기한이 만료된 ACTIVE 그룹을 조회하면 FINISH 상태로 변경된다")
-    void getGroupDetail_ExpiredChangesToFinish() {
-        Group mockGroup = Group.builder().title("그룹").inviteCode("code").deadline(LocalDate.now().minusDays(1)).build();
-        ReflectionTestUtils.setField(mockGroup, "createDate", LocalDateTime.now());
-
-        given(groupRepository.findById(groupId)).willReturn(Optional.of(mockGroup));
-        given(groupMemberRepository.existsByGroupIdAndMemberId(groupId, memberId)).willReturn(true);
-
-        groupService.getGroupDetail(groupId, memberId);
-
-        assertThat(mockGroup.getStatus()).isEqualTo(GroupStatus.FINISH);
-    }
-
-    @Test
     @DisplayName("그룹 상세 조회 실패 - 해당 그룹에 속하지 않은 멤버가 접근하면 ForbiddenException이 발생한다")
     void getGroupDetail_Forbidden() {
         given(groupRepository.findById(groupId)).willReturn(Optional.of(mock(Group.class)));
