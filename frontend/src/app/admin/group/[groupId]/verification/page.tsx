@@ -3,6 +3,7 @@
 import React, { useState, useEffect, use } from 'react';
 import Link from 'next/link';
 import PenaltyDetailModal from '@/app/components/modal/PenaltyDetailModal';
+import { HabitVerifyDetailModal } from '@/components/HabitVerifyDetailModal'; // 새로 추가된 습관 상세 모달 import
 import { apiRequest } from '@/lib/memberApi';
 
 interface VerifyCardItem {
@@ -32,10 +33,12 @@ export default function AdminVerificationPage({
   const resolvedParams = params instanceof Promise ? use(params) : params;
   const groupId = Number(resolvedParams?.groupId) || 1;
 
+  // 벌칙 관련 상태 (기존 코드 유지)
   const [penaltyList, setPenaltyList] = useState<VerifyCardItem[]>([]);
   const [selectedPenaltyIds, setSelectedPenaltyIds] = useState<number[]>([]);
   const [selectedPenalty, setSelectedPenalty] = useState<VerifyCardItem | null>(null);
 
+  // 습관 관련 상태 (기존 코드 유지)
   const [habitVerifyList, setHabitVerifyList] = useState<HabitVerifyCardItem[]>([]);
   const [selectedHabitVerifyIds, setSelectedHabitVerifyIds] = useState<number[]>([]);
   const [selectedHabitVerify, setSelectedHabitVerify] = useState<HabitVerifyCardItem | null>(null);
@@ -82,6 +85,7 @@ export default function AdminVerificationPage({
     fetchPendingHabitVerifications();
   }, [groupId]);
 
+  // 습관 단건 승인/거절 (기존 로직 유지)
   const handleSingleHabitAction = async (
       e: React.MouseEvent | null,
       id: number,
@@ -140,6 +144,7 @@ export default function AdminVerificationPage({
     }
   };
 
+  // 벌칙 액션 함수들 (기존 코드 100% 동일 유지)
   const handleSinglePenaltyAction = async (
       e: React.MouseEvent | null,
       id: number,
@@ -214,6 +219,7 @@ export default function AdminVerificationPage({
             <h2 className="text-sm font-semibold text-gray-400">미인증 내역 관리</h2>
           </div>
 
+          {/* 1. 습관 인증 대기 섹션 */}
           <section className="mb-12">
             <div className="flex items-center justify-between mb-5 flex-wrap gap-3">
               <div className="flex items-center gap-2">
@@ -321,6 +327,7 @@ export default function AdminVerificationPage({
             </div>
           </section>
 
+          {/* 2. 벌칙 인증 대기 섹션 (기존 코드 100% 동일 유지) */}
           <section>
             <div className="flex items-center justify-between mb-5 flex-wrap gap-3">
               <div className="flex items-center gap-2">
@@ -427,6 +434,7 @@ export default function AdminVerificationPage({
           </section>
         </div>
 
+        {/* 벌칙 모달: 기존 코드 100% 동일 유지 */}
         {selectedPenalty && (
             <PenaltyDetailModal
                 isOpen={!!selectedPenalty}
@@ -441,15 +449,20 @@ export default function AdminVerificationPage({
             />
         )}
 
+        {/* 습관 상세 모달: HabitVerifyDetailModal 적용 및 모달 내부 승인/거절 액션 연동 */}
         {selectedHabitVerify && (
-            <PenaltyDetailModal
+            <HabitVerifyDetailModal
                 isOpen={!!selectedHabitVerify}
                 onClose={() => setSelectedHabitVerify(null)}
-                habitTitle={selectedHabitVerify.habitTitle}
-                penaltyText="습관 수행 인증"
-                imageUrl={selectedHabitVerify.imageUrl}
-                description={selectedHabitVerify.description}
-                verifyDate={selectedHabitVerify.date}
+                verification={{
+                  id: selectedHabitVerify.id,
+                  habitId: 0,
+                  habitTitle: selectedHabitVerify.habitTitle,
+                  verifyDate: selectedHabitVerify.date,
+                  status: 'PENDING',
+                  description: selectedHabitVerify.description,
+                  imageUrl: selectedHabitVerify.imageUrl,
+                }}
                 onApprove={() => handleSingleHabitAction(null, selectedHabitVerify.id, 'approve')}
                 onReject={() => handleSingleHabitAction(null, selectedHabitVerify.id, 'reject')}
             />
