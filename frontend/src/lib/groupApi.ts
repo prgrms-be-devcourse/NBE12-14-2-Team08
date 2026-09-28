@@ -1,6 +1,7 @@
 import { apiRequest } from './memberApi';
 
 export type GroupStatus = 'ACTIVE' | 'FINISH';
+export type GroupMemberRole = 'OWNER' | 'MEMBER';
 
 export interface GroupSummary {
   id: number;
@@ -9,6 +10,7 @@ export interface GroupSummary {
   memberLimit: number;
   currentMemberCount: number;
   status: GroupStatus;
+  role: GroupMemberRole;
 }
 
 export interface CreateGroupRequest {

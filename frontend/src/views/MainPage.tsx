@@ -116,7 +116,12 @@ export function MainPage() {
                     }`}>{status === 'ACTIVE' ? '진행 중' : '완료'}</span>
                     <span className="text-xs font-semibold text-slate-400">👥 {group.currentMemberCount} / {group.memberLimit}명</span>
                   </div>
-                  <h3 className="mt-4 text-lg font-extrabold text-slate-900 transition-colors group-hover:text-emerald-600">{group.title}</h3>
+                  <h3 className="mt-4 flex items-center gap-1.5 text-lg font-extrabold text-slate-900 transition-colors group-hover:text-emerald-600">
+                    {group.role === 'OWNER' && (
+                      <span role="img" aria-label="방장" title="방장">👑</span>
+                    )}
+                    <span>{group.title}</span>
+                  </h3>
                   <p className="mt-2 min-h-10 text-xs leading-5 text-slate-500 line-clamp-2">{group.description || '함께 목표를 달성해보세요!'}</p>
                   <div className="mt-5 flex items-center justify-end border-t border-slate-100 pt-4 text-xs font-bold text-emerald-600">
                     {status === 'ACTIVE' ? '방 입장하기' : '기록 확인하기'} <span className="ml-1">→</span>
