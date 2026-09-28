@@ -3,7 +3,6 @@
 import React, { useState, useEffect, use } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { MemberNavigation } from '@/components/MemberNavigation';
 import { useMember } from '@/context/MemberContext';
 import { apiRequest } from '@/lib/memberApi';
 
@@ -20,7 +19,7 @@ interface GroupDetailData {
 }
 
 interface GroupMemberItem {
-    id: number;          // groupMemberId
+    id: number;
     memberId: number;
     nickname: string;
     role: 'OWNER' | 'MEMBER';
@@ -166,7 +165,6 @@ export default function GroupDetailPage({
             <div className="mx-auto max-w-xl rounded-[40px] bg-white p-8 shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-gray-100">
                 <div className="flex items-center justify-between text-xs text-gray-400 font-bold mb-4">
                     <span>내기? 내기!</span>
-                    <MemberNavigation embedded />
                 </div>
 
                 <div className="mb-6">
@@ -202,8 +200,8 @@ export default function GroupDetailPage({
                     <div className="mt-4 flex items-center gap-1.5 text-xs">
                         <span className="font-bold text-gray-500">벌칙 :</span>
                         <span className="font-extrabold text-rose-700 bg-rose-50 px-2.5 py-0.5 rounded-full border border-rose-100">
-              {group.penalty || '벌칙 없음'}
-            </span>
+                            {group.penalty || '벌칙 없음'}
+                        </span>
                     </div>
 
                     <div className="mt-6 flex flex-wrap items-center justify-between gap-2 pt-2">
@@ -252,8 +250,8 @@ export default function GroupDetailPage({
                                             {m.role === 'OWNER' && <span className="text-xs">👑</span>}
                                         </div>
                                         <span className="text-[11px] font-medium text-gray-400 font-mono">
-                      member#{m.memberId}
-                    </span>
+                                            member#{m.memberId}
+                                        </span>
                                     </div>
 
                                     <div className="flex items-center gap-3 text-right">
