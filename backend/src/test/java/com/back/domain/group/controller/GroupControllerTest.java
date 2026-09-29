@@ -1,11 +1,25 @@
 package com.back.domain.group.controller;
 
+import static com.back.domain.group.entity.GroupStatus.ACTIVE;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.doNothing;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+
 import com.back.domain.group.dto.GroupRequest;
 import com.back.domain.group.dto.GroupResponse;
-import com.back.domain.group.entity.GroupStatus;
 import com.back.domain.group.service.GroupService;
 import com.back.global.security.LoginMemberId;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.util.Collections;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -21,18 +35,6 @@ import org.springframework.web.bind.support.WebDataBinderFactory;
 import org.springframework.web.context.request.NativeWebRequest;
 import org.springframework.web.method.support.HandlerMethodArgumentResolver;
 import org.springframework.web.method.support.ModelAndViewContainer;
-
-import java.time.LocalDate;
-import java.time.LocalDateTime;
-import java.util.Collections;
-
-import static com.back.domain.group.entity.GroupStatus.ACTIVE;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.BDDMockito.given;
-import static org.mockito.Mockito.doNothing;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @ExtendWith(MockitoExtension.class)
 class GroupControllerTest {
@@ -69,27 +71,27 @@ class GroupControllerTest {
                 .build();
     }
 
-//    @Test
-//    @DisplayName("그룹 생성 - 성공 (201 CREATED)")
-//    void createGroup_Success() throws Exception {
-//        GroupRequest.Create request = new GroupRequest.Create(
-//                "테스트 그룹", "설명", LocalDate.now().plusDays(7), "벌칙", "password123", 5
-//        );
-//        GroupResponse.Detail response = new GroupResponse.Detail(
-//                1L, "테스트 그룹", "설명", LocalDate.now(), LocalDate.now().plusDays(7),
-//                "벌칙", "INVITE12", 5, LocalDateTime.now(), "http://base.url", ACTIVE, true
-//        );
-//
-//        given(groupService.createGroup(eq(testMemberId), any(GroupRequest.Create.class))).willReturn(response);
-//
-//        mockMvc.perform(post("/api/groups")
-//                        .header("Authorization", "Bearer mock-jwt-token")
-//                        .contentType(MediaType.APPLICATION_JSON)
-//                        .content(objectMapper.writeValueAsString(request)))
-//                .andExpect(status().isCreated())
-//                .andExpect(jsonPath("$.id").value(1L))
-//                .andExpect(jsonPath("$.title").value("테스트 그룹"));
-//    }
+    @Test
+    @DisplayName("그룹 생성 - 성공 (201 CREATED)")
+    void createGroup_Success() throws Exception {
+        GroupRequest.Create request = new GroupRequest.Create(
+                "테스트 그룹", "설명", LocalDate.now().plusDays(7), "벌칙", "password123", 5
+        );
+        GroupResponse.Detail response = new GroupResponse.Detail(
+                1L, "테스트 그룹", "설명", LocalDate.now(), LocalDate.now().plusDays(7),
+                "벌칙", "INVITE12", 5, LocalDateTime.now(), "http://base.url", ACTIVE, true, 1L
+        );
+
+        given(groupService.createGroup(eq(testMemberId), any(GroupRequest.Create.class))).willReturn(response);
+
+        mockMvc.perform(post("/api/groups")
+                        .header("Authorization", "Bearer mock-jwt-token")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.id").value(1L))
+                .andExpect(jsonPath("$.title").value("테스트 그룹"));
+    }
 
     @Test
     @DisplayName("그룹 생성 - 유효성 검증 실패 (400 BAD REQUEST)")
@@ -115,22 +117,22 @@ class GroupControllerTest {
                 .andExpect(jsonPath("$").isArray());
     }
 
-//    @Test
-//    @DisplayName("그룹 상세 조회 - 성공 (200 OK)")
-//    void getGroupDetail_Success() throws Exception {
-//        Long groupId = 1L;
-//        GroupResponse.Detail response = new GroupResponse.Detail(
-//                groupId, "테스트 그룹", "설명", LocalDate.now(), LocalDate.now().plusDays(7),
-//                "벌칙", "INVITE12", 5, LocalDateTime.now(), "http://base.url", ACTIVE, true
-//        );
-//
-//        given(groupService.getGroupDetail(groupId, testMemberId)).willReturn(response);
-//
-//        mockMvc.perform(get("/api/groups/{groupId}", groupId)
-//                        .header("Authorization", "Bearer mock-jwt-token"))
-//                .andExpect(status().isOk())
-//                .andExpect(jsonPath("$.id").value(groupId));
-//    }
+    @Test
+    @DisplayName("그룹 상세 조회 - 성공 (200 OK)")
+    void getGroupDetail_Success() throws Exception {
+        Long groupId = 1L;
+        GroupResponse.Detail response = new GroupResponse.Detail(
+                groupId, "테스트 그룹", "설명", LocalDate.now(), LocalDate.now().plusDays(7),
+                "벌칙", "INVITE12", 5, LocalDateTime.now(), "http://base.url", ACTIVE, true, 1L
+        );
+
+        given(groupService.getGroupDetail(groupId, testMemberId)).willReturn(response);
+
+        mockMvc.perform(get("/api/groups/{groupId}", groupId)
+                        .header("Authorization", "Bearer mock-jwt-token"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(groupId));
+    }
 
     @Test
     @DisplayName("그룹 수정 - 성공 (200 OK)")

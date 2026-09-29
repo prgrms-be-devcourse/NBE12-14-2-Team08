@@ -1,5 +1,9 @@
 package com.back.domain.groupMember.service;
 
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.mock;
+
 import com.back.domain.group.dto.GroupRequest;
 import com.back.domain.group.entity.Group;
 import com.back.domain.group.repository.GroupRepository;
@@ -12,6 +16,8 @@ import com.back.global.exception.BusinessRuleException;
 import com.back.global.exception.EntityNotFoundException;
 import com.back.global.exception.ForbiddenException;
 import com.back.global.exception.GroupLimitExceededException;
+import java.time.LocalDate;
+import java.util.Optional;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -20,14 +26,6 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.util.ReflectionTestUtils;
-
-import java.time.LocalDate;
-import java.util.Optional;
-
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.BDDMockito.given;
-import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 class GroupMemberServiceExceptionTest {
@@ -134,11 +132,12 @@ class GroupMemberServiceExceptionTest {
         GroupMember mockGroupMember = GroupMember.builder().group(mockGroup).role(GroupMemberRole.OWNER).build();
 
         given(groupMemberRepository.findByGroupIdAndMemberId(groupId, memberId)).willReturn(Optional.of(mockGroupMember));
+        given(groupMemberRepository.countByGroupId(groupId)).willReturn(2L);
 
         // when & then
         assertThatThrownBy(() -> groupMemberService.leaveGroup(groupId, memberId))
                 .isInstanceOf(BusinessRuleException.class)
-                .hasMessageContaining("방장은 그룹 활성화 상태에서 그룹을 탈퇴할 수 없습니다.");
+                .hasMessageContaining("방장은 다른 멤버가 남아있는 상태에서 바로 탈퇴할 수 없습니다. 방장 권한을 위임해 주세요.");
     }
 
     @Test

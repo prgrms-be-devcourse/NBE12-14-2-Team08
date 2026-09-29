@@ -1,5 +1,13 @@
 package com.back.domain.group.service;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+
 import com.back.domain.group.dto.GroupRequest;
 import com.back.domain.group.dto.GroupResponse;
 import com.back.domain.group.entity.Group;
@@ -11,6 +19,11 @@ import com.back.domain.groupMember.repository.GroupMemberRepository;
 import com.back.domain.groupMember.service.GroupMemberService;
 import com.back.domain.member.entity.Member;
 import com.back.domain.member.repository.MemberRepository;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.util.Collections;
+import java.util.List;
+import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -20,18 +33,6 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.util.ReflectionTestUtils;
-
-import java.time.LocalDate;
-import java.time.LocalDateTime;
-import java.util.Collections;
-import java.util.List;
-import java.util.Optional;
-
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.BDDMockito.given;
-import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 class GroupServiceSuccessTest {
@@ -161,8 +162,6 @@ class GroupServiceSuccessTest {
         groupService.deleteGroup(groupId, memberId);
 
         // then
-        verify(groupMemberService, times(1)).deleteGroupMemberDataBulk(50L);
-        verify(groupMemberRepository, times(1)).delete(mockGroupMember);
-        verify(groupRepository, times(1)).delete(mockGroup);
+        verify(groupMemberService, times(1)).deleteGroupAndGroupMember(mockGroup, mockGroupMember);
     }
 }

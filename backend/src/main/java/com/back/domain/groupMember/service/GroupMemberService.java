@@ -103,7 +103,7 @@ public class GroupMemberService {
 
         if (groupMember.getRole() == GroupMemberRole.OWNER) {
             if (!isFinished && memberCount > 1) {
-                throw new BusinessRuleException("방장은 그룹 활성화 상태에서 그룹을 탈퇴할 수 없습니다. 방 삭제를 이용해 주세요.");
+                throw new BusinessRuleException("방장은 다른 멤버가 남아있는 상태에서 바로 탈퇴할 수 없습니다. 방장 권한을 위임해 주세요.");
             }
         }
 
