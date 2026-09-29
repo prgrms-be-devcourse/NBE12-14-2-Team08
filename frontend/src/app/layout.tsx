@@ -5,7 +5,7 @@ import './globals.css';
 import { MemberProvider } from '../context/MemberContext';
 
 export const metadata: Metadata = {
-  title: '내기? 내기! - 함께하는 습관 & 벌칙 챌린지',
+  title: '내기? 내기!',
   description: '친구들과 함께 만드는 습관 형성 및 유쾌한 벌칙/내기 플랫폼',
 };
 
