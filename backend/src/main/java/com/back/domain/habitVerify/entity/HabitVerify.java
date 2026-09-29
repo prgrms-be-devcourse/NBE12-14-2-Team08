@@ -62,7 +62,17 @@ public class HabitVerify extends BaseEntity {
     }
 
 
+    public void resubmit(String description, String imageUrl) {
+        if (this.status != HabitVerifyStatus.REJECTED) {
+            throw new IllegalStateException(
+                    "반려된 인증만 재제출할 수 있습니다. 현재 상태: " + this.status
+            );
+        }
 
+        this.description = description;
+        this.imageUrl = imageUrl;
+        this.status = HabitVerifyStatus.PENDING;
+    }
 
     public void approve() {
         if (this.status != HabitVerifyStatus.PENDING) {

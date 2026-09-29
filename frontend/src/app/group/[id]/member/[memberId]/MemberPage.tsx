@@ -16,7 +16,7 @@ import {
     ChevronRight,
 } from "lucide-react";
 import { useMember } from "@/context/MemberContext";
-import { ModalShell, ModalHeader, ModalActions } from "@/components/ModalKit";
+import { ModalShell, ModalHeader, ModalActions, ImageLightbox } from "@/components/ModalKit";
 import {
     habitApi,
     uploadFileToSignedUrl,
@@ -90,6 +90,7 @@ export function MemberPage({ groupId, memberId }: Props) {
     const [showFailModal, setShowFailModal] = useState(false);
     const [showCreateHabitModal, setShowCreateHabitModal] = useState(false);
     const [certDetail, setCertDetail] = useState<HabitVerifyResponse | null>(null);
+    const [editingVerify, setEditingVerify] = useState<HabitVerifyResponse | null>(null);
 
     const load = useCallback(async () => {
         try {
@@ -399,18 +400,38 @@ export function MemberPage({ groupId, memberId }: Props) {
             </div>
 
             {/* 모달들 */}
-            {showCertifyModal && habit && (
+            {(showCertifyModal || editingVerify) && habit && (
                 <CertifyModal
-                    onClose={() => setShowCertifyModal(false)}
-                    onSubmit={async (file, description) => {
-                        let imageUrl: string | null = null;
+                    initial={
+                        editingVerify
+                            ? { description: editingVerify.description, imageUrl: editingVerify.imageUrl }
+                            : null
+                    }
+                    onClose={() => {
+                        setShowCertifyModal(false);
+                        setEditingVerify(null);
+                    }}
+                    onSubmit={async (file, description, existingImageUrl) => {
+                        let imageUrl: string | null = existingImageUrl;
                         if (file) {
                             const { uploadUrl, publicUrl } = await habitApi.getHabitUploadUrl(habit.id, file.name);
                             await uploadFileToSignedUrl(uploadUrl, file);
                             imageUrl = publicUrl;
                         }
-                        await habitApi.createHabitVerification(habit.id, { description: description || null, imageUrl });
+
+                        if (editingVerify) {
+                            await habitApi.resubmitHabitVerification(habit.id, editingVerify.id, {
+                                description: description || null,
+                                imageUrl,
+                            });
+                        } else {
+                            await habitApi.createHabitVerification(habit.id, {
+                                description: description || null,
+                                imageUrl,
+                            });
+                        }
                         setShowCertifyModal(false);
+                        setEditingVerify(null);
                         await load();
                     }}
                 />
@@ -438,7 +459,17 @@ export function MemberPage({ groupId, memberId }: Props) {
                 />
             )}
 
-            {certDetail && <CertDetailModal item={certDetail} onClose={() => setCertDetail(null)} />}
+            {certDetail && (
+                <CertDetailModal
+                    item={certDetail}
+                    isMe={isMe}
+                    onClose={() => setCertDetail(null)}
+                    onEdit={() => {
+                        setEditingVerify(certDetail);
+                        setCertDetail(null);
+                    }}
+                />
+            )}
 
             {activePenalty && (
                 <PenaltyCertModal
@@ -810,22 +841,25 @@ function HabitHistoryHeatmap({ habitId }: { habitId: number }) {
 // ---------- 모달: 오늘 인증하기 ----------
 
 function CertifyModal({
+    initial,
     onClose,
     onSubmit,
 }: {
+    initial?: { description: string | null; imageUrl: string | null } | null;
     onClose: () => void;
-    onSubmit: (file: File | null, description: string) => Promise<void>;
+    onSubmit: (file: File | null, description: string, existingImageUrl: string | null) => Promise<void>;
 }) {
+    const isEditing = !!initial;
     const [file, setFile] = useState<File | null>(null);
-    const [preview, setPreview] = useState<string | null>(null);
-    const [description, setDescription] = useState("");
+    const [preview, setPreview] = useState<string | null>(initial?.imageUrl ?? null);
+    const [description, setDescription] = useState(initial?.description ?? "");
     const [submitting, setSubmitting] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
     const handleFile = (e: React.ChangeEvent<HTMLInputElement>) => {
         const f = e.target.files?.[0] ?? null;
         setFile(f);
-        setPreview(f ? URL.createObjectURL(f) : null);
+        setPreview(f ? URL.createObjectURL(f) : (initial?.imageUrl ?? null));
     };
 
     const handleSubmit = async (e: React.FormEvent) => {
@@ -833,7 +867,7 @@ function CertifyModal({
         setSubmitting(true);
         setError(null);
         try {
-            await onSubmit(file, description);
+            await onSubmit(file, description, initial?.imageUrl ?? null);
         } catch (err) {
             setError(err instanceof Error ? err.message : "인증 등록에 실패했습니다.");
         } finally {
@@ -843,7 +877,15 @@ function CertifyModal({
 
     return (
         <ModalShell>
-            <ModalHeader title="📸 오늘 인증하기" subtitle="오늘 실천한 내용을 사진과 함께 남겨보세요." onClose={onClose} />
+            <ModalHeader
+                title={isEditing ? "✏️ 인증 수정하기" : "📸 오늘 인증하기"}
+                subtitle={
+                    isEditing
+                        ? "반려된 내용을 수정해서 다시 제출해주세요."
+                        : "오늘 실천한 내용을 사진과 함께 남겨보세요."
+                }
+                onClose={onClose}
+            />
             <form onSubmit={handleSubmit} className="mt-4 space-y-4">
                 <div>
                     <label className="block text-xs font-bold text-slate-700 mb-1">인증 사진 (선택)</label>
@@ -856,7 +898,7 @@ function CertifyModal({
                         )}
                         <label className="absolute bottom-2 right-2 cursor-pointer px-3 py-1.5 bg-white/90 hover:bg-white text-slate-800 text-xs font-bold rounded-lg shadow-md flex items-center gap-1.5">
                             <Upload className="w-3.5 h-3.5" />
-                            <span>사진 업로드</span>
+                            <span>{isEditing ? "사진 변경" : "사진 업로드"}</span>
                             <input type="file" accept="image/*" onChange={handleFile} className="hidden" />
                         </label>
                     </div>
@@ -875,7 +917,11 @@ function CertifyModal({
 
                 {error && <p className="text-xs text-rose-500 font-semibold">{error}</p>}
 
-                <ModalActions onClose={onClose} submitting={submitting} submitLabel="인증 등록" />
+                <ModalActions
+                    onClose={onClose}
+                    submitting={submitting}
+                    submitLabel={isEditing ? "수정 후 재제출" : "인증 등록"}
+                />
             </form>
         </ModalShell>
     );
@@ -1035,8 +1081,20 @@ const CERT_STATUS_META = {
     },
 } as const;
 
-function CertDetailModal({ item, onClose }: { item: HabitVerifyResponse; onClose: () => void }) {
+function CertDetailModal({
+    item,
+    isMe,
+    onClose,
+    onEdit,
+}: {
+    item: HabitVerifyResponse;
+    isMe: boolean;
+    onClose: () => void;
+    onEdit: () => void;
+}) {
     const meta = CERT_STATUS_META[item.status];
+    const canEdit = isMe && item.status === "REJECTED";
+    const [showLightbox, setShowLightbox] = useState(false);
 
     return (
         <ModalShell borderClass={meta.borderClass} widthClass="max-w-sm">
@@ -1048,10 +1106,17 @@ function CertDetailModal({ item, onClose }: { item: HabitVerifyResponse; onClose
             />
             <div className="mt-3">
                 {item.imageUrl && (
-                    <div className="w-full h-56 rounded-2xl overflow-hidden bg-slate-100 border border-slate-200 shadow-inner">
+                    <button
+                        type="button"
+                        onClick={() => setShowLightbox(true)}
+                        className="block w-full h-56 rounded-2xl overflow-hidden bg-slate-100 border border-slate-200 shadow-inner cursor-zoom-in"
+                    >
                         {/* eslint-disable-next-line @next/next/no-img-element */}
                         <img src={item.imageUrl} alt="인증 사진" className="w-full h-full object-cover" />
-                    </div>
+                    </button>
+                )}
+                {showLightbox && item.imageUrl && (
+                    <ImageLightbox src={item.imageUrl} alt="인증 사진" onClose={() => setShowLightbox(false)} />
                 )}
                 <div className="mt-3 bg-slate-50 p-3 rounded-xl border border-slate-100">
                     <p className="text-xs font-semibold text-slate-800 leading-relaxed">
@@ -1060,12 +1125,29 @@ function CertDetailModal({ item, onClose }: { item: HabitVerifyResponse; onClose
                 </div>
                 <p className="mt-3 text-[11px] text-slate-400 text-right">인증 일자: {item.verifyDate}</p>
             </div>
-            <button
-                onClick={onClose}
-                className={`mt-4 w-full py-2.5 text-white text-xs font-bold rounded-xl shadow-xs ${meta.btnClass}`}
-            >
-                확인
-            </button>
+            {canEdit ? (
+                <div className="mt-4 flex items-center gap-2">
+                    <button
+                        onClick={onClose}
+                        className="flex-1 py-2.5 text-slate-600 bg-slate-100 hover:bg-slate-200 text-xs font-bold rounded-xl transition-colors"
+                    >
+                        닫기
+                    </button>
+                    <button
+                        onClick={onEdit}
+                        className={`flex-1 py-2.5 text-white text-xs font-bold rounded-xl shadow-xs ${meta.btnClass}`}
+                    >
+                        수정하기
+                    </button>
+                </div>
+            ) : (
+                <button
+                    onClick={onClose}
+                    className={`mt-4 w-full py-2.5 text-white text-xs font-bold rounded-xl shadow-xs ${meta.btnClass}`}
+                >
+                    확인
+                </button>
+            )}
         </ModalShell>
     );
 }
@@ -1178,6 +1260,8 @@ function PenaltyCertModal({
 // ---------- 모달: 벌칙 수행 상세 ----------
 
 function PenaltyDetailModal({ item, onClose }: { item: PenaltyVerifyDetail; onClose: () => void }) {
+    const [showLightbox, setShowLightbox] = useState(false);
+
     return (
         <ModalShell borderClass="border-rose-100" widthClass="max-w-sm">
             <ModalHeader
@@ -1194,10 +1278,17 @@ function PenaltyDetailModal({ item, onClose }: { item: PenaltyVerifyDetail; onCl
                 <p className="text-xs font-bold text-slate-500">{item.habitTitle}</p>
                 <p className="text-[11px] text-slate-400 mt-0.5">벌칙: {item.penaltyText}</p>
                 {item.imageUrl && (
-                    <div className="mt-2.5 w-full h-56 rounded-2xl overflow-hidden bg-slate-100 border border-rose-200 shadow-inner">
+                    <button
+                        type="button"
+                        onClick={() => setShowLightbox(true)}
+                        className="block mt-2.5 w-full h-56 rounded-2xl overflow-hidden bg-slate-100 border border-rose-200 shadow-inner cursor-zoom-in"
+                    >
                         {/* eslint-disable-next-line @next/next/no-img-element */}
                         <img src={item.imageUrl} alt="벌칙 사진" className="w-full h-full object-cover" />
-                    </div>
+                    </button>
+                )}
+                {showLightbox && item.imageUrl && (
+                    <ImageLightbox src={item.imageUrl} alt="벌칙 사진" onClose={() => setShowLightbox(false)} />
                 )}
                 <div className="mt-3 bg-rose-50/50 p-3 rounded-xl border border-rose-100">
                     <p className="text-xs font-semibold text-rose-900 leading-relaxed">
