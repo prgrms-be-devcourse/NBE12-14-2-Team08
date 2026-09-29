@@ -199,26 +199,26 @@ export default function AdminVerificationPage({
   };
 
   return (
-      <div className="min-h-screen bg-[#FAFCFA] p-8 text-gray-900 font-sans">
-        <div className="mx-auto max-w-5xl rounded-[40px] bg-white p-10 shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-emerald-50">
-          <div className="mb-8">
+      <main className="mx-auto max-w-5xl px-4 py-8 sm:px-6 sm:py-12">
+        <div className="rounded-3xl border border-slate-100 bg-white p-6 shadow-xl shadow-slate-200/60 sm:p-10">
+          <div className="mb-8 border-b border-slate-100 pb-5">
             <Link
                 href={`/group/${groupId}`}
-                className="inline-flex items-center text-xs font-bold text-gray-400 hover:text-emerald-700 transition mb-3"
+                className="inline-flex items-center gap-1.5 text-xs font-bold text-slate-400 hover:text-slate-700 transition mb-3"
             >
-              ← 그룹으로 돌아가기
+              <span>←</span> 그룹으로 돌아가기
             </Link>
-            <h1 className="text-2xl font-black text-emerald-950 mb-1">
-              관리자 페이지 <span className="text-emerald-500 font-bold text-lg ml-2">Group ID: {groupId}</span>
+            <h1 className="text-2xl font-extrabold tracking-tight text-slate-900 mb-1">
+              관리자 페이지 <span className="text-emerald-600 font-bold text-lg ml-2">Group ID: {groupId}</span>
             </h1>
-            <h2 className="text-sm font-semibold text-gray-400">미인증 내역 관리</h2>
+            <h2 className="text-xs font-bold text-emerald-600">미인증 내역 관리</h2>
           </div>
 
           <section className="mb-12">
             <div className="flex items-center justify-between mb-5 flex-wrap gap-3">
               <div className="flex items-center gap-2">
-                <div className="w-1.5 h-5 bg-emerald-400 rounded-full"></div>
-                <span className="text-lg font-bold text-gray-800">습관 인증 대기</span>
+                <div className="w-1.5 h-5 bg-emerald-500 rounded-full"></div>
+                <span className="text-lg font-extrabold text-slate-900">습관 인증 대기</span>
                 <span className="bg-emerald-100 text-emerald-700 text-xs font-bold px-2 py-0.5 rounded-full ml-1">
                 {habitVerifyList.length}
               </span>
@@ -227,7 +227,7 @@ export default function AdminVerificationPage({
               <div className="flex items-center gap-2">
                 <button
                     onClick={toggleSelectAllHabits}
-                    className="rounded-full border border-gray-200 bg-white px-3.5 py-1.5 text-xs font-bold text-gray-600 hover:bg-gray-50 transition-colors cursor-pointer"
+                    className="rounded-full border border-slate-200 bg-white px-3.5 py-1.5 text-xs font-bold text-slate-600 hover:bg-slate-50 transition-colors cursor-pointer"
                 >
                   {selectedHabitVerifyIds.length === habitVerifyList.length && habitVerifyList.length > 0
                       ? '선택 해제'
@@ -256,7 +256,7 @@ export default function AdminVerificationPage({
                         key={item.id}
                         onClick={() => setSelectedHabitVerify(item)}
                         className={`relative flex h-[280px] w-48 flex-shrink-0 flex-col justify-between rounded-[24px] bg-white p-4 border transition-all duration-200 cursor-pointer hover:-translate-y-1 hover:shadow-lg ${
-                            isChecked ? 'border-emerald-400 shadow-md ring-1 ring-emerald-400' : 'border-gray-100 shadow-sm'
+                            isChecked ? 'border-emerald-400 shadow-md ring-1 ring-emerald-400' : 'border-slate-100 shadow-sm'
                         }`}
                     >
                       <div className="flex items-center justify-between mb-2">
@@ -269,14 +269,14 @@ export default function AdminVerificationPage({
                                     prev.includes(item.id) ? prev.filter((id) => id !== item.id) : [...prev, item.id]
                                 )
                             }
-                            className="h-4 w-4 rounded border-gray-300 text-emerald-500 focus:ring-emerald-400 cursor-pointer"
+                            className="h-4 w-4 rounded border-slate-300 text-emerald-500 focus:ring-emerald-400 cursor-pointer"
                         />
-                        <span className="text-xs font-semibold text-gray-400 bg-gray-50 px-2 py-0.5 rounded-full">
+                        <span className="text-xs font-semibold text-slate-400 bg-slate-50 px-2 py-0.5 rounded-full">
                       {item.date}
                     </span>
                       </div>
 
-                      <div className="relative mb-3 flex h-28 w-full items-center justify-center rounded-2xl bg-[#F4F9F6] border border-emerald-50 overflow-hidden group">
+                      <div className="relative mb-3 flex h-28 w-full items-center justify-center rounded-2xl bg-emerald-50/50 border border-emerald-50 overflow-hidden group">
                         {item.imageUrl ? (
                             <img
                                 src={item.imageUrl}
@@ -289,13 +289,13 @@ export default function AdminVerificationPage({
                       </div>
 
                       <div className="text-center mb-3">
-                        <div className="truncate text-[13px] font-extrabold text-gray-800 mb-0.5">
+                        <div className="truncate text-[13px] font-extrabold text-slate-800 mb-0.5">
                           {item.habitTitle}
                         </div>
-                        <div className="text-[11px] font-medium text-gray-400">{item.memberName}</div>
+                        <div className="text-[11px] font-medium text-slate-400">{item.memberName}</div>
                       </div>
 
-                      <div className="flex gap-2 pt-3 border-t border-gray-50 mt-auto">
+                      <div className="flex gap-2 pt-3 border-t border-slate-50 mt-auto">
                         <button
                             onClick={(e) => handleSingleHabitAction(e, item.id, 'approve')}
                             className="flex-1 py-1.5 rounded-xl bg-emerald-500 text-white hover:bg-emerald-600 text-[12px] font-bold shadow-sm transition-all cursor-pointer"
@@ -304,7 +304,7 @@ export default function AdminVerificationPage({
                         </button>
                         <button
                             onClick={(e) => handleSingleHabitAction(e, item.id, 'reject')}
-                            className="flex-1 py-1.5 rounded-xl bg-white text-gray-500 hover:bg-rose-50 hover:text-rose-600 border border-gray-200 hover:border-rose-200 text-[12px] font-bold transition-all cursor-pointer"
+                            className="flex-1 py-1.5 rounded-xl bg-white text-slate-500 hover:bg-rose-50 hover:text-rose-600 border border-slate-200 hover:border-rose-200 text-[12px] font-bold transition-all cursor-pointer"
                         >
                           거절
                         </button>
@@ -314,7 +314,7 @@ export default function AdminVerificationPage({
               })}
 
               {habitVerifyList.length === 0 && (
-                  <div className="w-full py-12 text-center text-sm text-gray-400 bg-gray-50 rounded-3xl border border-dashed border-gray-200">
+                  <div className="w-full py-16 text-center text-sm font-medium text-slate-400 rounded-3xl border border-dashed border-slate-200">
                     대기 중인 습관 인증이 없습니다.
                   </div>
               )}
@@ -325,7 +325,7 @@ export default function AdminVerificationPage({
             <div className="flex items-center justify-between mb-5 flex-wrap gap-3">
               <div className="flex items-center gap-2">
                 <div className="w-1.5 h-5 bg-rose-400 rounded-full"></div>
-                <span className="text-lg font-bold text-gray-800">벌칙 인증 대기</span>
+                <span className="text-lg font-extrabold text-slate-900">벌칙 인증 대기</span>
                 <span className="bg-rose-100 text-rose-700 text-xs font-bold px-2 py-0.5 rounded-full ml-1">
                 {penaltyList.length}
               </span>
@@ -334,7 +334,7 @@ export default function AdminVerificationPage({
               <div className="flex items-center gap-2">
                 <button
                     onClick={toggleSelectAllPenalties}
-                    className="rounded-full border border-gray-200 bg-white px-3.5 py-1.5 text-xs font-bold text-gray-600 hover:bg-gray-50 transition-colors cursor-pointer"
+                    className="rounded-full border border-slate-200 bg-white px-3.5 py-1.5 text-xs font-bold text-slate-600 hover:bg-slate-50 transition-colors cursor-pointer"
                 >
                   {selectedPenaltyIds.length === penaltyList.length && penaltyList.length > 0 ? '선택 해제' : '전체 선택'}
                 </button>
@@ -361,7 +361,7 @@ export default function AdminVerificationPage({
                         key={item.id}
                         onClick={() => setSelectedPenalty(item)}
                         className={`relative flex h-[280px] w-48 flex-shrink-0 flex-col justify-between rounded-[24px] bg-white p-4 border transition-all duration-200 cursor-pointer hover:-translate-y-1 hover:shadow-lg ${
-                            isChecked ? 'border-emerald-400 shadow-md ring-1 ring-emerald-400' : 'border-gray-100 shadow-sm'
+                            isChecked ? 'border-emerald-400 shadow-md ring-1 ring-emerald-400' : 'border-slate-100 shadow-sm'
                         }`}
                     >
                       <div className="flex items-center justify-between mb-2">
@@ -374,14 +374,14 @@ export default function AdminVerificationPage({
                                     prev.includes(item.id) ? prev.filter((id) => id !== item.id) : [...prev, item.id]
                                 )
                             }
-                            className="h-4 w-4 rounded border-gray-300 text-emerald-500 focus:ring-emerald-400 cursor-pointer"
+                            className="h-4 w-4 rounded border-slate-300 text-emerald-500 focus:ring-emerald-400 cursor-pointer"
                         />
-                        <span className="text-xs font-semibold text-gray-400 bg-gray-50 px-2 py-0.5 rounded-full">
+                        <span className="text-xs font-semibold text-slate-400 bg-slate-50 px-2 py-0.5 rounded-full">
                       {item.date}
                     </span>
                       </div>
 
-                      <div className="relative mb-3 flex h-28 w-full items-center justify-center rounded-2xl bg-[#F4F9F6] border border-emerald-50 overflow-hidden group">
+                      <div className="relative mb-3 flex h-28 w-full items-center justify-center rounded-2xl bg-emerald-50/50 border border-emerald-50 overflow-hidden group">
                         {item.imageUrl ? (
                             <img
                                 src={item.imageUrl}
@@ -394,13 +394,13 @@ export default function AdminVerificationPage({
                       </div>
 
                       <div className="text-center mb-3">
-                        <div className="truncate text-[13px] font-extrabold text-gray-800 mb-0.5">
+                        <div className="truncate text-[13px] font-extrabold text-slate-800 mb-0.5">
                           {item.habitTitle}
                         </div>
-                        <div className="text-[11px] font-medium text-gray-400">{item.memberName}</div>
+                        <div className="text-[11px] font-medium text-slate-400">{item.memberName}</div>
                       </div>
 
-                      <div className="flex gap-2 pt-3 border-t border-gray-50 mt-auto">
+                      <div className="flex gap-2 pt-3 border-t border-slate-50 mt-auto">
                         <button
                             onClick={(e) => handleSinglePenaltyAction(e, item.id, 'approve')}
                             className="flex-1 py-1.5 rounded-xl bg-emerald-500 text-white hover:bg-emerald-600 text-[12px] font-bold shadow-sm transition-all cursor-pointer"
@@ -409,7 +409,7 @@ export default function AdminVerificationPage({
                         </button>
                         <button
                             onClick={(e) => handleSinglePenaltyAction(e, item.id, 'reject')}
-                            className="flex-1 py-1.5 rounded-xl bg-white text-gray-500 hover:bg-rose-50 hover:text-rose-600 border border-gray-200 hover:border-rose-200 text-[12px] font-bold transition-all cursor-pointer"
+                            className="flex-1 py-1.5 rounded-xl bg-white text-slate-500 hover:bg-rose-50 hover:text-rose-600 border border-slate-200 hover:border-rose-200 text-[12px] font-bold transition-all cursor-pointer"
                         >
                           거절
                         </button>
@@ -419,7 +419,7 @@ export default function AdminVerificationPage({
               })}
 
               {penaltyList.length === 0 && (
-                  <div className="w-full py-12 text-center text-sm text-gray-400 bg-gray-50 rounded-3xl border border-dashed border-gray-200">
+                  <div className="w-full py-16 text-center text-sm font-medium text-slate-400 rounded-3xl border border-dashed border-slate-200">
                     대기 중인 벌칙 인증이 없습니다.
                   </div>
               )}
@@ -454,6 +454,6 @@ export default function AdminVerificationPage({
                 onReject={() => handleSingleHabitAction(null, selectedHabitVerify.id, 'reject')}
             />
         )}
-      </div>
+      </main>
   );
 }
