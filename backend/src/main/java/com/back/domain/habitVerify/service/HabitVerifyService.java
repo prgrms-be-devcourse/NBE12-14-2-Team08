@@ -6,6 +6,7 @@ import com.back.domain.groupMember.repository.GroupMemberRepository;
 import com.back.domain.habit.entity.Habit;
 import com.back.domain.habit.entity.HabitStatus;
 import com.back.domain.habit.repository.HabitRepository;
+import com.back.global.exception.BusinessRuleException;
 import com.back.domain.habitVerify.dto.HabitVerifyRequest;
 import com.back.domain.habitVerify.dto.HabitVerifyResponse;
 import com.back.domain.habitVerify.dto.HabitVerifySummaryResponse;
@@ -46,6 +47,11 @@ public class HabitVerifyService {
                                 "존재하지 않는 습관입니다."
                         )
                 );
+
+        if (habit.getGroupMember().getGroup().isFinished()) {
+            throw new BusinessRuleException("이미 종료된 그룹에서는 습관 인증을 등록할 수 없습니다.");
+        }
+
         LocalDate verifyDate = LocalDate.now();
 
         boolean alreadyExists =
@@ -113,7 +119,7 @@ public class HabitVerifyService {
             HabitVerifyRequest request,
             Long memberId
     ) {
-        habitRepository.findByIdAndGroupMember_Member_Id(
+        Habit habit = habitRepository.findByIdAndGroupMember_Member_Id(
                 habitId,
                 memberId
         ).orElseThrow(() ->
@@ -121,6 +127,11 @@ public class HabitVerifyService {
                         "권한이 없는 습관입니다."
                 )
         );
+
+        if (habit.getGroupMember().getGroup().isFinished()) {
+            throw new BusinessRuleException("이미 종료된 그룹의 습관 인증은 수정할 수 없습니다.");
+        }
+
         HabitVerify habitVerify =
                 habitVerifyRepository
                         .findByIdAndHabitId(
@@ -161,6 +172,10 @@ public class HabitVerifyService {
             throw new IllegalStateException(
                     "이미 종료된 습관의 인증은 수정할 수 없습니다."
             );
+        }
+
+        if (habit.getGroupMember().getGroup().isFinished()) {
+            throw new BusinessRuleException("이미 종료된 그룹의 습관 인증은 수정할 수 없습니다.");
         }
 
         HabitVerify habitVerify =
@@ -225,7 +240,7 @@ public class HabitVerifyService {
             Long verificationId,
             Long memberId
     ) {
-        habitRepository.findByIdAndGroupMember_Member_Id(
+        Habit habit = habitRepository.findByIdAndGroupMember_Member_Id(
                 habitId,
                 memberId
         ).orElseThrow(() ->
@@ -233,6 +248,11 @@ public class HabitVerifyService {
                         "권한이 없는 습관입니다."
                 )
         );
+
+        if (habit.getGroupMember().getGroup().isFinished()) {
+            throw new BusinessRuleException("이미 종료된 그룹의 습관 인증은 삭제할 수 없습니다.");
+        }
+
         HabitVerify habitVerify =
                 habitVerifyRepository
                         .findByIdAndHabitId(
@@ -371,21 +391,27 @@ public class HabitVerifyService {
             Long memberId,
             Long groupId
     ) {
-        boolean isOwner =
+        GroupMember groupMember =
                 groupMemberRepository
                         .findByGroupIdAndMemberId(
                                 groupId,
                                 memberId
                         )
-                        .map(groupMember ->
-                                groupMember.getRole()
-                                        == GroupMemberRole.OWNER
-                        )
-                        .orElse(false);
+                        .orElseThrow(() ->
+                                new AccessDeniedException(
+                                        "승인/거절 권한이 없습니다."
+                                )
+                        );
 
-        if (!isOwner) {
+        if (groupMember.getRole() != GroupMemberRole.OWNER) {
             throw new AccessDeniedException(
                     "승인/거절 권한이 없습니다."
+            );
+        }
+
+        if (groupMember.getGroup().isFinished()) {
+            throw new BusinessRuleException(
+                    "이미 종료된 그룹은 인증을 검토할 수 없습니다."
             );
         }
     }
