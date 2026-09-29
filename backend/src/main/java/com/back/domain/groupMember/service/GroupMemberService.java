@@ -106,6 +106,13 @@ public class GroupMemberService {
             }
         }
 
+        long memberCount = groupMemberRepository.countByGroupId(groupId);
+
+        if (memberCount == 1) {
+            deleteGroupAndGroupMember(group, groupMember);
+            return;
+        }
+
         if (!isFinished) {
             deleteGroupMemberDataBulk(groupMember.getId());
             groupMemberRepository.delete(groupMember);
@@ -113,6 +120,12 @@ public class GroupMemberService {
         else {
             groupMember.leave();
         }
+    }
+
+    public void deleteGroupAndGroupMember(Group group, GroupMember groupMember) {
+        deleteGroupMemberDataBulk(groupMember.getId());
+        groupMemberRepository.delete(groupMember);
+        groupRepository.delete(group);
     }
 
     @Transactional
@@ -179,10 +192,6 @@ public class GroupMemberService {
 
         if (nextOwner.getId().equals(currentOwner.getId())) {
             throw new BusinessRuleException("자기 자신에게 방장 권한을 위임할 수 없습니다.");
-        }
-
-        if (currentOwner.getGroup().isFinished()) {
-            throw new BusinessRuleException("이미 종료된 그룹은 방장을 위임할 수 없습니다.");
         }
 
         currentOwner.changeRole(GroupMemberRole.MEMBER);
