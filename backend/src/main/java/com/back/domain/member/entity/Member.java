@@ -1,6 +1,7 @@
 package com.back.domain.member.entity;
 
 import com.back.global.entity.BaseEntity;
+import io.swagger.v3.oas.annotations.info.Contact;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
