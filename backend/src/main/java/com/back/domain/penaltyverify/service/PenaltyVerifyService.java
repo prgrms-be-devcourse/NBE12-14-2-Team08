@@ -11,6 +11,7 @@ import com.back.domain.penaltyverify.dto.PenaltyVerifySummaryResponse;
 import com.back.domain.penaltyverify.dto.SubmitPenaltyVerifyRequest;
 import com.back.domain.penaltyverify.entity.PenaltyVerify;
 import com.back.domain.penaltyverify.repository.PenaltyVerifyRepository;
+import com.back.global.exception.BusinessRuleException;
 import com.back.global.util.ImageUrlValidator;
 import java.time.LocalDate;
 import java.util.List;
@@ -50,6 +51,10 @@ public class PenaltyVerifyService {
             throw new IllegalStateException("본인의 습관에 대해서만 벌칙을 제출할 수 있습니다.");
         }
 
+        if (penaltyVerify.getGroupMember().getGroup().isFinished()) {
+            throw new BusinessRuleException("이미 종료된 그룹에서는 벌칙을 제출할 수 없습니다.");
+        }
+
         penaltyVerify.submit(
             LocalDate.now(),
             request.description(),
@@ -67,6 +72,10 @@ public class PenaltyVerifyService {
 
         if (!penaltyVerify.getGroupMember().getMember().getId().equals(memberId)) {
             throw new IllegalStateException("본인의 벌칙만 재제출할 수 있습니다.");
+        }
+
+        if (penaltyVerify.getGroupMember().getGroup().isFinished()) {
+            throw new BusinessRuleException("이미 종료된 그룹에서는 벌칙을 재제출할 수 없습니다.");
         }
 
         penaltyVerify.resubmit(
@@ -170,6 +179,10 @@ public class PenaltyVerifyService {
             throw new IllegalStateException("삭제 권한이 없습니다.");
         }
 
+        if (penaltyVerify.getGroupMember().getGroup().isFinished()) {
+            throw new BusinessRuleException("이미 종료된 그룹의 벌칙 기록은 삭제할 수 없습니다.");
+        }
+
         penaltyVerifyRepository.delete(penaltyVerify);
     }
 
@@ -179,8 +192,15 @@ public class PenaltyVerifyService {
     }
 
     private void validateOwner(Long memberId, Long groupId) {
-        if (!isGroupOwner(memberId, groupId)) {
+        GroupMember groupMember = groupMemberRepository.findByGroupIdAndMemberId(groupId, memberId)
+            .orElseThrow(() -> new IllegalStateException("승인/거절 권한이 없습니다."));
+
+        if (groupMember.getRole() != GroupMemberRole.OWNER) {
             throw new IllegalStateException("승인/거절 권한이 없습니다.");
+        }
+
+        if (groupMember.getGroup().isFinished()) {
+            throw new BusinessRuleException("이미 종료된 그룹은 벌칙을 검토할 수 없습니다.");
         }
     }
 

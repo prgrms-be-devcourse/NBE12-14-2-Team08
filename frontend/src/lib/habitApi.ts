@@ -91,6 +91,12 @@ export const habitApi = {
   getGroupMember: (groupId: number | string, groupMemberId: number | string) =>
     apiRequest<GroupMemberDetail>(`/groups/${groupId}/members/${groupMemberId}`, {}, true),
 
+  kickMember: (groupId: number | string, groupMemberId: number | string) =>
+    apiRequest<void>(`/groups/${groupId}/members/${groupMemberId}/kick`, { method: 'DELETE' }, true),
+
+  transferOwner: (groupId: number | string, groupMemberId: number | string) =>
+    apiRequest<void>(`/groups/${groupId}/members/${groupMemberId}/delegate`, { method: 'PATCH' }, true),
+
   getHabitVerifications: (habitId: number | string) =>
     apiRequest<HabitVerifyResponse[]>(`/habits/${habitId}/verifications`, {}, true),
 
