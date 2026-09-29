@@ -281,9 +281,6 @@ export default function GroupDetailPage({
                                                 </span>
                                                 {m.role === 'OWNER' && <span className="text-xs">👑</span>}
                                             </div>
-                                            <span className="text-[11px] font-semibold text-slate-400">
-                                                member#{m.memberId}
-                                            </span>
                                         </div>
                                     </div>
 
