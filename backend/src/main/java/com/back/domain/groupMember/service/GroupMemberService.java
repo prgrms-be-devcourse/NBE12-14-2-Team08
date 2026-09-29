@@ -181,10 +181,6 @@ public class GroupMemberService {
             throw new BusinessRuleException("자기 자신에게 방장 권한을 위임할 수 없습니다.");
         }
 
-        if (currentOwner.getGroup().isFinished()) {
-            throw new BusinessRuleException("이미 종료된 그룹은 방장을 위임할 수 없습니다.");
-        }
-
         currentOwner.changeRole(GroupMemberRole.MEMBER);
         nextOwner.changeRole(GroupMemberRole.OWNER);
     }
