@@ -9,7 +9,7 @@ import { ProfileAvatar } from '../components/ProfileAvatar';
 import { ProfileUpdateModal } from '../components/ProfileUpdateModal';
 
 export const MyPage: React.FC = () => {
-  const { currentUser, authReady, updateProfile, logout, deleteAccount } = useMember();
+  const { currentUser, authReady, updateProfile, deleteAccount } = useMember();
   const router = useRouter();
   const [nameEdit, setNameEdit] = useState<{ userId: string; value: string } | null>(null);
   const name = nameEdit && nameEdit.userId === currentUser?.id ? nameEdit.value : currentUser?.name || '';
@@ -85,23 +85,14 @@ export const MyPage: React.FC = () => {
   };
 
   return (
-    <div className="mx-auto max-w-5xl px-4 py-8 sm:py-12">
+    <main className="mx-auto max-w-5xl px-4 py-8 sm:px-6 sm:py-12">
       <section className="rounded-3xl border border-slate-100 bg-white p-6 shadow-xl shadow-slate-200/60 sm:p-10">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
             <p className="text-xs font-bold text-emerald-600">내기? 내기!</p>
             <h1 className="mt-2 text-2xl font-extrabold tracking-tight text-slate-900">마이페이지</h1>
           </div>
-          <div className="flex flex-col items-end gap-3">
-            <MemberNavigation embedded />
-            <button
-              type="button"
-              onClick={logout}
-              className="rounded-lg bg-slate-100 px-3 py-1.5 text-xs font-bold text-slate-600 transition-colors hover:bg-slate-200"
-            >
-              로그아웃
-            </button>
-          </div>
+          <MemberNavigation embedded />
         </div>
 
         <div className="mt-8 flex items-center gap-4">
@@ -206,6 +197,6 @@ export const MyPage: React.FC = () => {
         message={feedback?.message ?? ''}
         onClose={() => setFeedback(null)}
       />
-    </div>
+    </main>
   );
 };
