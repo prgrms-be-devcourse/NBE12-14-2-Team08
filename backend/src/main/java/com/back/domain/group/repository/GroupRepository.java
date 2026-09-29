@@ -3,7 +3,9 @@ package com.back.domain.group.repository;
 import com.back.domain.group.dto.GroupResponse;
 import com.back.domain.group.entity.Group;
 import com.back.domain.group.entity.GroupStatus;
+import jakarta.persistence.LockModeType;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -17,6 +19,15 @@ import java.util.Optional;
 public interface GroupRepository extends JpaRepository<Group, Long> {
     Optional<Group> findByInviteCode(String inviteCode);
     boolean existsByInviteCode(String inviteCode);
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("select g from Group g where g.inviteCode = :inviteCode")
+    Optional<Group> findByInviteCodeForUpdate(@Param("inviteCode") String inviteCode);
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("select g from Group  g where g.id = :id")
+    Optional<Group> findByIdForUpdate(@Param("id") Long id);
+
 
     @Query("select new com.back.domain.group.dto.GroupResponse$Simple(g.id, g.title, g.description, g.memberLimit, count(gm), cast(g.status as string), cast(myGm.role as string))" +
             "from Group g " +
