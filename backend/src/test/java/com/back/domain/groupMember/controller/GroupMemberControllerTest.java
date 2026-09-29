@@ -1,5 +1,16 @@
 package com.back.domain.groupMember.controller;
 
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.doNothing;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+
 import com.back.domain.group.dto.GroupRequest;
 import com.back.domain.group.dto.GroupResponse;
 import com.back.domain.group.entity.GroupStatus;
@@ -8,6 +19,9 @@ import com.back.domain.groupMember.dto.GroupMemberResponse;
 import com.back.domain.groupMember.service.GroupMemberService;
 import com.back.global.security.LoginMemberId;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.util.Collections;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -23,17 +37,6 @@ import org.springframework.web.bind.support.WebDataBinderFactory;
 import org.springframework.web.context.request.NativeWebRequest;
 import org.springframework.web.method.support.HandlerMethodArgumentResolver;
 import org.springframework.web.method.support.ModelAndViewContainer;
-
-import java.time.LocalDate;
-import java.time.LocalDateTime;
-import java.util.Collections;
-
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.BDDMockito.given;
-import static org.mockito.Mockito.doNothing;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @ExtendWith(MockitoExtension.class)
 class GroupMemberControllerTest {
@@ -74,27 +77,27 @@ class GroupMemberControllerTest {
                 .build();
     }
 
-//    @Test
-//    @DisplayName("초대 코드로 그룹 상세 정보 조회 - 성공 (200 OK)")
-//    void getGroupByInviteCode_Success() throws Exception {
-//        // given
-//        GroupResponse.Detail response = new GroupResponse.Detail(
-//                testGroupId, "테스트 그룹", "설명", LocalDate.now(), LocalDate.now().plusDays(7),
-//                "벌칙", testInviteCode, 5, LocalDateTime.now(), "http://base.url" + testInviteCode,
-//                GroupStatus.ACTIVE, true
-//        );
-//        given(groupService.getGroupByInviteCode(testInviteCode, testMemberId)).willReturn(response);
-//
-//        // when & then
-//        mockMvc.perform(get("/api/groups/join/{inviteCode}", testInviteCode)
-//                        .header("Authorization", "Bearer mock-jwt-token"))
-//                .andDo(org.springframework.test.web.servlet.result.MockMvcResultHandlers.print())
-//                .andExpect(status().isOk())
-//                .andExpect(jsonPath("$.id").value(testGroupId))
-//                .andExpect(jsonPath("$.inviteCode").value(testInviteCode))
-//                .andExpect(jsonPath("$.status").value("ACTIVE"))
-//                .andExpect(jsonPath("$.isJoined").value(true));
-//    }
+    @Test
+    @DisplayName("초대 코드로 그룹 상세 정보 조회 - 성공 (200 OK)")
+    void getGroupByInviteCode_Success() throws Exception {
+        // given
+        GroupResponse.Detail response = new GroupResponse.Detail(
+                testGroupId, "테스트 그룹", "설명", LocalDate.now(), LocalDate.now().plusDays(7),
+                "벌칙", testInviteCode, 5, LocalDateTime.now(), "http://base.url" + testInviteCode,
+                GroupStatus.ACTIVE, true, 1L
+        );
+        given(groupService.getGroupByInviteCode(testInviteCode, testMemberId)).willReturn(response);
+
+        // when & then
+        mockMvc.perform(get("/api/groups/invite/{inviteCode}", testInviteCode)
+                        .header("Authorization", "Bearer mock-jwt-token"))
+                .andDo(org.springframework.test.web.servlet.result.MockMvcResultHandlers.print())
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(testGroupId))
+                .andExpect(jsonPath("$.inviteCode").value(testInviteCode))
+                .andExpect(jsonPath("$.status").value("ACTIVE"))
+                .andExpect(jsonPath("$.isJoined").value(true));
+    }
 
     @Test
     @DisplayName("그룹 가입 요청 - 성공 (200 OK)")

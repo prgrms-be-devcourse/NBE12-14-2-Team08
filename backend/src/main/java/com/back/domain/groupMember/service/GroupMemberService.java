@@ -97,16 +97,15 @@ public class GroupMemberService {
                 .orElseThrow(() -> new EntityNotFoundException("해당 그룹의 멤버가 아닙니다."));
 
         Group group = groupMember.getGroup();
-
         boolean isFinished = group.isFinished();
 
+        long memberCount = groupMemberRepository.countByGroupId(groupId);
+
         if (groupMember.getRole() == GroupMemberRole.OWNER) {
-            if (!isFinished) {
-                throw new BusinessRuleException("방장은 그룹 활성화 상태에서 그룹을 탈퇴할 수 없습니다. 방 삭제를 이용해 주세요.");
+            if (!isFinished && memberCount > 1) {
+                throw new BusinessRuleException("방장은 다른 멤버가 남아있는 상태에서 바로 탈퇴할 수 없습니다. 방장 권한을 위임해 주세요.");
             }
         }
-
-        long memberCount = groupMemberRepository.countByGroupId(groupId);
 
         if (memberCount == 1) {
             deleteGroupAndGroupMember(group, groupMember);
@@ -192,6 +191,10 @@ public class GroupMemberService {
 
         if (nextOwner.getId().equals(currentOwner.getId())) {
             throw new BusinessRuleException("자기 자신에게 방장 권한을 위임할 수 없습니다.");
+        }
+
+        if (currentOwner.getGroup().isFinished()) {
+            throw new BusinessRuleException("이미 종료된 그룹은 방장을 위임할 수 없습니다.");
         }
 
         currentOwner.changeRole(GroupMemberRole.MEMBER);
