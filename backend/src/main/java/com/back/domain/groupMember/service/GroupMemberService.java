@@ -39,7 +39,7 @@ public class GroupMemberService {
 
     @Transactional
     public Long joinGroup(String inviteCode, Long memberId, GroupRequest.Join request) {
-        Group group = groupRepository.findByInviteCode(inviteCode)
+        Group group = groupRepository.findByInviteCodeForUpdate(inviteCode)
                 .orElseThrow(() -> new EntityNotFoundException("유효하지 않거나 존재하지 않는 초대 코드입니다."));
 
         if (groupMemberRepository.existsByGroupIdAndMemberId(group.getId(), memberId)) {

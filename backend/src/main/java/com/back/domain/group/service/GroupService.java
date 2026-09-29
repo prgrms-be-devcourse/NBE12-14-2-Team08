@@ -89,7 +89,7 @@ public class GroupService {
 
     @Transactional
     public void updateGroup(Long groupId, Long memberId, GroupRequest.Update request) {
-        Group group = groupRepository.findById(groupId)
+        Group group = groupRepository.findByIdForUpdate(groupId)
                 .orElseThrow(() -> new EntityNotFoundException("존재하지 않는 그룹입니다."));
 
         if (group.isFinished()) {
@@ -125,7 +125,7 @@ public class GroupService {
 
     @Transactional
     public void deleteGroup(Long groupId, Long memberId) {
-        Group group = groupRepository.findById(groupId)
+        Group group = groupRepository.findByIdForUpdate(groupId)
                 .orElseThrow(() -> new EntityNotFoundException("존재하지 않는 그룹입니다."));
 
         if (group.isFinished()) {
