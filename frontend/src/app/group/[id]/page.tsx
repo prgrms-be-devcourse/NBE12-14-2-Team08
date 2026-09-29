@@ -17,6 +17,7 @@ interface GroupDetailData {
     inviteCode?: string;
     memberLimit: number;
     inviteLink?: string;
+    currentMemberCount: number;
 }
 
 interface GroupMemberItem {
@@ -61,6 +62,7 @@ export default function GroupDetailPage({
                 inviteCode: groupData.inviteCode || '',
                 memberLimit: groupData.memberLimit || 10,
                 inviteLink: groupData.inviteLink,
+                currentMemberCount: groupData.currentMemberCount || 1,
             });
 
             try {
@@ -125,8 +127,10 @@ export default function GroupDetailPage({
     };
 
     const handleLeaveGroup = async () => {
-        if (currentRole === 'OWNER') {
-            alert('방장은 그룹 활성화 상태에서 바로 탈퇴할 수 없습니다.\n방 삭제를 이용해 주세요.');
+        const memberCount = group?.currentMemberCount || 0;
+
+        if (currentRole === 'OWNER' && memberCount > 1) {
+            alert('방장은 다른 멤버가 남아있는 상태에서 바로 탈퇴할 수 없습니다.\n방장 권한을 위임해 주세요.');
             return;
         }
 
@@ -206,7 +210,7 @@ export default function GroupDetailPage({
                         <div className="flex items-center gap-2">
                             <span>👥 참여 인원</span>
                             <span className="font-bold text-slate-700">
-                                {members.length} / {group.memberLimit}명
+                                {group.currentMemberCount} / {group.memberLimit}명
                             </span>
                         </div>
                         <div className="flex items-center gap-2">

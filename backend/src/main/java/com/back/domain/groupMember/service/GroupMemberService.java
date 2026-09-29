@@ -97,16 +97,15 @@ public class GroupMemberService {
                 .orElseThrow(() -> new EntityNotFoundException("해당 그룹의 멤버가 아닙니다."));
 
         Group group = groupMember.getGroup();
-
         boolean isFinished = group.isFinished();
 
+        long memberCount = groupMemberRepository.countByGroupId(groupId);
+
         if (groupMember.getRole() == GroupMemberRole.OWNER) {
-            if (!isFinished) {
+            if (!isFinished && memberCount > 1) {
                 throw new BusinessRuleException("방장은 그룹 활성화 상태에서 그룹을 탈퇴할 수 없습니다. 방 삭제를 이용해 주세요.");
             }
         }
-
-        long memberCount = groupMemberRepository.countByGroupId(groupId);
 
         if (memberCount == 1) {
             deleteGroupAndGroupMember(group, groupMember);
