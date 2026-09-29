@@ -91,6 +91,9 @@ export function MemberPage({ groupId, memberId }: Props) {
     const [showCreateHabitModal, setShowCreateHabitModal] = useState(false);
     const [certDetail, setCertDetail] = useState<HabitVerifyResponse | null>(null);
     const [editingVerify, setEditingVerify] = useState<HabitVerifyResponse | null>(null);
+    const [viewerIsOwner, setViewerIsOwner] = useState(false);
+    const [showKickModal, setShowKickModal] = useState(false);
+    const [showDelegateModal, setShowDelegateModal] = useState(false);
 
     const load = useCallback(async () => {
         try {
@@ -103,6 +106,9 @@ export function MemberPage({ groupId, memberId }: Props) {
                 throw new Error("멤버 정보를 찾을 수 없습니다.");
             }
             const groupMemberId = target.groupMemberId;
+
+            const viewerEntry = groupMembers.find((m) => String(m.memberId) === currentUser?.id);
+            setViewerIsOwner(viewerEntry?.role === "OWNER");
 
             const [memberRes, penaltiesRes] = await Promise.all([
                 habitApi.getGroupMember(groupId, groupMemberId),
@@ -257,10 +263,28 @@ export function MemberPage({ groupId, memberId }: Props) {
                         </div>
                     </div>
 
-                    <div className="flex items-center bg-rose-50/80 border border-rose-100 px-4 py-2.5 rounded-2xl shrink-0">
-                        <div>
-                            <span className="text-[10px] font-bold text-rose-400 uppercase">누적 벌칙</span>
-                            <p className="text-sm font-black text-rose-600">벌칙 횟수 : {member.penaltyCount}회</p>
+                    <div className="flex items-center gap-2 shrink-0">
+                        {viewerIsOwner && !isMe && !isHost && (
+                            <div className="flex items-center gap-1.5">
+                                <button
+                                    onClick={() => setShowDelegateModal(true)}
+                                    className="px-3 py-2.5 rounded-xl font-bold text-xs text-amber-700 bg-amber-50 hover:bg-amber-100 border border-amber-200 transition-colors cursor-pointer"
+                                >
+                                    방장 위임
+                                </button>
+                                <button
+                                    onClick={() => setShowKickModal(true)}
+                                    className="px-3 py-2.5 rounded-xl font-bold text-xs text-rose-600 hover:bg-rose-50 border border-rose-200 transition-colors cursor-pointer"
+                                >
+                                    추방
+                                </button>
+                            </div>
+                        )}
+                        <div className="flex items-center bg-rose-50/80 border border-rose-100 px-4 py-2.5 rounded-2xl">
+                            <div>
+                                <span className="text-[10px] font-bold text-rose-400 uppercase">누적 벌칙</span>
+                                <p className="text-sm font-black text-rose-600">벌칙 횟수 : {member.penaltyCount}회</p>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -444,6 +468,54 @@ export function MemberPage({ groupId, memberId }: Props) {
                         await habitApi.failHabit(habit.id);
                         setShowFailModal(false);
                         await load();
+                    }}
+                />
+            )}
+
+            {showDelegateModal && member && (
+                <ConfirmModal
+                    title="방장 권한 위임"
+                    message={
+                        <>
+                            <strong className="text-slate-700">{member.nickname}</strong>님에게 방장 권한을
+                            위임할까요?
+                            <br />
+                            <span className="text-amber-600 font-semibold">
+                                (위임 후에는 본인은 일반 멤버가 됩니다.)
+                            </span>
+                        </>
+                    }
+                    confirmLabel="위임 확정"
+                    confirmClassName="bg-amber-500 hover:bg-amber-600 shadow-amber-500/20"
+                    onClose={() => setShowDelegateModal(false)}
+                    onConfirm={async () => {
+                        await habitApi.transferOwner(groupId, member.groupMemberId);
+                        setShowDelegateModal(false);
+                        await load();
+                    }}
+                />
+            )}
+
+            {showKickModal && member && (
+                <ConfirmModal
+                    title="멤버 추방"
+                    message={
+                        <>
+                            <strong className="text-slate-700">{member.nickname}</strong>님을 그룹에서
+                            추방할까요?
+                            <br />
+                            <span className="text-rose-500 font-semibold">
+                                (해당 멤버의 습관·인증·벌칙 기록이 모두 삭제됩니다.)
+                            </span>
+                        </>
+                    }
+                    confirmLabel="추방 확정"
+                    confirmClassName="bg-rose-500 hover:bg-rose-600 shadow-rose-500/20"
+                    onClose={() => setShowKickModal(false)}
+                    onConfirm={async () => {
+                        await habitApi.kickMember(groupId, member.groupMemberId);
+                        setShowKickModal(false);
+                        router.push(`/group/${groupId}`);
                     }}
                 />
             )}
@@ -1051,6 +1123,67 @@ function HabitFailModal({ onClose, onConfirm }: { onClose: () => void; onConfirm
                         className="px-4 py-2.5 rounded-xl text-xs font-bold text-white bg-rose-500 hover:bg-rose-600 shadow-md shadow-rose-500/20 transition-colors disabled:opacity-50"
                     >
                         {submitting ? "처리 중..." : "포기 확정"}
+                    </button>
+                </div>
+            </div>
+        </ModalShell>
+    );
+}
+
+// ---------- 모달: 범용 확인(방장 위임 / 추방 등) ----------
+
+function ConfirmModal({
+    title,
+    message,
+    confirmLabel,
+    confirmClassName,
+    onClose,
+    onConfirm,
+}: {
+    title: string;
+    message: React.ReactNode;
+    confirmLabel: string;
+    confirmClassName: string;
+    onClose: () => void;
+    onConfirm: () => Promise<void>;
+}) {
+    const [submitting, setSubmitting] = useState(false);
+    const [error, setError] = useState<string | null>(null);
+
+    const handleConfirm = async () => {
+        setSubmitting(true);
+        setError(null);
+        try {
+            await onConfirm();
+        } catch (err) {
+            setError(err instanceof Error ? err.message : "처리에 실패했습니다.");
+            setSubmitting(false);
+        }
+    };
+
+    return (
+        <ModalShell borderClass="border-rose-200" widthClass="max-w-sm">
+            <div className="text-center">
+                <div className="w-12 h-12 rounded-full bg-rose-100 text-rose-500 flex items-center justify-center mx-auto mb-3">
+                    <AlertTriangle className="w-6 h-6" />
+                </div>
+                <h3 className="text-base font-bold text-slate-900">{title}</h3>
+                <p className="text-xs text-slate-500 mt-2 leading-relaxed">{message}</p>
+                {error && <p className="text-xs text-rose-500 font-semibold mt-2">{error}</p>}
+                <div className="mt-6 flex items-center justify-center gap-2">
+                    <button
+                        onClick={onClose}
+                        disabled={submitting}
+                        className="px-4 py-2.5 rounded-xl text-xs font-bold text-slate-600 bg-slate-100 hover:bg-slate-200 transition-colors disabled:opacity-50"
+                    >
+                        취소
+                    </button>
+                    <button
+                        onClick={handleConfirm}
+                        disabled={submitting}
+                        className={`px-4 py-2.5 rounded-xl text-xs font-bold text-white shadow-md transition-colors disabled:opacity-50 ${confirmClassName}`}
+                    >
+                        {submitting ? "처리 중..." : confirmLabel}
                     </button>
                 </div>
             </div>
