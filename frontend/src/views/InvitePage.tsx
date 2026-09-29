@@ -148,7 +148,7 @@ export function InvitePage() {
               roomDescription={preview.description || '함께 목표를 달성해보세요!'}
               onSubmit={async (password) => {
                 await groupApi.join(invitecode, password);
-                router.push('/main');
+                router.push(`/group/${preview.id}`);
               }}
             />
           </>
