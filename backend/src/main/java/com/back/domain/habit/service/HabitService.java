@@ -14,6 +14,7 @@ import com.back.domain.habitVerify.entity.HabitVerify;
 import com.back.domain.habitVerify.entity.HabitVerifyStatus;
 import com.back.domain.habitVerify.repository.HabitVerifyRepository;
 import com.back.domain.penaltyverify.service.PenaltyVerifyService;
+import com.back.global.exception.BusinessRuleException;
 import com.back.global.exception.ForbiddenException;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
@@ -47,6 +48,10 @@ public class HabitService {
                                 "해당 그룹의 멤버를 찾을 수 없습니다."
                         )
                 );
+
+        if (groupMember.getGroup().isFinished()) {
+            throw new BusinessRuleException("이미 종료된 그룹에서는 습관을 추가할 수 없습니다.");
+        }
 
         // 2. 활성 습관 존재 여부 확인
         if (habitRepository.existsByGroupMember_IdAndStatus(
@@ -83,6 +88,10 @@ public class HabitService {
                                 "해당 회원의 습관을 찾을 수 없습니다."
                         )
                 );
+
+        if (habit.getGroupMember().getGroup().isFinished()) {
+            throw new BusinessRuleException("이미 종료된 그룹의 습관은 포기할 수 없습니다.");
+        }
 
         habit.fail();
 
@@ -137,6 +146,10 @@ public class HabitService {
 
         if (requester.getRole() != GroupMemberRole.OWNER) {
             throw new ForbiddenException("주간 판정은 방장만 실행할 수 있습니다.");
+        }
+
+        if (requester.getGroup().isFinished()) {
+            throw new BusinessRuleException("이미 종료된 그룹은 주간 판정을 실행할 수 없습니다.");
         }
 
         List<Habit> activeHabits = habitRepository
