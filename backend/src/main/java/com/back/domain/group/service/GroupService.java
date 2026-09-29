@@ -144,10 +144,7 @@ public class GroupService {
             throw new BusinessRuleException("그룹을 삭제하려면 방장을 제외한 모든 멤버가 퇴장해야 합니다.");
         }
 
-        groupMemberService.deleteGroupMemberDataBulk(groupMember.getId());
-
-        groupMemberRepository.delete(groupMember);
-        groupRepository.delete(group);
+        groupMemberService.deleteGroupAndGroupMember(group, groupMember);
     }
 
     @Transactional

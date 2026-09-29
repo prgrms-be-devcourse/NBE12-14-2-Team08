@@ -106,6 +106,13 @@ public class GroupMemberService {
             }
         }
 
+        long memberCount = groupMemberRepository.countByGroupId(groupId);
+
+        if (memberCount == 1) {
+            deleteGroupAndGroupMember(group, groupMember);
+            return;
+        }
+
         if (!isFinished) {
             deleteGroupMemberDataBulk(groupMember.getId());
             groupMemberRepository.delete(groupMember);
@@ -113,6 +120,12 @@ public class GroupMemberService {
         else {
             groupMember.leave();
         }
+    }
+
+    public void deleteGroupAndGroupMember(Group group, GroupMember groupMember) {
+        deleteGroupMemberDataBulk(groupMember.getId());
+        groupMemberRepository.delete(groupMember);
+        groupRepository.delete(group);
     }
 
     @Transactional
