@@ -167,40 +167,6 @@ public class GroupService {
 
         return inviteCode;
     }
-    //초대 코드 받을 때 그룹 미리보기
-    public GroupResponse.InvitePreview getInvitePreview(
-            String inviteCode
-    ) {
-        Group group = groupRepository.findByInviteCode(inviteCode)
-                .orElseThrow(() ->
-                        new EntityNotFoundException(
-                                "유효하지 않거나 존재하지 않는 초대 코드입니다."
-                        )
-                );
-
-        long currentMemberCount =
-                groupMemberRepository.countByGroupId(group.getId());
-        
-        GroupStatus currentStatus = group.getStatus();
-
-        if (currentStatus == GroupStatus.ACTIVE
-                && group.getDeadline() != null
-                && LocalDate.now().isAfter(group.getDeadline())) {
-            currentStatus = GroupStatus.FINISH;
-        }
-
-        return new GroupResponse.InvitePreview(
-                group.getId(),
-                group.getTitle(),
-                group.getDescription(),
-                group.getCreateDate().toLocalDate(),
-                group.getDeadline(),
-                group.getPenalty(),
-                group.getMemberLimit(),
-                currentMemberCount,
-                currentStatus
-        );
-    }
 
     public GroupResponse.Detail getGroupByInviteCode(String inviteCode, Long memberId) {
         if (memberId == null || !memberRepository.existsById(memberId)) {
