@@ -14,16 +14,16 @@ import com.back.domain.member.repository.MemberRepository;
 import com.back.global.exception.BusinessRuleException;
 import com.back.global.exception.EntityNotFoundException;
 import com.back.global.exception.ForbiddenException;
+import java.time.LocalDate;
+import java.time.ZoneId;
+import java.util.List;
+import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
-import java.time.LocalDate;
-import java.util.List;
-import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -148,11 +148,15 @@ public class GroupService {
     }
 
     @Transactional
-    @Scheduled(cron = "1 0 0 * * *")
+    @Scheduled(cron = "1 0 0 * * *", zone = "Asia/Seoul")
     public void autoCloseExpiredGroups() {
-        LocalDate today = LocalDate.now();
+        LocalDate today = LocalDate.now(ZoneId.of("Asia/Seoul"));
 
-        groupRepository.bulkFinishExpiredGroups(today);
+        List<Group> expiredGroups = groupRepository.findExpiredGroupsForUpdate(today);
+
+        for (Group group : expiredGroups) {
+            group.finish();
+        }
     }
 
     private String generateUniqueInviteCode() {
