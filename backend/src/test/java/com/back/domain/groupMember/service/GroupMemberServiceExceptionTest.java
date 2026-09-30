@@ -49,7 +49,7 @@ class GroupMemberServiceExceptionTest {
     void joinGroup_Fail_InvalidInviteCode() {
         // given
         GroupRequest.Join request = new GroupRequest.Join("pass123");
-        given(groupRepository.findByInviteCode(inviteCode)).willReturn(Optional.empty());
+        given(groupRepository.findByInviteCodeForUpdate(inviteCode)).willReturn(Optional.empty());
 
         // when & then
         assertThatThrownBy(() -> groupMemberService.joinGroup(inviteCode, memberId, request))
@@ -68,7 +68,7 @@ class GroupMemberServiceExceptionTest {
         ReflectionTestUtils.setField(mockGroup, "id", groupId);
         GroupRequest.Join request = new GroupRequest.Join("wrong_pass");
 
-        given(groupRepository.findByInviteCode(inviteCode)).willReturn(Optional.of(mockGroup));
+        given(groupRepository.findByInviteCodeForUpdate(inviteCode)).willReturn(Optional.of(mockGroup));
         given(groupMemberRepository.existsByGroupIdAndMemberId(groupId, memberId)).willReturn(false);
         given(passwordEncoder.matches("wrong_pass", "encoded_pass")).willReturn(false);
 
@@ -89,7 +89,7 @@ class GroupMemberServiceExceptionTest {
 
         GroupRequest.Join request = new GroupRequest.Join("pass123");
 
-        given(groupRepository.findByInviteCode(inviteCode)).willReturn(Optional.of(mockGroup));
+        given(groupRepository.findByInviteCodeForUpdate(inviteCode)).willReturn(Optional.of(mockGroup));
         given(groupMemberRepository.existsByGroupIdAndMemberId(groupId, memberId)).willReturn(false);
         given(passwordEncoder.matches("pass123", "encoded_pass")).willReturn(true);
 
@@ -111,7 +111,7 @@ class GroupMemberServiceExceptionTest {
         ReflectionTestUtils.setField(mockGroup, "id", groupId);
         GroupRequest.Join request = new GroupRequest.Join("pass123");
 
-        given(groupRepository.findByInviteCode(inviteCode)).willReturn(Optional.of(mockGroup));
+        given(groupRepository.findByInviteCodeForUpdate(inviteCode)).willReturn(Optional.of(mockGroup));
         given(groupMemberRepository.existsByGroupIdAndMemberId(groupId, memberId)).willReturn(false);
         given(passwordEncoder.matches("pass123", "encoded_pass")).willReturn(true);
         given(groupMemberRepository.countByGroupId(groupId)).willReturn(5L);
