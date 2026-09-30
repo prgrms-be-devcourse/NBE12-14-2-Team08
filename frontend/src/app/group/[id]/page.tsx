@@ -262,7 +262,7 @@ export default function GroupDetailPage({
                 <section className="mt-8">
                     <div className="flex items-center justify-between mb-4 px-1">
                         <h2 className="text-base font-extrabold text-slate-900">
-                            도전 중인 멤버 <span className="text-emerald-600 text-sm font-bold">({members.length})</span>
+                            도전 중인 멤버 <span className="text-emerald-600 text-sm font-bold">({group.currentMemberCount})</span>
                         </h2>
                     </div>
 
