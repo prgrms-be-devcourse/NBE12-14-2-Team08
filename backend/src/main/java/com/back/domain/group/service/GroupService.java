@@ -148,7 +148,7 @@ public class GroupService {
     }
 
     @Transactional
-    @Scheduled(cron = "1 0 0 * * *", zone = "Asia/Seoul")
+    @Scheduled(cron = "0 0 0 * * *", zone = "Asia/Seoul")
     public void autoCloseExpiredGroups() {
         LocalDate today = LocalDate.now(ZoneId.of("Asia/Seoul"));
 
