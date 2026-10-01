@@ -22,10 +22,10 @@
     <td align="center"><img src="https://github.com/GibGui.png" width="100" height="100" /></td>
   </tr>
   <tr>
-    <td align="center">신시원</td>
-    <td align="center">이문환</td>
-    <td align="center">임성준</td>
-    <td align="center">한종연</td>
+    <td align="center"><a href="https://github.com/swshindev-beep">신시원</a></td>
+    <td align="center"><a href="https://github.com/imlmhn">이문환</a></td>
+    <td align="center"><a href="https://github.com/nodo112907-png">임성준</a></td>
+    <td align="center"><a href="https://github.com/hanjongyeon644-debug">한종연</a></td>
     <td align="center"><a href="https://github.com/GibGui">홍승연</a></td>
   </tr>
 </table>
