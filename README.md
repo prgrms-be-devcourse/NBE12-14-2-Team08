@@ -12,20 +12,20 @@
 ## 👥 멤버
 <table>
   <tr>
-    <th colspan="5" align="center">개발 팀 (TEAM08)</th>
+    <th colspan="5" align="center">개발 팀 · Full Stack (TEAM08)</th>
   </tr>
   <tr>
-    <td align="center"><img src="https://github.com/ghost.png" width="100" height="100" /></td>
-    <td align="center"><img src="https://github.com/ghost.png" width="100" height="100" /></td>
-    <td align="center"><img src="https://github.com/ghost.png" width="100" height="100" /></td>
-    <td align="center"><img src="https://github.com/ghost.png" width="100" height="100" /></td>
+    <td align="center"><img src="https://github.com/swshindev-beep.png" width="100" height="100" /></td>
+    <td align="center"><img src="https://github.com/imlmhn.png" width="100" height="100" /></td>
+    <td align="center"><img src="https://github.com/nodo112907-png.png" width="100" height="100" /></td>
+    <td align="center"><img src="https://github.com/hanjongyeon644-debug.png" width="100" height="100" /></td>
     <td align="center"><img src="https://github.com/GibGui.png" width="100" height="100" /></td>
   </tr>
   <tr>
-    <td align="center">신시원</td>
-    <td align="center">이문환</td>
-    <td align="center">임성준</td>
-    <td align="center">한종연</td>
+    <td align="center"><a href="https://github.com/swshindev-beep">신시원</a></td>
+    <td align="center"><a href="https://github.com/imlmhn">이문환</a></td>
+    <td align="center"><a href="https://github.com/nodo112907-png">임성준</a></td>
+    <td align="center"><a href="https://github.com/hanjongyeon644-debug">한종연</a></td>
     <td align="center"><a href="https://github.com/GibGui">홍승연</a></td>
   </tr>
 </table>
@@ -48,7 +48,7 @@
 | <img src="https://raw.githubusercontent.com/devicons/devicon/master/icons/postgresql/postgresql-original.svg" width="50" height="50"/><br>PostgreSQL | <img src="https://h2database.com/html/images/h2-logo-2.png" width="50" height="50"/><br>H2 Database | <img src="https://raw.githubusercontent.com/devicons/devicon/master/icons/supabase/supabase-original.svg" width="50" height="50"/><br>Supabase | <img src="https://raw.githubusercontent.com/devicons/devicon/master/icons/vercel/vercel-original.svg" width="50" height="50"/><br>Vercel |
 | :---: | :---: | :---: | :---: |
 * **Database:** PostgreSQL (Supabase), H2 Database (Local)
-* **BaaS / Storage:** Supabase
+* **Object / Storage:** Supabase
 * **Deployment:** Vercel
 
 ### 🛠 협업 도구
@@ -64,39 +64,53 @@
 ### 🏠 방(그룹) 생성 및 관리
 
 * **비밀방 개설:** 데드라인과 우리만의 벌칙을 설정하여 그룹의 기준이 되는 방을 생성합니다.
-* **초대 및 참가:** 방장이 생성한 초대 링크와 비밀번호를 통해 허가된 멤버만 안전하게 방에 입장할 수 있습니다.
+* **초대 및 참가:** 방장이 생성한 초대 링크와 비밀번호를 통해 허가된 멤버만 방에 입장할 수 있습니다. 비관적 락(`PESSIMISTIC_WRITE`) 기반 동시성 제어를 통해 다수가 동시에 입장을 시도해도 잔여 정원을 초과하지 않도록 보장합니다.
 
 ### 🎯 개인별 맞춤 습관 등록
 
-* **독립적인 목표 설정:** 하나의 방에 모여 있어도 각 멤버는 본인이 실천하고자 하는 서로 다른 습관을 등록하고 개별적으로 관리할 수 있습니다.
+* **독립적인 목표 설정:** 각 멤버는 본인이 실천하고자 하는 서로 다른 습관을 등록하고 개별적으로 관리할 수 있습니다.
+* **맞춤형 실천 일수**: 같은 방 안에서도 멤버별로 서로 다른 실천 목표(주당 1~7일)를 자율적으로 등록하고 실천합니다.
 
 ### 📸 사진 기반 간편 인증
 
-* **즉시 완료 처리:** 정해진 날짜에 습관을 실천하고 사진을 업로드(Supabase Storage 연동)하면 별도의 타인 승인 없이 즉시 완료 처리됩니다.
-* **멤버 간 현황 공유:** 방 전용 게시판에서 다른 멤버들의 당일 인증 사진을 확인하며, 서로의 작심삼일을 방지하고 꾸준한 실천을 독려할 수 있습니다.
+* **대기/심사/재제출 라이프사이클**: 제출 건은 대기(`PENDING`) 상태가 되며, 방장이 승인/반려합니다. 반려된 건은 주간 마감 전까지 수정 재제출이 가능합니다.
+* **멤버 간 현황 공유:** 그룹에서 다른 멤버들의 인증 사진을 확인하며, 서로의 작심삼일을 방지하고 꾸준한 실천을 독려할 수 있습니다.
+* **방장 검토 유예 자동 승인**: 방장 미검토 건은 마감 후 24시간 경과 시 시스템이 자동 승인 처리합니다.
+
+### ⚖️ 백그라운드 자동 정산 & 벌칙 시스템
+* **스케줄러 기반 판정 (매일 00:05)**: 주간 실천 횟수가 목표치에 미달하거나 중도 포기한 멤버에게 습관 실패(`FAILED`) 처리 및 벌칙(`REQUIRED`)을 부과합니다.
+* **벌칙 증빙**: 벌칙 수행 사진을 업로드하여 방장의 최종 승인을 받습니다. 거절된 인증은 재제출 할 수 있습니다.
+* **그룹 만료 처리 (매일 00:00:01)**: 마감일이 지난 방은 자동으로 `FINISH` 상태로 전이됩니다.
+
+## 🏗 서비스 구상도
+<img width="3817" height="8192" alt="8팀 자쿰" src="https://github.com/user-attachments/assets/0e9fbcf1-4c12-4fa2-8c86-047b5f9a443a" />
+
 
 ## 🗄 데이터베이스 구조 (ERD)
-<img width="1416" height="485" alt="ERD최종" src="https://github.com/user-attachments/assets/d261a7b2-5967-4097-90f3-9f33c28feeae" />
-
+<img width="1805" height="582" alt="내기?내기! ERD-2" src="https://github.com/user-attachments/assets/1034ebca-a875-45e7-a909-0f57db633efa" />
 
 ## 🚀 시작하기 (Getting Started)
 
 ### Backend (Spring Boot)
 
 ```bash
-# 레포지토리 클론 후 백엔드 디렉토리 이동
+cd backend
 ./gradlew bootRun
-
 ```
+
+- 기본 프로필은 `local`이며, 별도 설정 없이 H2 파일 DB(`./db_dev`)로 바로 실행됩니다.
+- 사진 업로드(습관/벌칙 인증) 기능까지 테스트하려면 `SUPABASE_SERVICE_ROLE_KEY` 환경변수가 필요합니다.
+- 서버는 기본적으로 `http://localhost:8080`에서 실행됩니다.
 
 ### Frontend (Next.js)
 
 ```bash
-# 프론트엔드 디렉토리 이동
+cd frontend
 npm install
 npm run dev
-
 ```
+
+실행 후 [http://localhost:3000](http://localhost:3000) 에서 확인할 수 있습니다.
 
 ## 🤝 우리가 협업하는 법
 
