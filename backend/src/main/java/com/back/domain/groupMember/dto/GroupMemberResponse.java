@@ -19,7 +19,7 @@ public interface GroupMemberResponse {
             String nickname,
             String username,
             String role,
-            int penaltyCount
+            Long penaltyCount
     ) {}
 
     record JoinSuccess(

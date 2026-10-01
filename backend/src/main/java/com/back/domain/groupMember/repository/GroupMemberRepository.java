@@ -23,7 +23,7 @@ public interface GroupMemberRepository extends JpaRepository<GroupMember, Long> 
             @Param("groupId") Long groupId);
 
     @Query("select new com.back.domain.groupMember.dto.GroupMemberResponse$Detail(" +
-            "gm.id, m.id, m.nickname, m.username, cast(gm.role as string), cast(count(pv) as int)) " +
+            "gm.id, m.id, m.nickname, m.username, cast(gm.role as string), count(pv)) " +
             "from GroupMember gm " +
             "join gm.member m " +
             "left join PenaltyVerify pv on pv.groupMember.id = gm.id " +
