@@ -12,13 +12,13 @@
 ## 👥 멤버
 <table>
   <tr>
-    <th colspan="5" align="center">개발 팀 (TEAM08)</th>
+    <th colspan="5" align="center">개발 팀 · Full Stack (TEAM08)</th>
   </tr>
   <tr>
-    <td align="center"><img src="https://github.com/ghost.png" width="100" height="100" /></td>
-    <td align="center"><img src="https://github.com/ghost.png" width="100" height="100" /></td>
-    <td align="center"><img src="https://github.com/ghost.png" width="100" height="100" /></td>
-    <td align="center"><img src="https://github.com/ghost.png" width="100" height="100" /></td>
+    <td align="center"><img src="https://github.com/swshindev-beep.png" width="100" height="100" /></td>
+    <td align="center"><img src="https://github.com/imlmhn.png" width="100" height="100" /></td>
+    <td align="center"><img src="https://github.com/nodo112907-png.png" width="100" height="100" /></td>
+    <td align="center"><img src="https://github.com/hanjongyeon644-debug.png" width="100" height="100" /></td>
     <td align="center"><img src="https://github.com/GibGui.png" width="100" height="100" /></td>
   </tr>
   <tr>
