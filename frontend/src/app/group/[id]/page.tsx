@@ -24,6 +24,7 @@ interface GroupMemberItem {
     id: number;
     memberId: number;
     nickname: string;
+    username: string;
     role: 'OWNER' | 'MEMBER';
     habitId: number | null;
     habitTitle: string | null;
@@ -72,6 +73,7 @@ export default function GroupDetailPage({
                     id: m.groupMemberId || m.id,
                     memberId: m.memberId,
                     nickname: m.nickname || m.memberName || '',
+                    username: m.username,
                     role: m.role || 'MEMBER',
                     habitId: m.habitId || null,
                     habitTitle: m.habitTitle || null,
@@ -260,7 +262,7 @@ export default function GroupDetailPage({
                 <section className="mt-8">
                     <div className="flex items-center justify-between mb-4 px-1">
                         <h2 className="text-base font-extrabold text-slate-900">
-                            도전 중인 멤버 <span className="text-emerald-600 text-sm font-bold">({members.length})</span>
+                            도전 중인 멤버 <span className="text-emerald-600 text-sm font-bold">({group.currentMemberCount})</span>
                         </h2>
                     </div>
 
@@ -285,6 +287,9 @@ export default function GroupDetailPage({
                                                 </span>
                                                 {m.role === 'OWNER' && <span className="text-xs">👑</span>}
                                             </div>
+                                            <span className="text-[11px] font-semibold text-slate-400">
+                                                {m.username}
+                                            </span>
                                         </div>
                                     </div>
 
