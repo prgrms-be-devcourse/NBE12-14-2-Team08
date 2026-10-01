@@ -50,7 +50,7 @@ public class GroupService {
                 .penalty(request.penalty())
                 .password(encodedPassword)
                 .inviteCode(inviteCode)
-                .memberLimit(request.memberLimit())
+                .memberLimit(request.memberLimit() != null ? request.memberLimit() : 10)
                 .build();
 
         Group savedGroup = groupRepository.save(group);
@@ -73,7 +73,6 @@ public class GroupService {
         return groupRepository.findMyGroupsWithCount(memberId, status);
     }
 
-    @Transactional
     public GroupResponse.Detail getGroupDetail(Long groupId, Long memberId) {
         Group group = groupRepository.findById(groupId)
                 .orElseThrow(() -> new EntityNotFoundException("존재하지 않는 그룹입니다."));
@@ -104,8 +103,10 @@ public class GroupService {
         }
 
         long currentMemberCount = groupMemberRepository.countByGroupId(groupId);
-        if (request.memberLimit() > 0 && request.memberLimit() < currentMemberCount) {
-            throw new BusinessRuleException("최대 제한 인원은 현재 참여 중인 멤버 수(" + currentMemberCount + "명)보다 적게 설정할 수 없습니다.");
+        if (request.memberLimit() != null) {
+            if (request.memberLimit() < currentMemberCount) {
+                throw new BusinessRuleException("최대 제한 인원은 현재 참여 중인 멤버 수보다 적게 설정할 수 없습니다.");
+            }
         }
 
         String encodedPassword = null;
@@ -119,7 +120,7 @@ public class GroupService {
                 request.deadline(),
                 request.penalty(),
                 encodedPassword,
-                request.memberLimit()
+                request.memberLimit() != null ? request.memberLimit() : group.getMemberLimit()
         );
     }
 
@@ -148,7 +149,7 @@ public class GroupService {
     }
 
     @Transactional
-    @Scheduled(cron = "1 0 0 * * *", zone = "Asia/Seoul")
+    @Scheduled(cron = "0 0 0 * * *", zone = "Asia/Seoul")
     public void autoCloseExpiredGroups() {
         LocalDate today = LocalDate.now(ZoneId.of("Asia/Seoul"));
 

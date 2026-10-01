@@ -18,7 +18,7 @@ public interface GroupRequest {
             String password,
 
             @Min(value = 1, message = "최대 인원은 1명 이상이어야 합니다.")
-            int memberLimit
+            Integer memberLimit
     ) {}
 
     record Update(
@@ -30,7 +30,7 @@ public interface GroupRequest {
             String password,
 
             @Min(value = 1, message = "최대 인원은 1명 이상이어야 합니다.")
-            int memberLimit
+            Integer memberLimit
     ) {}
 
     record Join(

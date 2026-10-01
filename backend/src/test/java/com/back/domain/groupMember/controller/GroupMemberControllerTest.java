@@ -134,7 +134,7 @@ class GroupMemberControllerTest {
     void getGroupMemberDetail_Success() throws Exception {
         // given
         Long targetGroupMemberId = 50L;
-        GroupMemberResponse.Detail response = new GroupMemberResponse.Detail(targetGroupMemberId, testMemberId, "유저이름", "아이디", "MEMBER", 0);
+        GroupMemberResponse.Detail response = new GroupMemberResponse.Detail(targetGroupMemberId, testMemberId, "유저이름", "아이디", "MEMBER", 1L);
         given(groupMemberService.getGroupMemberDetail(testGroupId, targetGroupMemberId, testMemberId))
                 .willReturn(response);
 

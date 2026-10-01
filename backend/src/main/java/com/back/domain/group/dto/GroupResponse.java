@@ -25,7 +25,9 @@ public interface GroupResponse {
             String fullInviteLink = baseInviteUrl + group.getInviteCode();
 
             GroupStatus currentStatus = group.getStatus();
-            if (group.getStatus() == GroupStatus.ACTIVE && LocalDate.now().isAfter(group.getDeadline())) {
+            if (group.getStatus() == GroupStatus.ACTIVE
+                    && group.getDeadline() != null
+                    && LocalDate.now().isAfter(group.getDeadline())) {
                 currentStatus = GroupStatus.FINISH;
             }
 
@@ -46,18 +48,6 @@ public interface GroupResponse {
             );
         }
     }
-
-    record InvitePreview(
-            Long id,
-            String title,
-            String description,
-            LocalDate startDate,
-            LocalDate deadline,
-            String penalty,
-            int memberLimit,
-            long currentMemberCount,
-            GroupStatus status
-    ) {}
 
     record Simple(
             Long id,

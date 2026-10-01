@@ -116,7 +116,7 @@ class GroupMemberServiceSuccessTest {
     void getGroupMemberDetail_Success() {
         // given
         GroupMemberResponse.Detail mockDetail = new GroupMemberResponse.Detail(
-                groupMemberId, memberId, "닉네임", "아이디", "MEMBER", 2
+                groupMemberId, memberId, "닉네임", "아이디", "MEMBER", 2L
         );
         given(groupMemberRepository.existsByGroupIdAndMemberId(groupId, memberId)).willReturn(true);
         given(groupMemberRepository.findMemberDetailWithPenaltyCount(groupId, groupMemberId)).willReturn(Optional.of(mockDetail));
