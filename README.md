@@ -60,6 +60,38 @@
 ## 📌 핵심 기능
 
 * **API 명세:** [Notion API 명세서 바로가기](https://app.notion.com/p/API-Mock-Server-eac15a0120548348bdd881b2162b9217?source=copy_link)
+<details>
+<summary>Swagger 로컬 주소: http://localhost:8080/swagger-ui/index.html</summary>
+
+<details>
+  <summary>회원 API</summary>
+
+![회원](https://github.com/user-attachments/assets/432fedda-1759-40ff-93c7-a27fcd5056eb)
+</details>
+<details>
+<summary>그룹/그룹멤버 API</summary>
+
+![그룹/그룹멤버](https://github.com/user-attachments/assets/5b663f6a-6003-4526-b2e5-5710991fd4fe)
+</details>
+<details>
+<summary>습관 API</summary>
+
+![습관](https://github.com/user-attachments/assets/bdf87673-f590-4086-b8cb-250932534090)
+</details>
+
+<details>
+<summary>습관 인증 API</summary>
+
+![습관인증](https://github.com/user-attachments/assets/01e4c950-7221-4cba-8c38-49340c56256a)
+</details>
+
+<details>
+<summary>벌칙 인증 API</summary>
+
+![벌칙인증](https://github.com/user-attachments/assets/fb4cc8ae-68b4-46e9-8670-e67f3bc5dc87)
+</details>
+
+</details>
 
 ### 🏠 방(그룹) 생성 및 관리
 
