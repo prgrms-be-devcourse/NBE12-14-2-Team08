@@ -1,5 +1,14 @@
 package com.back.domain.groupMember.service;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyList;
+import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+
 import com.back.domain.group.dto.GroupRequest;
 import com.back.domain.group.entity.Group;
 import com.back.domain.group.repository.GroupRepository;
@@ -14,6 +23,9 @@ import com.back.domain.member.entity.Member;
 import com.back.domain.member.repository.MemberRepository;
 import com.back.domain.penaltyverify.repository.PenaltyVerifyRepository;
 import java.time.LocalDate;
+import java.util.Collections;
+import java.util.List;
+import java.util.Optional;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -22,16 +34,6 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.util.ReflectionTestUtils;
-
-import java.util.Collections;
-import java.util.List;
-import java.util.Optional;
-
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyList;
-import static org.mockito.BDDMockito.given;
-import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 class GroupMemberServiceSuccessTest {
@@ -60,7 +62,7 @@ class GroupMemberServiceSuccessTest {
         ReflectionTestUtils.setField(mockGroup, "id", groupId);
         GroupRequest.Join request = new GroupRequest.Join("pass123");
 
-        given(groupRepository.findByInviteCode(inviteCode)).willReturn(Optional.of(mockGroup));
+        given(groupRepository.findByInviteCodeForUpdate(inviteCode)).willReturn(Optional.of(mockGroup));
         given(groupMemberRepository.existsByGroupIdAndMemberId(groupId, memberId)).willReturn(true);
 
         // when
@@ -80,7 +82,7 @@ class GroupMemberServiceSuccessTest {
         GroupRequest.Join request = new GroupRequest.Join("pass123");
         Member mockMember = mock(Member.class);
 
-        given(groupRepository.findByInviteCode(inviteCode)).willReturn(Optional.of(mockGroup));
+        given(groupRepository.findByInviteCodeForUpdate(inviteCode)).willReturn(Optional.of(mockGroup));
         given(groupMemberRepository.existsByGroupIdAndMemberId(groupId, memberId)).willReturn(false);
         given(passwordEncoder.matches("pass123", "encoded_pass")).willReturn(true);
         given(groupMemberRepository.countByGroupId(groupId)).willReturn(3L);

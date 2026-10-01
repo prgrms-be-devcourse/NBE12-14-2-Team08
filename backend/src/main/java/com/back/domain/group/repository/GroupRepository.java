@@ -4,16 +4,14 @@ import com.back.domain.group.dto.GroupResponse;
 import com.back.domain.group.entity.Group;
 import com.back.domain.group.entity.GroupStatus;
 import jakarta.persistence.LockModeType;
-import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.data.jpa.repository.Lock;
-import org.springframework.data.jpa.repository.Modifying;
-import org.springframework.data.jpa.repository.Query;
-import org.springframework.data.repository.query.Param;
-import org.springframework.stereotype.Repository;
-
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Lock;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
+import org.springframework.stereotype.Repository;
 
 @Repository
 public interface GroupRepository extends JpaRepository<Group, Long> {
@@ -39,8 +37,7 @@ public interface GroupRepository extends JpaRepository<Group, Long> {
     List<GroupResponse.Simple> findMyGroupsWithCount(@Param("memberId") Long memberId,
                                                      @Param("status") GroupStatus status);
 
-    @Modifying(clearAutomatically = true)
-    @Query("UPDATE Group g SET g.status = com.back.domain.group.entity.GroupStatus.FINISH " +
-            "WHERE g.status = com.back.domain.group.entity.GroupStatus.ACTIVE AND g.deadline < :today")
-    int bulkFinishExpiredGroups(@Param("today") LocalDate today);
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("SELECT g FROM Group g WHERE g.status = com.back.domain.group.entity.GroupStatus.ACTIVE AND g.deadline < :today")
+    List<Group> findExpiredGroupsForUpdate(@Param("today") LocalDate today);
 }

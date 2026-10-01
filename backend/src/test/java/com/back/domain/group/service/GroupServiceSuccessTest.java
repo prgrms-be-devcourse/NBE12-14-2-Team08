@@ -64,19 +64,12 @@ class GroupServiceSuccessTest {
     @DisplayName("그룹 생성 - 성공 (방장 권한으로 멤버가 정상 등록된다)")
     void createGroup_Success() {
         // given
-        GroupRequest.Create request = new GroupRequest.Create(
-                "테스트 그룹", "설명", LocalDate.now().plusDays(7), "벌칙", "pass123", 5
-        );
+        GroupRequest.Create request = new GroupRequest.Create("테스트 그룹", "설명", LocalDate.now().plusDays(7), "벌칙",
+                "pass123", 5);
         Member mockMember = mock(Member.class);
-        Group mockGroup = Group.builder()
-                .title(request.title())
-                .description(request.description())
-                .deadline(request.deadline())
-                .penalty(request.penalty())
-                .password("encoded_pass")
-                .inviteCode("12345678")
-                .memberLimit(request.memberLimit())
-                .build();
+        Group mockGroup = Group.builder().title(request.title()).description(request.description())
+                .deadline(request.deadline()).penalty(request.penalty()).password("encoded_pass").inviteCode("12345678")
+                .memberLimit(request.memberLimit()).build();
         ReflectionTestUtils.setField(mockGroup, "createDate", LocalDateTime.now());
         ReflectionTestUtils.setField(mockGroup, "id", groupId);
 
@@ -131,12 +124,13 @@ class GroupServiceSuccessTest {
     @DisplayName("그룹 수정 - 성공 (방장 권한을 가진 유저가 그룹 정보 변경)")
     void updateGroup_Success() {
         // given
-        Group mockGroup = Group.builder().title("기존").deadline(LocalDate.now().plusDays(2)).build();
+        Group mockGroup = Group.builder().title("기존").status(GroupStatus.ACTIVE).build();
         GroupMember mockGroupMember = GroupMember.builder().role(GroupMemberRole.OWNER).build();
         GroupRequest.Update request = new GroupRequest.Update("새제목", null, null, null, "newpass", 10);
 
-        given(groupRepository.findById(groupId)).willReturn(Optional.of(mockGroup));
-        given(groupMemberRepository.findByGroupIdAndMemberId(groupId, memberId)).willReturn(Optional.of(mockGroupMember));
+        given(groupRepository.findByIdForUpdate(groupId)).willReturn(Optional.of(mockGroup));
+        given(groupMemberRepository.findByGroupIdAndMemberId(groupId, memberId)).willReturn(
+                Optional.of(mockGroupMember));
         given(passwordEncoder.encode("newpass")).willReturn("encoded_newpass");
 
         // when
@@ -150,12 +144,13 @@ class GroupServiceSuccessTest {
     @DisplayName("그룹 삭제 - 성공 (방장 혼자만 남은 그룹 정상 삭제)")
     void deleteGroup_Success() {
         // given
-        Group mockGroup = Group.builder().deadline(LocalDate.now().plusDays(2)).build();
+        Group mockGroup = Group.builder().status(GroupStatus.ACTIVE).build();
         GroupMember mockGroupMember = GroupMember.builder().role(GroupMemberRole.OWNER).build();
         ReflectionTestUtils.setField(mockGroupMember, "id", 50L);
 
-        given(groupRepository.findById(groupId)).willReturn(Optional.of(mockGroup));
-        given(groupMemberRepository.findByGroupIdAndMemberId(groupId, memberId)).willReturn(Optional.of(mockGroupMember));
+        given(groupRepository.findByIdForUpdate(groupId)).willReturn(Optional.of(mockGroup));
+        given(groupMemberRepository.findByGroupIdAndMemberId(groupId, memberId)).willReturn(
+                Optional.of(mockGroupMember));
         given(groupMemberRepository.countByGroupId(groupId)).willReturn(1L);
 
         // when
