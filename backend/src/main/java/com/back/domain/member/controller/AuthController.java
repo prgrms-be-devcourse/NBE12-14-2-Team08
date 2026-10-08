@@ -39,6 +39,7 @@ public class AuthController {
         // 아이디와 비밀번호를 검증
         Long memberId = memberService.authenticate(request);
 
+        // 로그인마다 Access Token은 새로 발급하지만 기존 토큰을 폐기하는 처리는 하지 않는다.
         String accessToken = authTokenService.createAccessToken(memberId);
 
         String refreshToken = memberService.getRefreshToken(memberId);   // 로그인 시 DB에 저장된 리프레시 토큰 조회
@@ -62,6 +63,7 @@ public class AuthController {
     ) {
         String refreshToken = request.refreshToken();
 
+        // 유효한 서명만으로 재발급하지 않는다. 토큰 종류 검사 후 DB 저장값까지 대조한다.
         if (!authTokenService.validateToken(refreshToken)
                 || !authTokenService.isRefreshToken(refreshToken)) {
             throw new UnauthorizedException(
@@ -85,6 +87,7 @@ public class AuthController {
         String accessToken =
                 authTokenService.createAccessToken(memberId);
 
+        // 현재 재발급은 Refresh Token을 교체하지 않고 같은 값을 반환한다.
         LoginResponse response = LoginResponse.of(
                 accessToken,
                 refreshToken

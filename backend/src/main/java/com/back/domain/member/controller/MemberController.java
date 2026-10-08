@@ -28,6 +28,8 @@ public class MemberController {
 
     private final MemberService memberService;
 
+    // 회원 API는 요청과 응답을 담당하고, 저장·비밀번호 처리·탈퇴 조건은 MemberService에 위임한다.
+    // 가입 요청은 @Valid로 DTO 제약을 검증하며, 성공 시 회원 정보와 HTTP 201을 반환한다.
     @Operation(
             summary = "회원 가입",
             description = "서비스 이용을 위한 새로운 회원 계정을 등록합니다.\n\n" +
@@ -46,6 +48,7 @@ public class MemberController {
 
     }
 
+    // 요청에서 회원 ID를 받지 않고 @LoginMemberId로 인증된 회원의 ID를 주입받아 본인 정보를 조회한다.
     @Operation(
             summary = "내 정보 조회",
             description = "현재 로그인한 사용자의 회원 프로필 정보를 조회합니다. (본인만 가능)"
@@ -59,6 +62,8 @@ public class MemberController {
         return ResponseEntity.ok(response);
     }
 
+    // 인증된 본인의 정보만 수정한다. 닉네임 변경과 기존 비밀번호 확인은 서비스에서 처리한다.
+    // 현재 수정 요청에는 @Valid가 없으므로 가입 요청과 동일한 DTO 검증이 적용되는 것은 아니다.
     @Operation(
             summary = "내 정보 수정",
             description = "현재 로그인한 사용자의 닉네임, 비밀번호 등 회원 정보를 수정합니다. (본인만 가능)"
@@ -73,6 +78,8 @@ public class MemberController {
         return ResponseEntity.ok(response);
     }
 
+    // 서비스에서 진행 중인 방 참여 여부를 확인한 뒤 회원을 WITHDRAWN 상태로 전환한다.
+    // 실제 회원 행을 삭제하는 방식이 아니며, 성공 응답은 본문 없는 HTTP 204이다.
     @Operation(
             summary = "회원 탈퇴",
             description = "현재 로그인한 사용자의 회원 계정을 삭제합니다. (본인만 가능)"
