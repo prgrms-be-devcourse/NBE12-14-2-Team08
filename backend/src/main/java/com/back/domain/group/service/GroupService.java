@@ -177,16 +177,22 @@ public class GroupService {
         Group group = groupRepository.findByInviteCode(inviteCode)
                 .orElseThrow(() -> new EntityNotFoundException("유효하지 않거나 존재하지 않는 초대 코드입니다."));
 
+        if (group.isFinished()) {
+            throw new BusinessRuleException("이미 마감된 그룹입니다.");
+        }
+
         long currentMemberCount = groupMemberRepository.countByGroupId(group.getId());
 
-        if (groupMemberRepository.existsByGroupIdAndMemberId(group.getId(), memberId)) {
-            return GroupResponse.Detail.from(group, baseInviteUrl, true, currentMemberCount);
-        }
+        boolean isJoined = groupMemberRepository.existsByGroupIdAndMemberId(
+                group.getId(),
+                memberId
+        );
 
-        if (group.isFinished()) {
-            throw new BusinessRuleException("이미 종료된 그룹입니다.");
-        }
-
-        return GroupResponse.Detail.from(group, baseInviteUrl, false, currentMemberCount);
+        return GroupResponse.Detail.from(
+                group,
+                baseInviteUrl,
+                isJoined,
+                currentMemberCount
+        );
     }
 }

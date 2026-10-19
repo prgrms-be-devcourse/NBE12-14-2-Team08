@@ -42,6 +42,10 @@ public class GroupMemberService {
         Group group = groupRepository.findByInviteCodeForUpdate(inviteCode)
                 .orElseThrow(() -> new EntityNotFoundException("유효하지 않거나 존재하지 않는 초대 코드입니다."));
 
+        if (group.isFinished()) {
+            throw new BusinessRuleException("이미 마감된 그룹입니다.");
+        }
+
         if (groupMemberRepository.existsByGroupIdAndMemberId(group.getId(), memberId)) {
             return group.getId();
         }
@@ -50,11 +54,8 @@ public class GroupMemberService {
             throw new ForbiddenException("그룹 비밀번호가 일치하지 않습니다.");
         }
 
-        if (group.isFinished()) {
-            throw new BusinessRuleException("이미 종료된 그룹입니다.");
-        }
-
         long currentMemberCount = groupMemberRepository.countByGroupId(group.getId());
+
         if (currentMemberCount >= group.getMemberLimit()) {
             throw new GroupLimitExceededException("그룹의 최대 인원이 초과되어 입장할 수 없습니다.");
         }

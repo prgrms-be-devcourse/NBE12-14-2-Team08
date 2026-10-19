@@ -27,15 +27,23 @@ public interface GroupRepository extends JpaRepository<Group, Long> {
     Optional<Group> findByIdForUpdate(@Param("id") Long id);
 
 
-    @Query("select new com.back.domain.group.dto.GroupResponse$Simple(g.id, g.title, g.description, g.memberLimit, count(gm), cast(g.status as string), cast(myGm.role as string))" +
+    @Query("select new com.back.domain.group.dto.GroupResponse$Simple(" +
+            "g.id, g.title, g.description, g.memberLimit, count(gm), " +
+            "cast(g.status as string), cast(myGm.role as string)) " +
             "from Group g " +
-            "left join GroupMember gm on gm.group.id = g.id " +
-            "join GroupMember myGm on myGm.group.id = g.id and myGm.member.id = :memberId " +
+            "left join GroupMember gm " +
+            "on gm.group.id = g.id " +
+            "and gm.status = com.back.domain.groupMember.entity.GroupMemberStatus.ACTIVE " +
+            "join GroupMember myGm " +
+            "on myGm.group.id = g.id " +
+            "and myGm.member.id = :memberId " +
+            "and myGm.status = com.back.domain.groupMember.entity.GroupMemberStatus.ACTIVE " +
             "where g.status = :status " +
-            "and g.id in (select gm2.group.id from GroupMember gm2 where gm2.member.id = :memberId) " +
             "group by g.id, g.title, g.description, g.memberLimit, g.status, myGm.role")
-    List<GroupResponse.Simple> findMyGroupsWithCount(@Param("memberId") Long memberId,
-                                                     @Param("status") GroupStatus status);
+    List<GroupResponse.Simple> findMyGroupsWithCount(
+            @Param("memberId") Long memberId,
+            @Param("status") GroupStatus status
+    );
 
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("SELECT g FROM Group g WHERE g.status = com.back.domain.group.entity.GroupStatus.ACTIVE AND g.deadline < :today")
