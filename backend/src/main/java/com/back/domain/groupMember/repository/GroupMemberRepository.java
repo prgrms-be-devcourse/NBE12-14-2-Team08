@@ -3,15 +3,15 @@ package com.back.domain.groupMember.repository;
 import com.back.domain.groupMember.dto.GroupMemberResponse;
 import com.back.domain.groupMember.entity.GroupMember;
 import jakarta.persistence.LockModeType;
+import com.back.domain.groupMember.entity.GroupMemberStatus;
+import java.util.List;
+import java.util.Optional;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
-
-import java.util.List;
-import java.util.Optional;
 
 @Repository
 public interface GroupMemberRepository extends JpaRepository<GroupMember, Long> {
@@ -52,4 +52,17 @@ public interface GroupMemberRepository extends JpaRepository<GroupMember, Long> 
     long countByGroupId(Long groupId);
 
     boolean existsByIdAndGroupId(Long groupMemberId, Long groupId);
+
+    boolean existsByGroupIdAndMemberIdAndStatus(
+            Long groupId,
+            Long memberId,
+            GroupMemberStatus status
+    );
+
+    long countByGroupIdAndStatus(
+            Long groupId,
+            GroupMemberStatus status
+    );
+
+    List<GroupMember> findAllByGroupId(Long groupId);
 }
