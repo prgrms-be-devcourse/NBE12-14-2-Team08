@@ -29,6 +29,7 @@ public class Group extends BaseEntity {
 
     private LocalDate deadline;
 
+    @Column(nullable = false)
     private String penalty;
 
     @Column(nullable = false)
