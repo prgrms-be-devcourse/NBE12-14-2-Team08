@@ -7,6 +7,7 @@ import com.back.domain.group.entity.GroupStatus;
 import com.back.domain.group.repository.GroupRepository;
 import com.back.domain.groupMember.entity.GroupMember;
 import com.back.domain.groupMember.entity.GroupMemberRole;
+import com.back.domain.groupMember.entity.GroupMemberStatus;
 import com.back.domain.groupMember.repository.GroupMemberRepository;
 import com.back.domain.groupMember.service.GroupMemberService;
 import com.back.domain.member.entity.Member;
@@ -42,6 +43,9 @@ public class GroupService {
     public GroupResponse.Detail createGroup(Long memberId, GroupRequest.Create request) {
         String inviteCode = generateUniqueInviteCode();
         String encodedPassword = passwordEncoder.encode(request.password());
+        int memberLimit = request.memberLimit() != null
+                ? request.memberLimit()
+                : 10;
 
         Group group = Group.builder()
                 .title(request.title())
@@ -50,7 +54,7 @@ public class GroupService {
                 .penalty(request.penalty())
                 .password(encodedPassword)
                 .inviteCode(inviteCode)
-                .memberLimit(request.memberLimit() != null ? request.memberLimit() : 10)
+                .memberLimit(memberLimit)
                 .build();
 
         Group savedGroup = groupRepository.save(group);
@@ -77,13 +81,16 @@ public class GroupService {
         Group group = groupRepository.findById(groupId)
                 .orElseThrow(() -> new EntityNotFoundException("존재하지 않는 그룹입니다."));
 
-        if (!groupMemberRepository.existsByGroupIdAndMemberId(groupId, memberId)) {
+        if (!groupMemberRepository.existsByGroupIdAndMemberIdAndStatus(
+                groupId, memberId, GroupMemberStatus.ACTIVE)) {
             throw new ForbiddenException("해당 그룹의 접근 권한이 없습니다.");
         }
 
-        long currentMemberCount = groupMemberRepository.countByGroupId(groupId);
+        long currentMemberCount = groupMemberRepository.countByGroupIdAndStatus(
+                groupId, GroupMemberStatus.ACTIVE);
 
-        return GroupResponse.Detail.from(group, baseInviteUrl, true, currentMemberCount);
+        return GroupResponse.Detail.from(
+                group, baseInviteUrl, true, currentMemberCount);
     }
 
     @Transactional
@@ -95,24 +102,44 @@ public class GroupService {
             throw new BusinessRuleException("이미 종료된 그룹은 수정할 수 없습니다.");
         }
 
-        GroupMember groupMember = groupMemberRepository.findByGroupIdAndMemberId(groupId, memberId)
+        GroupMember groupMember = groupMemberRepository
+                .findByGroupIdAndMemberId(groupId, memberId)
                 .orElseThrow(() -> new ForbiddenException("해당 그룹의 접근 권한이 없습니다."));
 
         if (groupMember.getRole() != GroupMemberRole.OWNER) {
             throw new ForbiddenException("그룹 수정은 방장만 가능합니다.");
         }
 
-        long currentMemberCount = groupMemberRepository.countByGroupId(groupId);
-        if (request.memberLimit() != null) {
-            if (request.memberLimit() < currentMemberCount) {
-                throw new BusinessRuleException("최대 제한 인원은 현재 참여 중인 멤버 수보다 적게 설정할 수 없습니다.");
+        long currentMemberCount = groupMemberRepository.countByGroupIdAndStatus(
+                groupId,
+                GroupMemberStatus.ACTIVE
+        );
+
+        Integer requestedMemberLimit = request.memberLimit();
+
+        if (requestedMemberLimit != null) {
+            if (requestedMemberLimit < 1) {
+                throw new BusinessRuleException("최대 인원은 1명 이상이어야 합니다.");
+            }
+
+            if (requestedMemberLimit < currentMemberCount) {
+                throw new BusinessRuleException(
+                        "최대 제한 인원은 현재 참여 중인 멤버 수("
+                                + currentMemberCount
+                                + "명)보다 적게 설정할 수 없습니다."
+                );
             }
         }
 
         String encodedPassword = null;
+
         if (request.password() != null && !request.password().isBlank()) {
             encodedPassword = passwordEncoder.encode(request.password());
         }
+
+        int memberLimit = requestedMemberLimit != null
+                ? requestedMemberLimit
+                : group.getMemberLimit();
 
         group.updateGroup(
                 request.title(),
@@ -120,7 +147,7 @@ public class GroupService {
                 request.deadline(),
                 request.penalty(),
                 encodedPassword,
-                request.memberLimit() != null ? request.memberLimit() : group.getMemberLimit()
+                memberLimit
         );
     }
 
@@ -140,12 +167,13 @@ public class GroupService {
             throw new ForbiddenException("그룹 삭제는 방장만 가능합니다.");
         }
 
-        long totalMemberCount = groupMemberRepository.countByGroupId(groupId);
+        long totalMemberCount = groupMemberRepository.countByGroupIdAndStatus(groupId, GroupMemberStatus.ACTIVE);
+
         if (totalMemberCount > 1) {
             throw new BusinessRuleException("그룹을 삭제하려면 방장을 제외한 모든 멤버가 퇴장해야 합니다.");
         }
 
-        groupMemberService.deleteGroupAndGroupMember(group, groupMember);
+        groupMemberService.deleteGroupAndAllMembers(group);
     }
 
     @Transactional
@@ -181,7 +209,7 @@ public class GroupService {
             throw new BusinessRuleException("이미 마감된 그룹입니다.");
         }
 
-        long currentMemberCount = groupMemberRepository.countByGroupId(group.getId());
+        long currentMemberCount = groupMemberRepository.countByGroupIdAndStatus(group.getId(), GroupMemberStatus.ACTIVE);
 
         boolean isJoined = groupMemberRepository.existsByGroupIdAndMemberId(
                 group.getId(),

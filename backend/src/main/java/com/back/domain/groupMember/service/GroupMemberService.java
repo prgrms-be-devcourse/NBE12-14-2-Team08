@@ -54,7 +54,7 @@ public class GroupMemberService {
             throw new ForbiddenException("그룹 비밀번호가 일치하지 않습니다.");
         }
 
-        long currentMemberCount = groupMemberRepository.countByGroupId(group.getId());
+        long currentMemberCount = groupMemberRepository.countByGroupIdAndStatus(group.getId(), GroupMemberStatus.ACTIVE);
 
         if (currentMemberCount >= group.getMemberLimit()) {
             throw new GroupLimitExceededException("그룹의 최대 인원이 초과되어 입장할 수 없습니다.");
@@ -76,7 +76,7 @@ public class GroupMemberService {
     }
 
     public List<GroupMemberResponse.Simple> getGroupMembers(Long groupId, Long memberId) {
-        if (!groupMemberRepository.existsByGroupIdAndMemberId(groupId, memberId)) {
+        if (!groupMemberRepository.existsByGroupIdAndMemberIdAndStatus(groupId, memberId, GroupMemberStatus.ACTIVE)) {
             throw new ForbiddenException("해당 그룹의 접근 권한이 없습니다.");
         }
 
@@ -84,23 +84,33 @@ public class GroupMemberService {
     }
 
     public GroupMemberResponse.Detail getGroupMemberDetail(Long groupId, Long groupMemberId, Long memberId) {
-        if (!groupMemberRepository.existsByGroupIdAndMemberId(groupId, memberId)) {
+        if (!groupMemberRepository.existsByGroupIdAndMemberIdAndStatus(groupId, memberId, GroupMemberStatus.ACTIVE)) {
             throw new ForbiddenException("해당 그룹의 접근 권한이 없습니다.");
         }
 
-        return groupMemberRepository.findMemberDetailWithPenaltyCount(groupId, groupMemberId)
-                .orElseThrow(() -> new EntityNotFoundException("존재하지 않거나 해당 그룹의 가입 멤버가 아닙니다."));
+        return groupMemberRepository
+                .findMemberDetailWithPenaltyCount(groupId, groupMemberId)
+                .orElseThrow(() ->
+                        new EntityNotFoundException(
+                                "존재하지 않거나 해당 그룹의 가입 멤버가 아닙니다."));
     }
 
     @Transactional
     public void leaveGroup(Long groupId, Long memberId) {
-        GroupMember groupMember = groupMemberRepository.findByGroupIdAndMemberId(groupId, memberId)
+        Group group = groupRepository.findByIdForUpdate(groupId)
+                .orElseThrow(() -> new EntityNotFoundException("존재하지 않는 그룹입니다."));
+
+        GroupMember groupMember = groupMemberRepository
+                .findByGroupIdAndMemberId(groupId, memberId)
                 .orElseThrow(() -> new EntityNotFoundException("해당 그룹의 멤버가 아닙니다."));
 
-        Group group = groupMember.getGroup();
+        if (groupMember.getStatus() != GroupMemberStatus.ACTIVE) {
+            throw new BusinessRuleException("이미 탈퇴한 멤버입니다.");
+        }
+
         boolean isFinished = group.isFinished();
 
-        long memberCount = groupMemberRepository.countByGroupId(groupId);
+        long memberCount = groupMemberRepository.countByGroupIdAndStatus(groupId, GroupMemberStatus.ACTIVE);
 
         if (groupMember.getRole() == GroupMemberRole.OWNER) {
             if (!isFinished && memberCount > 1) {
@@ -109,23 +119,16 @@ public class GroupMemberService {
         }
 
         if (memberCount == 1) {
-            deleteGroupAndGroupMember(group, groupMember);
+            deleteGroupAndAllMembers(group);
             return;
         }
 
         if (!isFinished) {
             deleteGroupMemberDataBulk(groupMember.getId());
             groupMemberRepository.delete(groupMember);
-        }
-        else {
+        } else {
             groupMember.leave();
         }
-    }
-
-    public void deleteGroupAndGroupMember(Group group, GroupMember groupMember) {
-        deleteGroupMemberDataBulk(groupMember.getId());
-        groupMemberRepository.delete(groupMember);
-        groupRepository.delete(group);
     }
 
     @Transactional
@@ -153,7 +156,6 @@ public class GroupMemberService {
             throw new BusinessRuleException("이미 종료된 그룹은 멤버를 추방할 수 없습니다.");
         }
 
-
         deleteGroupMemberDataBulk(kickTarget.getId());
 
         groupMemberRepository.delete(kickTarget);
@@ -172,6 +174,28 @@ public class GroupMemberService {
         if (!habitIds.isEmpty()) {
             habitRepository.deleteByIds(habitIds);
         }
+    }
+
+    @Transactional
+    public void deleteGroupAndGroupMember(Group group, GroupMember groupMember) {
+        deleteGroupMemberDataBulk(groupMember.getId());
+        groupMemberRepository.delete(groupMember);
+        groupRepository.delete(group);
+    }
+
+    @Transactional
+    public void deleteGroupAndAllMembers(Group group) {
+        List<GroupMember> groupMembers = groupMemberRepository.findAllByGroupId(group.getId());
+
+        for (GroupMember groupMember : groupMembers) {
+            deleteGroupMemberDataBulk(groupMember.getId());
+        }
+
+        if (!groupMembers.isEmpty()) {
+            groupMemberRepository.deleteAllInBatch(groupMembers);
+        }
+
+        groupRepository.delete(group);
     }
 
     @Transactional
