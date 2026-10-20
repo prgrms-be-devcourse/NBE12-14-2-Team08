@@ -16,7 +16,6 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -64,29 +63,6 @@ public class HabitVerifyController {
 
         return ResponseEntity.ok(
                 habitVerifyService.findAll(habitId, memberId)
-        );
-    }
-
-    @Operation(
-            summary = "습관 인증 수정",
-            description = "제출한 특정 인증 기록의 내용을 수정합니다. (본인만 가능)\n\n" +
-                    "- 방장의 심사가 진행되기 전(PENDING 상태)인 인증 건에 한해서만 수정이 가능합니다."
-    )
-    @PutMapping("/{verificationId}")
-    public ResponseEntity<HabitVerifyResponse> update(
-            @PathVariable Long habitId,
-            @PathVariable Long verificationId,
-            @Valid @RequestBody HabitVerifyRequest request,
-            @LoginMemberId Long memberId
-    ) {
-
-        return ResponseEntity.ok(
-                habitVerifyService.update(
-                        habitId,
-                        verificationId,
-                        request,
-                        memberId
-                )
         );
     }
 
