@@ -40,9 +40,9 @@ public class HabitService {
             Long memberId,
             CreateHabitRequest request
     ) {
-        // 1. GroupMember 조회
+        // 1. GroupMember 조회 (행 잠금: 같은 멤버의 동시 생성 요청이 "활성 습관 확인 → 저장"을 순서대로 거치도록 직렬화)
         GroupMember groupMember = groupMemberRepository
-                .findByGroupIdAndMemberId(groupId, memberId)
+                .findByGroupIdAndMemberIdForUpdate(groupId, memberId)
                 .orElseThrow(() ->
                         new IllegalArgumentException(
                                 "해당 그룹의 멤버를 찾을 수 없습니다."

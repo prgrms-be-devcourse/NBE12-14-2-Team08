@@ -2,7 +2,9 @@ package com.back.domain.groupMember.repository;
 
 import com.back.domain.groupMember.dto.GroupMemberResponse;
 import com.back.domain.groupMember.entity.GroupMember;
+import jakarta.persistence.LockModeType;
 import org.springframework.data.jpa.repository.EntityGraph;
+import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -34,6 +36,12 @@ public interface GroupMemberRepository extends JpaRepository<GroupMember, Long> 
             @Param("groupMemberId") Long groupMemberId);
 
     Optional<GroupMember> findByGroupIdAndMemberId(Long groupId, Long memberId);
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("select gm from GroupMember gm where gm.group.id = :groupId and gm.member.id = :memberId")
+    Optional<GroupMember> findByGroupIdAndMemberIdForUpdate(
+            @Param("groupId") Long groupId,
+            @Param("memberId") Long memberId);
     boolean existsByGroupIdAndMemberId(Long groupId, Long memberId);
 
     boolean existsByMemberId(Long memberId);
