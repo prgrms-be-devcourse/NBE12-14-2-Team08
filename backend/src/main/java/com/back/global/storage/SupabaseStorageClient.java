@@ -140,10 +140,27 @@ public class SupabaseStorageClient {
                             HttpResponse.BodyHandlers.ofString()
                     );
 
-            return response.statusCode() == 200;
+            return isFound(response.statusCode());
 
-        } catch (Exception e) {
+        } catch (IllegalArgumentException e) {
+            // URI로 만들 수 없는 경로 = 우리가 발급한 파일일 수 없음
+            return false;
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new StorageUnavailableException(STORAGE_UNAVAILABLE_MESSAGE, e);
+        } catch (IOException e) {
+            throw new StorageUnavailableException(STORAGE_UNAVAILABLE_MESSAGE, e);
+        }
+    }
+
+    // 200: 있음 / 400·404: 없음 (Supabase는 없는 파일에 400을 주기도 함) / 그 외: 저장소 장애
+    static boolean isFound(int statusCode) {
+        if (statusCode == 200) {
+            return true;
+        }
+        if (statusCode == 400 || statusCode == 404) {
             return false;
         }
+        throw new StorageUnavailableException(STORAGE_UNAVAILABLE_MESSAGE);
     }
 }
