@@ -49,4 +49,5 @@ supabase:
   storage:
     habit-bucket: "habit-verifications"
     penalty-bucket: "penalty-verifications"
+    # 업로드 Signed URL 발급 요청에 함께 보내지만, Supabase는 업로드용 URL에 이 값을 적용하지 않는다.
     url-expiration-seconds: 300

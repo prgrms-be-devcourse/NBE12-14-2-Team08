@@ -12,7 +12,10 @@ import com.back.domain.habitVerify.dto.HabitVerifyResponse;
 import com.back.domain.habitVerify.dto.HabitVerifySummaryResponse;
 import com.back.domain.habitVerify.entity.HabitVerify;
 import com.back.domain.habitVerify.repository.HabitVerifyRepository;
+import com.back.global.exception.ForbiddenException;
 import com.back.global.storage.StorageService;
+import com.back.global.storage.UploadUrlResponse;
+import com.back.global.storage.VerificationImageType;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
@@ -32,6 +35,24 @@ public class HabitVerifyService {
     private final HabitVerifyRepository habitVerifyRepository;
     private final StorageService storageService;
     private final GroupMemberRepository groupMemberRepository;
+
+    // 습관 인증 사진 업로드 URL 발급: 내 습관 → 진행 중인 방 → 활성 습관 순으로 확인
+    // 반려 건 재제출에도 새 사진이 필요하므로 "오늘 이미 인증했는지"는 보지 않는다.
+    @Transactional(readOnly = true)
+    public UploadUrlResponse createUploadUrl(Long memberId, Long habitId, String filename) {
+        Habit habit = habitRepository.findByIdAndGroupMember_Member_Id(habitId, memberId)
+                .orElseThrow(() -> new ForbiddenException("본인의 습관에만 사진을 올릴 수 있습니다."));
+
+        if (habit.getGroupMember().getGroup().isFinished()) {
+            throw new BusinessRuleException("이미 종료된 그룹에서는 습관 인증 사진을 올릴 수 없습니다.");
+        }
+
+        if (habit.getStatus() != HabitStatus.ACTIVE) {
+            throw new IllegalStateException("진행 중인 습관에만 사진을 올릴 수 있습니다. 현재 상태: " + habit.getStatus());
+        }
+
+        return storageService.createUploadUrl(VerificationImageType.HABIT, memberId, habitId, filename);
+    }
 
     @Transactional
     public HabitVerifyResponse create(
