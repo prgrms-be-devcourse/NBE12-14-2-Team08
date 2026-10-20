@@ -2,6 +2,9 @@ package com.back.domain.penaltyverify.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -22,6 +25,9 @@ import com.back.domain.penaltyverify.entity.PenaltyVerifyStatus;
 import com.back.domain.penaltyverify.repository.PenaltyVerifyRepository;
 import com.back.global.exception.BusinessRuleException;
 import com.back.global.exception.ForbiddenException;
+import com.back.global.storage.StorageService;
+import com.back.global.storage.UploadUrlResponse;
+import com.back.global.storage.VerificationImageType;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
@@ -30,6 +36,8 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EnumSource;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -47,6 +55,9 @@ class PenaltyVerifyServiceTest {
 
     @Mock
     private HabitRepository habitRepository;
+
+    @Mock
+    private StorageService storageService;
 
     @InjectMocks
     private PenaltyVerifyService penaltyVerifyService;
@@ -482,6 +493,63 @@ class PenaltyVerifyServiceTest {
                 .isInstanceOf(BusinessRuleException.class)
                 .hasMessageContaining("이미 종료된 그룹의 벌칙 기록은 변경할 수 없습니다.");
             assertThat(pv.getStatus()).isEqualTo(PenaltyVerifyStatus.PENDING);
+        }
+    }
+
+    @Nested
+    @DisplayName("벌칙 사진 업로드 URL 발급(createUploadUrl) 테스트")
+    class CreateUploadUrlTest {
+
+        @ParameterizedTest(name = "{0} 벌칙은 발급 가능")
+        @EnumSource(value = PenaltyVerifyStatus.class, names = {"REQUIRED", "REJECTED"})
+        @DisplayName("내 벌칙이 제출 또는 재제출 가능한 상태면 벌칙 사진 업로드 URL을 발급한다")
+        void 업로드_URL_발급_성공(PenaltyVerifyStatus status) {
+            PenaltyVerify pv = createFixturePenalty(1L, status);
+            UploadUrlResponse expected = new UploadUrlResponse("https://upload", "https://public/2/1/a.png");
+            given(penaltyVerifyRepository.findById(1L)).willReturn(Optional.of(pv));
+            given(storageService.createUploadUrl(VerificationImageType.PENALTY, 2L, 1L, "proof.png")).willReturn(expected);
+
+            UploadUrlResponse response = penaltyVerifyService.createUploadUrl(2L, 1L, "proof.png");
+
+            assertThat(response).isEqualTo(expected);
+        }
+
+        @Test
+        @DisplayName("내 벌칙이 아니면 ForbiddenException (403)")
+        void 내_벌칙_아님_403() {
+            PenaltyVerify pv = createFixturePenalty(1L, PenaltyVerifyStatus.REQUIRED);
+            given(penaltyVerifyRepository.findById(1L)).willReturn(Optional.of(pv));
+
+            assertThatThrownBy(() -> penaltyVerifyService.createUploadUrl(999L, 1L, "proof.png"))
+                .isInstanceOf(ForbiddenException.class);
+
+            verify(storageService, never()).createUploadUrl(any(), anyLong(), anyLong(), anyString());
+        }
+
+        @ParameterizedTest(name = "{0} 벌칙은 발급 불가")
+        @EnumSource(value = PenaltyVerifyStatus.class, names = {"PENDING", "APPROVED"})
+        @DisplayName("이미 제출했거나 승인된 벌칙이면 IllegalStateException (409)")
+        void 제출_불가_상태_409(PenaltyVerifyStatus status) {
+            PenaltyVerify pv = createFixturePenalty(1L, status);
+            given(penaltyVerifyRepository.findById(1L)).willReturn(Optional.of(pv));
+
+            assertThatThrownBy(() -> penaltyVerifyService.createUploadUrl(2L, 1L, "proof.png"))
+                .isInstanceOf(IllegalStateException.class);
+
+            verify(storageService, never()).createUploadUrl(any(), anyLong(), anyLong(), anyString());
+        }
+
+        @Test
+        @DisplayName("종료된 방이면 BusinessRuleException (400)")
+        void 종료된_방_400() {
+            group.finish();
+            PenaltyVerify pv = createFixturePenalty(1L, PenaltyVerifyStatus.REQUIRED);
+            given(penaltyVerifyRepository.findById(1L)).willReturn(Optional.of(pv));
+
+            assertThatThrownBy(() -> penaltyVerifyService.createUploadUrl(2L, 1L, "proof.png"))
+                .isInstanceOf(BusinessRuleException.class);
+
+            verify(storageService, never()).createUploadUrl(any(), anyLong(), anyLong(), anyString());
         }
     }
 }

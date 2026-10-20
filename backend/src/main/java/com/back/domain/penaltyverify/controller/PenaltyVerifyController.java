@@ -4,7 +4,6 @@ import com.back.domain.penaltyverify.dto.BulkActionRequest;
 import com.back.domain.penaltyverify.dto.PenaltyVerifyDetailResponse;
 import com.back.domain.penaltyverify.dto.PenaltyVerifySummaryResponse;
 import com.back.domain.penaltyverify.dto.SubmitPenaltyVerifyRequest;
-import com.back.domain.penaltyverify.service.PenaltyStorageService;
 import com.back.domain.penaltyverify.service.PenaltyVerifyService;
 import com.back.global.security.LoginMemberId;
 import com.back.global.storage.UploadUrlRequest;
@@ -32,7 +31,6 @@ import org.springframework.web.bind.annotation.RestController;
 public class PenaltyVerifyController {
 
     private final PenaltyVerifyService penaltyVerifyService;
-    private final PenaltyStorageService penaltyStorageService;
 
     @Operation(
             summary = "벌칙 인증 등록",
@@ -65,15 +63,18 @@ public class PenaltyVerifyController {
 
     @Operation(
             summary = "벌칙 인증 사진 업로드용 서명 URL 발급",
-            description = "벌칙 증빙 사진을 스토리지(supabase)에 안전하게 바로 업로드할 수 있는 Signed URL을 발급합니다. (그룹 가입자만 가능)"
+            description = "벌칙 증빙 사진을 스토리지(supabase)에 바로 업로드할 수 있는 Signed URL을 발급합니다.\n\n" +
+                    "- 본인의 벌칙 중 제출(REQUIRED) 또는 재제출(REJECTED)할 수 있는 건에만 발급합니다.\n" +
+                    "- 종료된 방에서는 발급할 수 없습니다.\n" +
+                    "- 허용 확장자: jpg, jpeg, png, webp"
     )
-    @PostMapping("/penalties/upload-url")
-    public ResponseEntity<UploadUrlResponse> getUploadUrl(
+    @PostMapping("/penalties/{id}/upload-url")
+    public UploadUrlResponse getUploadUrl(
         @LoginMemberId Long memberId,
+        @PathVariable Long id,
         @Valid @RequestBody UploadUrlRequest request
     ) {
-        UploadUrlResponse response = penaltyStorageService.createUploadUrl(memberId, request.filename());
-        return ResponseEntity.ok(response);
+        return penaltyVerifyService.createUploadUrl(memberId, id, request.filename());
     }
 
     @Operation(

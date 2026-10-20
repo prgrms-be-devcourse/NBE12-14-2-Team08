@@ -108,6 +108,11 @@ public class PenaltyVerify extends BaseEntity {
         this.status = PenaltyVerifyStatus.REJECTED;
     }
 
+    // 처음 제출(REQUIRED) 또는 반려 후 재제출(REJECTED)이 가능한 상태인지
+    public boolean isSubmittable() {
+        return this.status == PenaltyVerifyStatus.REQUIRED || this.status == PenaltyVerifyStatus.REJECTED;
+    }
+
     // 작성자의 제출 취소: 방장 검토 전(PENDING)에만 가능
     public void cancelSubmission() {
         if (this.status != PenaltyVerifyStatus.PENDING) {
