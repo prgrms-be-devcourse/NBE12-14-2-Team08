@@ -12,6 +12,8 @@ public interface GroupRequest {
 
             String description,
             LocalDate deadline,
+
+            @NotBlank(message = "벌칙은 필수입니다.")
             String penalty,
 
             @NotBlank(message = "비밀번호는 필수입니다.")
