@@ -108,5 +108,29 @@ public class PenaltyVerify extends BaseEntity {
         this.status = PenaltyVerifyStatus.REJECTED;
     }
 
+    // 작성자의 제출 취소: 방장 검토 전(PENDING)에만 가능
+    public void cancelSubmission() {
+        if (this.status != PenaltyVerifyStatus.PENDING) {
+            throw new IllegalStateException("승인 대기(PENDING) 중인 벌칙만 제출을 취소할 수 있습니다. 현재 상태 : " + this.status);
+        }
+        clearSubmission();
+    }
+
+    // 방장의 벌칙 초기화: 제출된 적 있는 벌칙(PENDING / APPROVED / REJECTED)을 재수행 대상으로 되돌림
+    public void resetByOwner() {
+        if (this.status == PenaltyVerifyStatus.REQUIRED) {
+            throw new IllegalStateException("이미 미제출(REQUIRED) 상태인 벌칙입니다.");
+        }
+        clearSubmission();
+    }
+
+    // 결산 집계를 위해 row는 남기고 제출 내용만 비운다
+    private void clearSubmission() {
+        this.verifyDate = null;
+        this.description = null;
+        this.imageUrl = null;
+        this.status = PenaltyVerifyStatus.REQUIRED;
+    }
+
 
 }
