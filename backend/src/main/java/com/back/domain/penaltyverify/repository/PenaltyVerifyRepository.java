@@ -54,4 +54,15 @@ public interface PenaltyVerifyRepository extends JpaRepository<PenaltyVerify, Lo
     List<PenaltyVerify> findAllByGroupId(
             @Param("groupId") Long groupId
     );
+
+    @Modifying(flushAutomatically = true)
+    @Query("""
+    delete from PenaltyVerify pv
+    where pv.groupMember.id in (
+        select gm.id
+        from GroupMember gm
+        where gm.group.id = :groupId
+    )
+    """)
+    int deletePenaltyVerifiesByGroupId(@Param("groupId") Long groupId);
 }

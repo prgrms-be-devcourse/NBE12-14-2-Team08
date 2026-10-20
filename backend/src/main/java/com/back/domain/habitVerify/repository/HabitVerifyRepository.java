@@ -91,4 +91,19 @@ public interface HabitVerifyRepository
     List<HabitVerify> findAllByGroupId(
             @Param("groupId") Long groupId
     );
+
+    @Modifying(flushAutomatically = true)
+    @Query("""
+    delete from HabitVerify hv
+    where hv.habit.id in (
+        select h.id
+        from Habit h
+        where h.groupMember.id in (
+            select gm.id
+            from GroupMember gm
+            where gm.group.id = :groupId
+        )
+    )
+    """)
+    int deleteHabitVerifiesByGroupId(@Param("groupId") Long groupId);
 }
