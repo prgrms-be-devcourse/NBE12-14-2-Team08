@@ -22,6 +22,7 @@ import com.back.domain.penaltyverify.dto.SubmitPenaltyVerifyRequest;
 import com.back.domain.penaltyverify.entity.PenaltyVerify;
 import com.back.domain.penaltyverify.entity.PenaltyVerifyStatus;
 import com.back.domain.penaltyverify.repository.PenaltyVerifyRepository;
+import com.back.global.storage.StorageService;
 import java.time.LocalDate;
 import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
@@ -31,6 +32,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.http.MediaType;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.transaction.annotation.Transactional;
 import tools.jackson.databind.json.JsonMapper;
@@ -48,6 +50,9 @@ class PenaltyVerifyControllerTest {
     @Autowired private GroupMemberRepository groupMemberRepository;
     @Autowired private HabitRepository habitRepository;
     @Autowired private PenaltyVerifyRepository penaltyVerifyRepository;
+
+    // 인증 사진 URL 검사(Supabase 호출)는 StorageServiceTest에서 확인하므로 여기서는 통과시킨다
+    @MockitoBean private StorageService storageService;
 
     private Long ownerId;
     private String ownerToken;

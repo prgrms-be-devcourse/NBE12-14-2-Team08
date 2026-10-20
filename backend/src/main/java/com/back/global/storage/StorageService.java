@@ -6,6 +6,7 @@ import org.springframework.stereotype.Service;
 import java.util.Locale;
 import java.util.Set;
 import java.util.UUID;
+import java.util.regex.Pattern;
 
 // 인증 사진(습관 / 벌칙) 저장 규칙을 담당한다.
 // "누가 올릴 수 있는가"는 각 도메인 서비스가 확인한 뒤 이 서비스를 호출한다.
@@ -15,6 +16,8 @@ public class StorageService {
 
     private static final String SUPABASE_STORAGE_PATH = "/storage/v1";
     private static final Set<String> ALLOWED_EXTENSIONS = Set.of(".jpg", ".jpeg", ".png", ".webp");
+    private static final Pattern UUID_PATTERN =
+            Pattern.compile("[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}");
 
     private final StorageProperties properties;
     private final SupabaseStorageClient supabaseStorageClient;
@@ -43,22 +46,50 @@ public class StorageService {
         return new UploadUrlResponse(uploadUrl, publicUrl(bucket, path));
     }
 
-    // 업로드된 이미지가 실제로 존재하는지 확인
-    public boolean existsHabitImage(String imageUrl) {
-
-        String bucket = properties.storage().habitBucket();
+    // 제출된 인증 사진 URL 검증 (DB 저장 전에 호출)
+    // ① 우리 저장소의 해당 종류 버킷 URL인가
+    // ② 경로가 이 회원·이 대상으로 발급된 {memberId}/{targetId}/{UUID}{확장자} 형태인가
+    //    - 지금 저장된 사진(currentImageUrl)을 그대로 다시 내는 경우는 생략 (#160 이전 경로 호환)
+    // ③ Supabase에 파일이 실제로 있는가 (장애 시 StorageUnavailableException → 502)
+    public void validateImageUrl(
+            VerificationImageType type,
+            Long memberId,
+            Long targetId,
+            String imageUrl,
+            String currentImageUrl
+    ) {
+        String bucket = type.bucket(properties.storage());
         String bucketUrl = publicUrl(bucket, "");
 
-        // 우리가 발급한 이미지 URL인지 확인
-        if (!imageUrl.startsWith(bucketUrl)) {
+        if (imageUrl == null || !imageUrl.startsWith(bucketUrl)) {
+            throw new IllegalArgumentException("업로드한 사진만 사용할 수 있습니다.");
+        }
+
+        String path = imageUrl.substring(bucketUrl.length());
+
+        if (!imageUrl.equals(currentImageUrl) && !isIssuedPath(path, memberId, targetId)) {
+            throw new IllegalArgumentException("본인이 업로드한 사진만 사용할 수 있습니다.");
+        }
+
+        if (!supabaseStorageClient.exists(bucket, path)) {
+            throw new IllegalArgumentException("업로드된 사진을 확인할 수 없습니다.");
+        }
+    }
+
+    // createUploadUrl이 발급하는 경로 형태와 정확히 같은지 확인 (../, 쿼리 문자열 등 차단)
+    private boolean isIssuedPath(String path, Long memberId, Long targetId) {
+        String prefix = memberId + "/" + targetId + "/";
+
+        if (!path.startsWith(prefix)) {
             return false;
         }
 
-        // URL에서 파일 경로만 가져오기
-        String path = imageUrl.substring(bucketUrl.length());
+        String filename = path.substring(prefix.length());
+        int dotIndex = filename.lastIndexOf(".");
 
-        // Supabase Storage에 실제 파일이 있는지 확인
-        return supabaseStorageClient.exists(bucket, path);
+        return dotIndex > 0
+                && UUID_PATTERN.matcher(filename.substring(0, dotIndex)).matches()
+                && ALLOWED_EXTENSIONS.contains(filename.substring(dotIndex));
     }
 
     // .jpg, .jpeg, .png, .webp 형식만 허용 (대소문자 무시)

@@ -6,6 +6,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.BDDMockito.willThrow;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 
@@ -130,7 +131,7 @@ class PenaltyVerifyServiceTest {
         }
 
         @Test
-        @DisplayName("submit: 타인의 습관에 벌칙을 제출하려 하면 IllegalStateException 발생")
+        @DisplayName("submit: 타인의 습관에 벌칙을 제출하려 하면 ForbiddenException(403), 사진 검사는 하지 않는다")
         void submit_타인습관_예외() {
             PenaltyVerify pv = createFixturePenalty(1L, PenaltyVerifyStatus.REQUIRED);
             given(penaltyVerifyRepository.findByHabitId(50L)).willReturn(Optional.of(pv));
@@ -140,8 +141,9 @@ class PenaltyVerifyServiceTest {
             );
 
             assertThatThrownBy(() -> penaltyVerifyService.submit(999L, 50L, request))
-                .isInstanceOf(IllegalStateException.class)
+                .isInstanceOf(ForbiddenException.class)
                 .hasMessageContaining("본인의 습관에 대해서만 벌칙을 제출할 수 있습니다.");
+            verify(storageService, never()).validateImageUrl(any(), anyLong(), anyLong(), anyString(), any());
         }
 
         @Test
@@ -196,7 +198,7 @@ class PenaltyVerifyServiceTest {
         }
 
         @Test
-        @DisplayName("resubmit: 타인의 벌칙을 재제출하려 하면 IllegalStateException 발생")
+        @DisplayName("resubmit: 타인의 벌칙을 재제출하려 하면 ForbiddenException(403), 사진 검사는 하지 않는다")
         void resubmit_타인벌칙_예외() {
             PenaltyVerify pv = createFixturePenalty(1L, PenaltyVerifyStatus.REJECTED);
             given(penaltyVerifyRepository.findById(1L)).willReturn(Optional.of(pv));
@@ -206,8 +208,9 @@ class PenaltyVerifyServiceTest {
             );
 
             assertThatThrownBy(() -> penaltyVerifyService.resubmit(1L, 1L, request))
-                .isInstanceOf(IllegalStateException.class)
+                .isInstanceOf(ForbiddenException.class)
                 .hasMessageContaining("본인의 벌칙만 재제출할 수 있습니다.");
+            verify(storageService, never()).validateImageUrl(any(), anyLong(), anyLong(), anyString(), any());
         }
     }
 
@@ -550,6 +553,80 @@ class PenaltyVerifyServiceTest {
                 .isInstanceOf(BusinessRuleException.class);
 
             verify(storageService, never()).createUploadUrl(any(), anyLong(), anyLong(), anyString());
+        }
+    }
+
+    @Nested
+    @DisplayName("벌칙 제출 시 인증 사진 검사 테스트")
+    class SubmitImageValidationTest {
+
+        @Test
+        @DisplayName("submit: 사진 URL 검사에 통과하면 지금 벌칙 id와 기존 사진을 넘겨 검사한 뒤 PENDING이 된다")
+        void submit_사진검사_통과() {
+            PenaltyVerify pv = createFixturePenalty(1L, PenaltyVerifyStatus.REQUIRED);
+            ReflectionTestUtils.setField(pv, "imageUrl", null);
+            given(penaltyVerifyRepository.findByHabitId(50L)).willReturn(Optional.of(pv));
+
+            penaltyVerifyService.submit(2L, 50L, new SubmitPenaltyVerifyRequest("수행", "https://storage/new.png"));
+
+            verify(storageService).validateImageUrl(VerificationImageType.PENALTY, 2L, 1L, "https://storage/new.png", null);
+            assertThat(pv.getStatus()).isEqualTo(PenaltyVerifyStatus.PENDING);
+        }
+
+        @Test
+        @DisplayName("submit: 사진 URL 검사에 실패하면 400이고 벌칙 상태는 그대로다")
+        void submit_사진검사_실패() {
+            PenaltyVerify pv = createFixturePenalty(1L, PenaltyVerifyStatus.REQUIRED);
+            given(penaltyVerifyRepository.findByHabitId(50L)).willReturn(Optional.of(pv));
+            willThrow(new IllegalArgumentException("업로드한 사진만 사용할 수 있습니다."))
+                .given(storageService).validateImageUrl(any(), anyLong(), anyLong(), anyString(), any());
+
+            assertThatThrownBy(() -> penaltyVerifyService.submit(2L, 50L,
+                new SubmitPenaltyVerifyRequest("수행", "https://evil.com/a.png")))
+                .isInstanceOf(IllegalArgumentException.class);
+
+            assertThat(pv.getStatus()).isEqualTo(PenaltyVerifyStatus.REQUIRED);
+        }
+
+        @Test
+        @DisplayName("submit: 사진 없이 제출하면 400 (벌칙 인증 사진은 필수)")
+        void submit_사진없음() {
+            PenaltyVerify pv = createFixturePenalty(1L, PenaltyVerifyStatus.REQUIRED);
+            given(penaltyVerifyRepository.findByHabitId(50L)).willReturn(Optional.of(pv));
+
+            assertThatThrownBy(() -> penaltyVerifyService.submit(2L, 50L, new SubmitPenaltyVerifyRequest("수행", " ")))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("벌칙 인증 사진은 필수입니다.");
+
+            verify(storageService, never()).validateImageUrl(any(), anyLong(), anyLong(), anyString(), any());
+        }
+
+        @Test
+        @DisplayName("submit: 제출할 수 없는 상태(PENDING)면 사진 검사 전에 409")
+        void submit_상태먼저() {
+            PenaltyVerify pv = createFixturePenalty(1L, PenaltyVerifyStatus.PENDING);
+            given(penaltyVerifyRepository.findByHabitId(50L)).willReturn(Optional.of(pv));
+
+            assertThatThrownBy(() -> penaltyVerifyService.submit(2L, 50L,
+                new SubmitPenaltyVerifyRequest("수행", "https://storage/new.png")))
+                .isInstanceOf(IllegalStateException.class);
+
+            verify(storageService, never()).validateImageUrl(any(), anyLong(), anyLong(), anyString(), any());
+        }
+
+        @Test
+        @DisplayName("resubmit: 지금 붙어 있는 사진을 기존 사진으로 넘겨 검사한다 (예전 경로 사진 재사용 허용)")
+        void resubmit_기존사진_전달() {
+            PenaltyVerify pv = createFixturePenalty(1L, PenaltyVerifyStatus.REJECTED);
+            ReflectionTestUtils.setField(pv, "imageUrl", "https://storage/penalties/2/old.png");
+            given(penaltyVerifyRepository.findById(1L)).willReturn(Optional.of(pv));
+
+            penaltyVerifyService.resubmit(2L, 1L,
+                new SubmitPenaltyVerifyRequest("다시 수행", "https://storage/penalties/2/old.png"));
+
+            verify(storageService).validateImageUrl(VerificationImageType.PENALTY, 2L, 1L,
+                "https://storage/penalties/2/old.png", "https://storage/penalties/2/old.png");
+            assertThat(pv.getStatus()).isEqualTo(PenaltyVerifyStatus.PENDING);
         }
     }
 }

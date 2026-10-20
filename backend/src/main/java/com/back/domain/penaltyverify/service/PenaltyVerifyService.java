@@ -16,7 +16,6 @@ import com.back.global.exception.ForbiddenException;
 import com.back.global.storage.StorageService;
 import com.back.global.storage.UploadUrlResponse;
 import com.back.global.storage.VerificationImageType;
-import com.back.global.util.ImageUrlValidator;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.NoSuchElementException;
@@ -66,18 +65,19 @@ public class PenaltyVerifyService {
     @Transactional
     public PenaltyVerifyDetailResponse submit(Long memberId, Long habitId,
         SubmitPenaltyVerifyRequest request) {
-        ImageUrlValidator.validate(request.imageUrl());
-
         PenaltyVerify penaltyVerify = penaltyVerifyRepository.findByHabitId(habitId)
             .orElseThrow(() -> new NoSuchElementException("해당 습관에 대한 벌칙 정보가 존재하지 않습니다."));
 
         if (!penaltyVerify.getGroupMember().getMember().getId().equals(memberId)) {
-            throw new IllegalStateException("본인의 습관에 대해서만 벌칙을 제출할 수 있습니다.");
+            throw new ForbiddenException("본인의 습관에 대해서만 벌칙을 제출할 수 있습니다.");
         }
 
         if (penaltyVerify.getGroupMember().getGroup().isFinished()) {
             throw new BusinessRuleException("이미 종료된 그룹에서는 벌칙을 제출할 수 없습니다.");
         }
+
+        penaltyVerify.validateSubmittable();
+        validatePenaltyImage(memberId, penaltyVerify, request.imageUrl());
 
         penaltyVerify.submit(
             LocalDate.now(),
@@ -90,17 +90,18 @@ public class PenaltyVerifyService {
 
     @Transactional
     public PenaltyVerifyDetailResponse resubmit(Long memberId, Long id, SubmitPenaltyVerifyRequest request) {
-        ImageUrlValidator.validate(request.imageUrl());
-
         PenaltyVerify penaltyVerify = findById(id);
 
         if (!penaltyVerify.getGroupMember().getMember().getId().equals(memberId)) {
-            throw new IllegalStateException("본인의 벌칙만 재제출할 수 있습니다.");
+            throw new ForbiddenException("본인의 벌칙만 재제출할 수 있습니다.");
         }
 
         if (penaltyVerify.getGroupMember().getGroup().isFinished()) {
             throw new BusinessRuleException("이미 종료된 그룹에서는 벌칙을 재제출할 수 없습니다.");
         }
+
+        penaltyVerify.validateResubmittable();
+        validatePenaltyImage(memberId, penaltyVerify, request.imageUrl());
 
         penaltyVerify.resubmit(
             LocalDate.now(),
@@ -216,6 +217,21 @@ public class PenaltyVerifyService {
         }
 
         return PenaltyVerifyDetailResponse.from(penaltyVerify);
+    }
+
+    // 벌칙 인증 사진은 필수이며, 다른 검사가 모두 끝난 뒤 마지막에 확인한다 (Supabase 호출 포함)
+    private void validatePenaltyImage(Long memberId, PenaltyVerify penaltyVerify, String imageUrl) {
+        if (imageUrl == null || imageUrl.isBlank()) {
+            throw new IllegalArgumentException("벌칙 인증 사진은 필수입니다.");
+        }
+
+        storageService.validateImageUrl(
+            VerificationImageType.PENALTY,
+            memberId,
+            penaltyVerify.getId(),
+            imageUrl,
+            penaltyVerify.getImageUrl()
+        );
     }
 
     private PenaltyVerify findById(Long id) {

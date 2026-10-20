@@ -70,11 +70,20 @@ public class PenaltyVerify extends BaseEntity {
         return penaltyVerify;
     }
 
-    public void submit(LocalDate verifyDate, String description, String imageUrl) {
-
+    public void validateSubmittable() {
         if (this.status != PenaltyVerifyStatus.REQUIRED) {
             throw new IllegalStateException("벌칙 제출 대상(REQUIRED)가 아닙니다. 현재상태" + this.status);
         }
+    }
+
+    public void validateResubmittable() {
+        if (this.status != PenaltyVerifyStatus.REJECTED) {
+            throw new IllegalStateException("반려된 벌칙만 재제출할 수 있습니다. 현재상태 " + this.status);
+        }
+    }
+
+    public void submit(LocalDate verifyDate, String description, String imageUrl) {
+        validateSubmittable();
 
         this.verifyDate = verifyDate;
         this.description = description;
@@ -83,10 +92,7 @@ public class PenaltyVerify extends BaseEntity {
     }
 
     public void resubmit(LocalDate verifyDate, String description, String imageUrl) {
-
-        if (this.status != PenaltyVerifyStatus.REJECTED) {
-            throw new IllegalStateException("반려된 벌칙만 재제출할 수 있습니다. 현재상태 " + this.status);
-        }
+        validateResubmittable();
 
         this.verifyDate = verifyDate;
         this.description = description;
