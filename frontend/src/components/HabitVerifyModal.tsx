@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import type { ChangeEvent, FormEvent } from 'react';
-import { apiRequest } from '../lib/memberApi';
+import { habitApi, uploadFileToSignedUrl } from '../lib/habitApi';
 
 interface HabitVerifyModalProps {
   isOpen: boolean;
@@ -12,11 +12,6 @@ interface HabitVerifyModalProps {
     description: string;
     imageUrl: string;
   }) => Promise<void>;
-}
-
-interface UploadUrlResponse {
-  uploadUrl: string;
-  publicUrl: string;
 }
 
 const inputClassName =
@@ -118,33 +113,10 @@ export function HabitVerifyModal({
       setIsUploading(true);
 
       // 1. 백엔드에 업로드 URL 요청
-      const uploadResponse =
-        await apiRequest<UploadUrlResponse>(
-          `/storage/habits/${habitId}/upload-url`,
-          {
-            method: 'POST',
-            body: JSON.stringify({
-              filename: file.name,
-            }),
-          },
-          true,
-        );
+      const uploadResponse = await habitApi.getHabitUploadUrl(habitId, file.name);
 
       // 2. 백엔드가 발급한 URL로 사진 업로드
-      const uploadResult = await fetch(
-        uploadResponse.uploadUrl,
-        {
-          method: 'PUT',
-          headers: {
-            'Content-Type': file.type,
-          },
-          body: file,
-        },
-      );
-
-      if (!uploadResult.ok) {
-        throw new Error('이미지 업로드에 실패했습니다.');
-      }
+      await uploadFileToSignedUrl(uploadResponse.uploadUrl, file);
 
       // 3. DB에 저장할 publicUrl 저장
       setImageUrl(uploadResponse.publicUrl);

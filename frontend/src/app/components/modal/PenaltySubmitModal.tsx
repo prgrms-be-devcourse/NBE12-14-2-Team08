@@ -1,10 +1,12 @@
 'use client';
 
 import React, { useState } from 'react';
+import { habitApi, uploadFileToSignedUrl } from '@/lib/habitApi';
 
 interface PenaltySubmitModalProps {
   isOpen: boolean;
   onClose: () => void;
+  penaltyId: number;
   habitId: number;
   penaltyText: string;
   onSuccess?: () => void;
@@ -13,6 +15,7 @@ interface PenaltySubmitModalProps {
 export default function PenaltySubmitModal({
                                              isOpen,
                                              onClose,
+                                             penaltyId,
                                              habitId,
                                              penaltyText,
                                              onSuccess,
@@ -46,21 +49,10 @@ export default function PenaltySubmitModal({
     setIsLoading(true);
     try {
       // 1. Presigned Upload URL 발급 요청
-      const presignRes = await fetch('http://localhost:8080/api/penalties/upload-url', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: authHeader,
-        },        body: JSON.stringify({ filename: file.name }),
-      });      if (!presignRes.ok) throw new Error('서명 URL 발급에 실패했습니다.');
-      const { uploadUrl, publicUrl } = await presignRes.json();
+      const { uploadUrl, publicUrl } = await habitApi.getPenaltyUploadUrl(penaltyId, file.name);
 
       // 2. Supabase Storage 직접 PUT 업로드
-      const uploadRes = await fetch(uploadUrl, {
-        method: 'PUT',
-        headers: { 'Content-Type': file.type },
-        body: file,
-      });      if (!uploadRes.ok) throw new Error('사진 스토리지 업로드에 실패했습니다.');
+      await uploadFileToSignedUrl(uploadUrl, file);
 
       // 3. 최종 벌칙 제출
       const submitRes = await fetch(`http://localhost:8080/api/habits/${habitId}/penalties`, {
