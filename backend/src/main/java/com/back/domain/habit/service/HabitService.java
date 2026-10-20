@@ -15,6 +15,7 @@ import com.back.domain.habitVerify.entity.HabitVerifyStatus;
 import com.back.domain.habitVerify.repository.HabitVerifyRepository;
 import com.back.domain.penaltyverify.service.PenaltyVerifyService;
 import com.back.global.exception.BusinessRuleException;
+import com.back.global.exception.EntityNotFoundException;
 import com.back.global.exception.ForbiddenException;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
@@ -24,7 +25,6 @@ import org.springframework.stereotype.Service;
 import java.time.DayOfWeek;
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
@@ -129,8 +129,17 @@ public class HabitService {
     }
 
 
-    public Optional<Habit> findById(Long habitId) {
-        return habitRepository.findById(habitId);
+    @Transactional
+    public HabitResponse getHabit(Long memberId, Long habitId) {
+        Habit habit = habitRepository.findById(habitId)
+                .orElseThrow(() -> new EntityNotFoundException("존재하지 않는 습관입니다."));
+
+        Long groupId = habit.getGroupMember().getGroup().getId();
+        if (!groupMemberRepository.existsByGroupIdAndMemberId(groupId, memberId)) {
+            throw new ForbiddenException("해당 그룹의 습관만 조회할 수 있습니다.");
+        }
+
+        return new HabitResponse(habit);
     }
 
     @Transactional

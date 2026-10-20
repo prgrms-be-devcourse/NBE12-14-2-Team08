@@ -3,7 +3,6 @@ package com.back.domain.habit.controller;
 import com.back.domain.habit.dto.CreateHabitRequest;
 import com.back.domain.habit.dto.HabitResponse;
 import com.back.domain.habit.dto.HabitWeeklyCheckResponse;
-import com.back.domain.habit.entity.Habit;
 import com.back.domain.habit.service.HabitService;
 import com.back.global.security.LoginMemberId;
 import io.swagger.v3.oas.annotations.Operation;
@@ -71,10 +70,8 @@ public class HabitController {
                     "- 습관 ID 기준 기본 정보 및 달성 현황을 반환합니다."
     )
     @GetMapping("/habits/{id}")
-    public HabitResponse detail(@PathVariable Long id) {
-        Habit habit = habitService.findById(id).get();
-
-        return new HabitResponse(habit);
+    public HabitResponse detail(@LoginMemberId Long memberId, @PathVariable Long id) {
+        return habitService.getHabit(memberId, id);
     }
 
     @Operation(
