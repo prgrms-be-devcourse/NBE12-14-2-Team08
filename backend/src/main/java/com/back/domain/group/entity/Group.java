@@ -76,7 +76,7 @@ public class Group extends BaseEntity {
     }
 
     public boolean isFinished() {
-        LocalDate today = LocalDate.now(java.time.ZoneId.of("Asia/Seoul"));
+        LocalDate today = LocalDate.now();
         return this.status == GroupStatus.FINISH || (this.deadline != null && today.isAfter(this.deadline));
     }
 }
