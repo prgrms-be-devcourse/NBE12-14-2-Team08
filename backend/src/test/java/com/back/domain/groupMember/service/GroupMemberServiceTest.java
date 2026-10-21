@@ -26,10 +26,12 @@ import com.back.global.exception.BusinessRuleException;
 import com.back.global.exception.EntityNotFoundException;
 import com.back.global.exception.ForbiddenException;
 import com.back.global.exception.GroupLimitExceededException;
+import jakarta.persistence.EntityManager;
 import java.time.LocalDate;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -67,6 +69,9 @@ class GroupMemberServiceTest {
     @Mock
     private PasswordEncoder passwordEncoder;
 
+    @Mock
+    private EntityManager entityManager;
+
     private final Long memberId = 1L;
     private final Long groupId = 100L;
     private final Long groupMemberId = 50L;
@@ -81,6 +86,15 @@ class GroupMemberServiceTest {
 
         ReflectionTestUtils.setField(group, "id", groupId);
         return group;
+    }
+
+    @BeforeEach
+    void setUp() {
+        ReflectionTestUtils.setField(
+                groupMemberService,
+                "entityManager",
+                entityManager
+        );
     }
 
     // 그룹 가입
@@ -264,6 +278,29 @@ class GroupMemberServiceTest {
                 verify(groupMemberRepository).findByGroupIdWithHabit(groupId);
             }
         }
+
+        @Nested
+        @DisplayName("Failure")
+        class Failure {
+
+            @Test
+            @DisplayName("그룹의 활성 멤버가 아니면 목록을 조회할 수 없다")
+            void getGroupMembers_NoAccess() {
+                // given
+                given(groupMemberRepository.existsByGroupIdAndMemberIdAndStatus(
+                        groupId, memberId, GroupMemberStatus.ACTIVE
+                )).willReturn(false);
+
+                // when & then
+                assertThatThrownBy(() ->
+                        groupMemberService.getGroupMembers(groupId, memberId)
+                )
+                        .isInstanceOf(ForbiddenException.class)
+                        .hasMessageContaining("해당 그룹의 접근 권한이 없습니다.");
+
+                verify(groupMemberRepository, never()).findByGroupIdWithHabit(groupId);
+            }
+        }
     }
 
     // 그룹 멤버 상세 조회
@@ -306,6 +343,55 @@ class GroupMemberServiceTest {
                 assertThat(result).isNotNull();
                 assertThat(result.groupMemberId()).isEqualTo(groupMemberId);
                 assertThat(result.penaltyCount()).isEqualTo(2L);
+            }
+        }
+
+        @Nested
+        @DisplayName("Failure")
+        class Failure {
+
+            @Test
+            @DisplayName("활성 멤버가 아니면 상세 정보를 조회할 수 없다")
+            void getGroupMemberDetail_NoAccess() {
+                // given
+                given(groupMemberRepository.existsByGroupIdAndMemberIdAndStatus(
+                        groupId, memberId, GroupMemberStatus.ACTIVE
+                )).willReturn(false);
+
+                // when & then
+                assertThatThrownBy(() ->
+                        groupMemberService.getGroupMemberDetail(
+                                groupId, groupMemberId, memberId
+                        )
+                )
+                        .isInstanceOf(ForbiddenException.class)
+                        .hasMessageContaining("해당 그룹의 접근 권한이 없습니다.");
+
+                verify(groupMemberRepository, never())
+                        .findMemberDetailWithPenaltyCount(groupId, groupMemberId);
+            }
+
+            @Test
+            @DisplayName("상세 조회 대상이 없으면 예외가 발생한다")
+            void getGroupMemberDetail_NotFound() {
+                // given
+                given(groupMemberRepository.existsByGroupIdAndMemberIdAndStatus(
+                        groupId, memberId, GroupMemberStatus.ACTIVE
+                )).willReturn(true);
+                given(groupMemberRepository.findMemberDetailWithPenaltyCount(
+                        groupId, groupMemberId
+                )).willReturn(Optional.empty());
+
+                // when & then
+                assertThatThrownBy(() ->
+                        groupMemberService.getGroupMemberDetail(
+                                groupId, groupMemberId, memberId
+                        )
+                )
+                        .isInstanceOf(EntityNotFoundException.class)
+                        .hasMessageContaining(
+                                "존재하지 않거나 해당 그룹의 가입 멤버가 아닙니다."
+                        );
             }
         }
     }
@@ -411,6 +497,87 @@ class GroupMemberServiceTest {
                                 "방장은 다른 멤버가 남아있는 상태에서 바로 탈퇴할 수 없습니다."
                         );
             }
+
+            @Test
+            @DisplayName("존재하지 않는 그룹이면 탈퇴할 수 없다")
+            void leaveGroup_GroupNotFound() {
+                given(groupRepository.findByIdForUpdate(groupId))
+                        .willReturn(Optional.empty());
+
+                assertThatThrownBy(() ->
+                        groupMemberService.leaveGroup(groupId, memberId)
+                )
+                        .isInstanceOf(EntityNotFoundException.class)
+                        .hasMessageContaining("존재하지 않는 그룹입니다.");
+            }
+
+            @Test
+            @DisplayName("그룹에 가입하지 않은 멤버는 탈퇴할 수 없다")
+            void leaveGroup_MemberNotFound() {
+                Group group = createActiveGroup();
+
+                given(groupRepository.findByIdForUpdate(groupId))
+                        .willReturn(Optional.of(group));
+                given(groupMemberRepository.findByGroupIdAndMemberId(groupId, memberId))
+                        .willReturn(Optional.empty());
+
+                assertThatThrownBy(() ->
+                        groupMemberService.leaveGroup(groupId, memberId)
+                )
+                        .isInstanceOf(EntityNotFoundException.class)
+                        .hasMessageContaining("해당 그룹의 멤버가 아닙니다.");
+            }
+
+            @Test
+            @DisplayName("이미 탈퇴한 멤버는 다시 탈퇴할 수 없다")
+            void leaveGroup_AlreadyLeft() {
+                Group group = createActiveGroup();
+                GroupMember groupMember = GroupMember.builder()
+                        .group(group)
+                        .role(GroupMemberRole.MEMBER)
+                        .status(GroupMemberStatus.LEFT)
+                        .build();
+
+                given(groupRepository.findByIdForUpdate(groupId))
+                        .willReturn(Optional.of(group));
+                given(groupMemberRepository.findByGroupIdAndMemberId(groupId, memberId))
+                        .willReturn(Optional.of(groupMember));
+
+                assertThatThrownBy(() ->
+                        groupMemberService.leaveGroup(groupId, memberId)
+                )
+                        .isInstanceOf(BusinessRuleException.class)
+                        .hasMessageContaining("이미 탈퇴한 멤버입니다.");
+            }
+        }
+    }
+
+    @Nested
+    @DisplayName("DeleteGroupMemberDataBulk")
+    class DeleteGroupMemberDataBulk {
+
+        @Nested
+        @DisplayName("Success")
+        class Success {
+
+            @Test
+            @DisplayName("습관 데이터가 없어도 벌칙 인증 데이터는 삭제한다")
+            void deleteGroupMemberDataBulk_NoHabits() {
+                // given
+                given(habitRepository.findIdsByGroupMemberId(groupMemberId))
+                        .willReturn(Collections.emptyList());
+
+                // when
+                groupMemberService.deleteGroupMemberDataBulk(groupMemberId);
+
+                // then
+                verify(habitRepository).findIdsByGroupMemberId(groupMemberId);
+                verify(penaltyVerifyRepository)
+                        .deleteByGroupMemberId(groupMemberId);
+
+                verify(habitVerifyRepository, never()).deleteByHabitIds(anyList());
+                verify(habitRepository, never()).deleteByIds(anyList());
+            }
         }
     }
 
@@ -455,6 +622,41 @@ class GroupMemberServiceTest {
                 // then
                 verify(penaltyVerifyRepository).deleteByGroupMemberId(targetId);
                 verify(groupMemberRepository).delete(target);
+            }
+
+            @Test
+            @DisplayName("마지막 멤버가 탈퇴하면 연관 데이터를 삭제하고 그룹도 삭제한다")
+            void leaveGroup_LastMember() {
+                // given
+                Group group = createActiveGroup();
+                GroupMember groupMember = GroupMember.builder()
+                        .group(group)
+                        .role(GroupMemberRole.OWNER)
+                        .build();
+
+                given(groupRepository.findByIdForUpdate(groupId))
+                        .willReturn(Optional.of(group));
+                given(groupMemberRepository.findByGroupIdAndMemberId(groupId, memberId))
+                        .willReturn(Optional.of(groupMember));
+                given(groupMemberRepository.countByGroupIdAndStatus(
+                        groupId, GroupMemberStatus.ACTIVE
+                )).willReturn(1L);
+
+                // deleteGroupAndAllMembers()에서 그룹을 다시 조회한다.
+                given(groupRepository.findById(groupId))
+                        .willReturn(Optional.of(group));
+
+                // when
+                groupMemberService.leaveGroup(groupId, memberId);
+
+                // then
+                verify(habitVerifyRepository).deleteHabitVerifiesByGroupId(groupId);
+                verify(penaltyVerifyRepository).deletePenaltyVerifiesByGroupId(groupId);
+                verify(habitRepository).deleteHabitsByGroupId(groupId);
+                verify(groupMemberRepository).deleteGroupMembersByGroupId(groupId);
+                verify(entityManager).flush();
+                verify(entityManager).clear();
+                verify(groupRepository).delete(group);
             }
         }
 
@@ -505,6 +707,97 @@ class GroupMemberServiceTest {
                 )
                         .isInstanceOf(BusinessRuleException.class)
                         .hasMessageContaining("방장 스스로를 추방할 수 없습니다.");
+            }
+
+            @Test
+            @DisplayName("추방 대상 멤버가 존재하지 않으면 예외가 발생한다")
+            void kickMember_TargetNotFound() {
+                // given
+                Group group = createActiveGroup();
+                GroupMember owner = GroupMember.builder()
+                        .group(group)
+                        .role(GroupMemberRole.OWNER)
+                        .build();
+
+                given(groupMemberRepository.findByGroupIdAndMemberId(groupId, memberId))
+                        .willReturn(Optional.of(owner));
+                given(groupMemberRepository.findById(groupMemberId))
+                        .willReturn(Optional.empty());
+
+                // when & then
+                assertThatThrownBy(() ->
+                        groupMemberService.kickMember(groupId, groupMemberId, memberId)
+                )
+                        .isInstanceOf(EntityNotFoundException.class)
+                        .hasMessageContaining("존재하지 않거나 해당 그룹의 멤버가 아닙니다.");
+            }
+
+            @Test
+            @DisplayName("다른 그룹의 멤버는 추방할 수 없다")
+            void kickMember_DifferentGroup() {
+                // given
+                Group group = createActiveGroup();
+                Group otherGroup = Group.builder()
+                        .deadline(LocalDate.now().plusDays(7))
+                        .build();
+                ReflectionTestUtils.setField(otherGroup, "id", 200L);
+
+                GroupMember owner = GroupMember.builder()
+                        .group(group)
+                        .role(GroupMemberRole.OWNER)
+                        .build();
+                ReflectionTestUtils.setField(owner, "id", groupMemberId);
+
+                GroupMember target = GroupMember.builder()
+                        .group(otherGroup)
+                        .role(GroupMemberRole.MEMBER)
+                        .build();
+                ReflectionTestUtils.setField(target, "id", 60L);
+
+                given(groupMemberRepository.findByGroupIdAndMemberId(groupId, memberId))
+                        .willReturn(Optional.of(owner));
+                given(groupMemberRepository.findById(60L))
+                        .willReturn(Optional.of(target));
+
+                // when & then
+                assertThatThrownBy(() ->
+                        groupMemberService.kickMember(groupId, 60L, memberId)
+                )
+                        .isInstanceOf(BusinessRuleException.class)
+                        .hasMessageContaining("해당 그룹에 속한 멤버가 아닙니다.");
+            }
+
+            @Test
+            @DisplayName("종료된 그룹에서는 멤버를 추방할 수 없다")
+            void kickMember_FinishedGroup() {
+                // given
+                Group group = org.mockito.Mockito.mock(Group.class);
+                given(group.getId()).willReturn(groupId);
+                given(group.isFinished()).willReturn(true);
+
+                GroupMember owner = GroupMember.builder()
+                        .group(group)
+                        .role(GroupMemberRole.OWNER)
+                        .build();
+                ReflectionTestUtils.setField(owner, "id", groupMemberId);
+
+                GroupMember target = GroupMember.builder()
+                        .group(group)
+                        .role(GroupMemberRole.MEMBER)
+                        .build();
+                ReflectionTestUtils.setField(target, "id", 60L);
+
+                given(groupMemberRepository.findByGroupIdAndMemberId(groupId, memberId))
+                        .willReturn(Optional.of(owner));
+                given(groupMemberRepository.findById(60L))
+                        .willReturn(Optional.of(target));
+
+                // when & then
+                assertThatThrownBy(() ->
+                        groupMemberService.kickMember(groupId, 60L, memberId)
+                )
+                        .isInstanceOf(BusinessRuleException.class)
+                        .hasMessageContaining("이미 종료된 그룹은 멤버를 추방할 수 없습니다.");
             }
         }
     }
@@ -579,6 +872,110 @@ class GroupMemberServiceTest {
                         .hasMessageContaining(
                                 "자기 자신에게 방장 권한을 위임할 수 없습니다."
                         );
+            }
+
+            @Test
+            @DisplayName("방장이 아닌 멤버는 방장 권한을 위임할 수 없다")
+            void transferOwner_NotOwner() {
+                Group group = createActiveGroup();
+                GroupMember member = GroupMember.builder()
+                        .group(group)
+                        .role(GroupMemberRole.MEMBER)
+                        .build();
+
+                given(groupMemberRepository.findByGroupIdAndMemberId(groupId, memberId))
+                        .willReturn(Optional.of(member));
+
+                assertThatThrownBy(() ->
+                        groupMemberService.transferOwner(groupId, 60L, memberId)
+                )
+                        .isInstanceOf(ForbiddenException.class)
+                        .hasMessageContaining("방장 권한 위임은 현재 방장만 가능합니다.");
+            }
+
+            @Test
+            @DisplayName("위임 대상 멤버가 존재하지 않으면 예외가 발생한다")
+            void transferOwner_TargetNotFound() {
+                Group group = createActiveGroup();
+                GroupMember owner = GroupMember.builder()
+                        .group(group)
+                        .role(GroupMemberRole.OWNER)
+                        .build();
+
+                given(groupMemberRepository.findByGroupIdAndMemberId(groupId, memberId))
+                        .willReturn(Optional.of(owner));
+                given(groupMemberRepository.findById(60L))
+                        .willReturn(Optional.empty());
+
+                assertThatThrownBy(() ->
+                        groupMemberService.transferOwner(groupId, 60L, memberId)
+                )
+                        .isInstanceOf(EntityNotFoundException.class)
+                        .hasMessageContaining("권한을 위임할 대상 멤버가 존재하지 않습니다.");
+            }
+
+            @Test
+            @DisplayName("다른 그룹의 멤버에게는 방장 권한을 위임할 수 없다")
+            void transferOwner_DifferentGroup() {
+                Group group = createActiveGroup();
+                Group otherGroup = Group.builder()
+                        .deadline(LocalDate.now().plusDays(7))
+                        .build();
+                ReflectionTestUtils.setField(otherGroup, "id", 200L);
+
+                GroupMember owner = GroupMember.builder()
+                        .group(group)
+                        .role(GroupMemberRole.OWNER)
+                        .build();
+                ReflectionTestUtils.setField(owner, "id", groupMemberId);
+
+                GroupMember target = GroupMember.builder()
+                        .group(otherGroup)
+                        .role(GroupMemberRole.MEMBER)
+                        .build();
+                ReflectionTestUtils.setField(target, "id", 60L);
+
+                given(groupMemberRepository.findByGroupIdAndMemberId(groupId, memberId))
+                        .willReturn(Optional.of(owner));
+                given(groupMemberRepository.findById(60L))
+                        .willReturn(Optional.of(target));
+
+                assertThatThrownBy(() ->
+                        groupMemberService.transferOwner(groupId, 60L, memberId)
+                )
+                        .isInstanceOf(BusinessRuleException.class)
+                        .hasMessageContaining("해당 그룹에 속한 멤버가 아닙니다.");
+            }
+
+            @Test
+            @DisplayName("종료된 그룹에서는 방장 권한을 위임할 수 없다")
+            void transferOwner_FinishedGroup() {
+                Group group = org.mockito.Mockito.mock(Group.class);
+                given(group.getId()).willReturn(groupId);
+                given(group.isFinished()).willReturn(true);
+
+                GroupMember owner = GroupMember.builder()
+                        .group(group)
+                        .role(GroupMemberRole.OWNER)
+                        .build();
+                ReflectionTestUtils.setField(owner, "id", groupMemberId);
+
+                GroupMember target = GroupMember.builder()
+                        .group(group)
+                        .role(GroupMemberRole.MEMBER)
+                        .build();
+                ReflectionTestUtils.setField(target, "id", 60L);
+
+                given(groupMemberRepository.findByGroupIdAndMemberId(groupId, memberId))
+                        .willReturn(Optional.of(owner));
+                given(groupMemberRepository.findById(60L))
+                        .willReturn(Optional.of(target));
+
+                assertThatThrownBy(() ->
+                        groupMemberService.transferOwner(groupId, 60L, memberId)
+                )
+                        .isInstanceOf(BusinessRuleException.class)
+                        .hasMessageContaining("이미 종료된 그룹은 방장을 위임할 수 없습니다.");
             }
         }
     }
