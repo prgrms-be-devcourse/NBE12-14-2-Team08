@@ -164,4 +164,61 @@ class HabitServiceTest {
             verify(habitRepository, never()).save(any(Habit.class));
         }
     }
+
+    @Nested
+    @DisplayName("습관 포기(failHabit)")
+    class FailHabit {
+
+        @Test
+        @DisplayName("본인의 활성 습관을 포기하면 FAILED가 되고 벌칙이 생성된다")
+        void 포기_성공() {
+            Habit habit = habit(groupMember(activeGroup(), GroupMemberRole.MEMBER));
+            given(habitRepository.findByIdAndGroupMember_Member_Id(HABIT_ID, MEMBER_ID))
+                .willReturn(Optional.of(habit));
+
+            habitService.failHabit(MEMBER_ID, HABIT_ID);
+
+            assertThat(habit.getStatus()).isEqualTo(HabitStatus.FAILED);
+            verify(penaltyVerifyService).createPenaltyVerify(habit);
+        }
+
+        @Test
+        @DisplayName("본인의 습관이 아니거나 없으면 IllegalArgumentException이 발생하고 벌칙은 생성되지 않는다")
+        void 습관이_없으면_예외() {
+            given(habitRepository.findByIdAndGroupMember_Member_Id(HABIT_ID, MEMBER_ID))
+                .willReturn(Optional.empty());
+
+            assertThatThrownBy(() -> habitService.failHabit(MEMBER_ID, HABIT_ID))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("해당 회원의 습관을 찾을 수 없습니다.");
+            verify(penaltyVerifyService, never()).createPenaltyVerify(any(Habit.class));
+        }
+
+        @Test
+        @DisplayName("종료된 그룹의 습관은 포기할 수 없고 상태도 바뀌지 않는다")
+        void 종료된_그룹이면_예외() {
+            Habit habit = habit(groupMember(group(GroupStatus.FINISH, null), GroupMemberRole.MEMBER));
+            given(habitRepository.findByIdAndGroupMember_Member_Id(HABIT_ID, MEMBER_ID))
+                .willReturn(Optional.of(habit));
+
+            assertThatThrownBy(() -> habitService.failHabit(MEMBER_ID, HABIT_ID))
+                .isInstanceOf(BusinessRuleException.class)
+                .hasMessageContaining("이미 종료된 그룹의 습관은 포기할 수 없습니다.");
+            assertThat(habit.getStatus()).isEqualTo(HabitStatus.ACTIVE);
+            verify(penaltyVerifyService, never()).createPenaltyVerify(any(Habit.class));
+        }
+
+        @Test
+        @DisplayName("이미 FAILED인 습관을 다시 포기하면 IllegalStateException이 발생하고 벌칙은 중복 생성되지 않는다")
+        void 이미_실패한_습관이면_예외() {
+            Habit habit = habit(groupMember(activeGroup(), GroupMemberRole.MEMBER));
+            habit.fail();
+            given(habitRepository.findByIdAndGroupMember_Member_Id(HABIT_ID, MEMBER_ID))
+                .willReturn(Optional.of(habit));
+
+            assertThatThrownBy(() -> habitService.failHabit(MEMBER_ID, HABIT_ID))
+                .isInstanceOf(IllegalStateException.class);
+            verify(penaltyVerifyService, never()).createPenaltyVerify(any(Habit.class));
+        }
+    }
 }
