@@ -228,4 +228,78 @@ class HabitControllerTest {
                     .hasSize(1);
         }
     }
+
+    @Nested
+    @DisplayName("습관 포기 POST /api/habits/fail/{habitId}")
+    class FailHabitApi {
+
+        @Test
+        @DisplayName("본인 습관을 포기하면 FAILED가 되고 REQUIRED 벌칙이 그룹의 벌칙 문구로 생성된다")
+        void 포기_성공() throws Exception {
+            failHabit(memberToken, habitId).andExpect(status().isOk());
+
+            Habit habit = habitRepository.findById(habitId).orElseThrow();
+            assertThat(habit.getStatus()).isEqualTo(HabitStatus.FAILED);
+
+            PenaltyVerify penalty = penaltyVerifyRepository.findByHabitId(habitId).orElseThrow();
+            assertThat(penalty.getStatus()).isEqualTo(PenaltyVerifyStatus.REQUIRED);
+            assertThat(penalty.getPenaltyText()).isEqualTo("커피 사기");
+            assertThat(penalty.getHabitTitle()).isEqualTo("물 마시기");
+        }
+
+        @Test
+        @DisplayName("포기하면 활성 습관이 없어지고, 벌칙과 무관하게 새 습관을 바로 만들 수 있다")
+        void 포기_후_새_습관_생성_가능() throws Exception {
+            failHabit(memberToken, habitId).andExpect(status().isOk());
+
+            mockMvc.perform(get("/api/groups/{groupId}/habits/active", groupId)
+                            .header("Authorization", "Bearer " + memberToken))
+                    .andExpect(status().isBadRequest());
+
+            createHabit(memberToken, new CreateHabitRequest("독서 30분", "책 읽기", 5))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.status").value("ACTIVE"));
+        }
+
+        @Test
+        @DisplayName("다른 사람의 습관은 포기시킬 수 없다 (400, 상태와 벌칙은 그대로)")
+        void 타인의_습관이면_400() throws Exception {
+            failHabit(ownerToken, habitId).andExpect(status().isBadRequest());
+
+            assertThat(habitRepository.findById(habitId).orElseThrow().getStatus())
+                    .isEqualTo(HabitStatus.ACTIVE);
+            assertThat(penaltyVerifyRepository.findByHabitId(habitId)).isEmpty();
+        }
+
+        @Test
+        @DisplayName("존재하지 않는 습관이면 400을 반환한다")
+        void 없는_습관이면_400() throws Exception {
+            failHabit(memberToken, 999_999L).andExpect(status().isBadRequest());
+        }
+
+        @Test
+        @DisplayName("이미 포기한 습관을 다시 포기하면 409를 반환하고 벌칙이 더 생기지 않는다")
+        void 이미_포기한_습관이면_409() throws Exception {
+            failHabit(memberToken, habitId).andExpect(status().isOk());
+            long penaltyCountAfterFirstFail = penaltyVerifyRepository.count();
+
+            failHabit(memberToken, habitId).andExpect(status().isConflict());
+
+            assertThat(penaltyVerifyRepository.count()).isEqualTo(penaltyCountAfterFirstFail);
+        }
+
+        @Test
+        @DisplayName("종료된 그룹에서는 포기할 수 없다 (400, 습관은 ACTIVE 그대로)")
+        void 종료된_그룹이면_400() throws Exception {
+            finishGroup();
+
+            failHabit(memberToken, habitId)
+                    .andExpect(status().isBadRequest())
+                    .andExpect(jsonPath("$.message").value("이미 종료된 그룹의 습관은 포기할 수 없습니다."));
+
+            assertThat(habitRepository.findById(habitId).orElseThrow().getStatus())
+                    .isEqualTo(HabitStatus.ACTIVE);
+            assertThat(penaltyVerifyRepository.findByHabitId(habitId)).isEmpty();
+        }
+    }
 }
