@@ -12,6 +12,7 @@ import com.back.domain.habitVerify.dto.HabitVerifyResponse;
 import com.back.domain.habitVerify.dto.HabitVerifySummaryResponse;
 import com.back.domain.habitVerify.entity.HabitVerify;
 import com.back.domain.habitVerify.repository.HabitVerifyRepository;
+import com.back.global.exception.ForbiddenException;
 import com.back.global.storage.StorageService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.AccessDeniedException;
@@ -102,7 +103,7 @@ public class HabitVerifyService {
         boolean isGroupMember = groupMemberRepository.existsByGroupIdAndMemberId(groupId, memberId);
 
         if (!isGroupMember) {
-            throw new IllegalArgumentException("같은 그룹의 멤버만 조회할 수 있습니다.");
+            throw new ForbiddenException("같은 그룹의 멤버만 조회할 수 있습니다.");
         }
 
         return habitVerifyRepository
