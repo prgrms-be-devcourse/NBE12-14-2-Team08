@@ -46,4 +46,15 @@ public interface HabitRepository extends JpaRepository<Habit, Long> {
     @Modifying(clearAutomatically = true, flushAutomatically = true)
     @Query("delete from Habit h where h.id in :habitIds")
     void deleteByIds(@Param("habitIds") List<Long> habitIds);
+
+    @Modifying(flushAutomatically = true)
+    @Query("""
+    delete from Habit h
+    where h.groupMember.id in (
+        select gm.id
+        from GroupMember gm
+        where gm.group.id = :groupId
+    )
+    """)
+    int deleteHabitsByGroupId(@Param("groupId") Long groupId);
 }

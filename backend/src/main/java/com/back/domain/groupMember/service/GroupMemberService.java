@@ -185,15 +185,15 @@ public class GroupMemberService {
 
     @Transactional
     public void deleteGroupAndAllMembers(Group group) {
-        List<GroupMember> groupMembers = groupMemberRepository.findAllByGroupId(group.getId());
+        Long groupId = group.getId();
 
-        for (GroupMember groupMember : groupMembers) {
-            deleteGroupMemberDataBulk(groupMember.getId());
-        }
+        habitVerifyRepository.deleteHabitVerifiesByGroupId(groupId);
 
-        if (!groupMembers.isEmpty()) {
-            groupMemberRepository.deleteAllInBatch(groupMembers);
-        }
+        penaltyVerifyRepository.deletePenaltyVerifiesByGroupId(groupId);
+
+        habitRepository.deleteHabitsByGroupId(groupId);
+
+        groupMemberRepository.deleteGroupMembersByGroupId(groupId);
 
         groupRepository.delete(group);
     }
