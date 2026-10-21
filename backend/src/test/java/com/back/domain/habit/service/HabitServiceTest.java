@@ -307,4 +307,64 @@ class HabitServiceTest {
                 .hasMessageContaining("해당 그룹의 습관만 조회할 수 있습니다.");
         }
     }
+
+    @Nested
+    @DisplayName("그룹 주간 판정(checkWeeklyFailureForGroup)")
+    class CheckWeeklyFailure {
+
+        @Test
+        @DisplayName("그룹 멤버가 아니면 IllegalArgumentException이 발생한다")
+        void 그룹_멤버가_아니면_예외() {
+            given(groupMemberRepository.findByGroupIdAndMemberId(GROUP_ID, MEMBER_ID))
+                .willReturn(Optional.empty());
+
+            assertThatThrownBy(() -> habitService.checkWeeklyFailureForGroup(MEMBER_ID, GROUP_ID))
+                .isInstanceOf(IllegalArgumentException.class);
+        }
+
+        @Test
+        @DisplayName("방장이 아니면 ForbiddenException이 발생하고 습관을 조회하지 않는다")
+        void 방장이_아니면_예외() {
+            given(groupMemberRepository.findByGroupIdAndMemberId(GROUP_ID, MEMBER_ID))
+                .willReturn(Optional.of(groupMember(activeGroup(), GroupMemberRole.MEMBER)));
+
+            assertThatThrownBy(() -> habitService.checkWeeklyFailureForGroup(MEMBER_ID, GROUP_ID))
+                .isInstanceOf(ForbiddenException.class)
+                .hasMessageContaining("주간 판정은 방장만 실행할 수 있습니다.");
+            verify(habitRepository, never()).findAllByGroupMember_Group_IdAndStatus(any(), any());
+        }
+
+        @Test
+        @DisplayName("종료된 그룹이면 BusinessRuleException이 발생하고 습관을 조회하지 않는다")
+        void 종료된_그룹이면_예외() {
+            given(groupMemberRepository.findByGroupIdAndMemberId(GROUP_ID, MEMBER_ID))
+                .willReturn(Optional.of(groupMember(group(GroupStatus.FINISH, null), GroupMemberRole.OWNER)));
+
+            assertThatThrownBy(() -> habitService.checkWeeklyFailureForGroup(MEMBER_ID, GROUP_ID))
+                .isInstanceOf(BusinessRuleException.class)
+                .hasMessageContaining("이미 종료된 그룹은 주간 판정을 실행할 수 없습니다.");
+            verify(habitRepository, never()).findAllByGroupMember_Group_IdAndStatus(any(), any());
+        }
+
+        @Test
+        @DisplayName("방장이 호출하면 그룹의 활성 습관마다 판정 결과를 반환한다")
+        void 판정_결과_반환() {
+            Group group = activeGroup();
+            GroupMember owner = groupMember(group, GroupMemberRole.OWNER);
+            // 가입 직후라 1주가 지나지 않은 습관은 TOO_EARLY
+            ReflectionTestUtils.setField(owner, "createDate", LocalDateTime.now());
+            Habit habit = habit(owner);
+            given(groupMemberRepository.findByGroupIdAndMemberId(GROUP_ID, MEMBER_ID))
+                .willReturn(Optional.of(owner));
+            given(habitRepository.findAllByGroupMember_Group_IdAndStatus(GROUP_ID, HabitStatus.ACTIVE))
+                .willReturn(List.of(habit));
+
+            List<HabitWeeklyCheckResponse> results = habitService.checkWeeklyFailureForGroup(MEMBER_ID, GROUP_ID);
+
+            assertThat(results).hasSize(1);
+            assertThat(results.get(0).habitId()).isEqualTo(HABIT_ID);
+            assertThat(results.get(0).result()).isEqualTo(WeeklyCheckResult.TOO_EARLY);
+            assertThat(results.get(0).habitStatus()).isEqualTo(HabitStatus.ACTIVE);
+        }
+    }
 }
