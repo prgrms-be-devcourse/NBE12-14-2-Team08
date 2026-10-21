@@ -221,4 +221,90 @@ class HabitServiceTest {
             verify(penaltyVerifyService, never()).createPenaltyVerify(any(Habit.class));
         }
     }
+
+    @Nested
+    @DisplayName("습관 조회")
+    class GetHabit {
+
+        @Test
+        @DisplayName("활성 습관이 있으면 그 습관을 반환한다")
+        void 활성_습관_조회_성공() {
+            Habit habit = habit(groupMember(activeGroup(), GroupMemberRole.MEMBER));
+            given(habitRepository.findByGroupMember_Member_IdAndGroupMember_Group_IdAndStatus(
+                MEMBER_ID, GROUP_ID, HabitStatus.ACTIVE)).willReturn(Optional.of(habit));
+
+            HabitResponse response = habitService.getActiveHabit(MEMBER_ID, GROUP_ID);
+
+            assertThat(response.id()).isEqualTo(HABIT_ID);
+            assertThat(response.status()).isEqualTo(HabitStatus.ACTIVE);
+        }
+
+        @Test
+        @DisplayName("활성 습관이 없으면 IllegalArgumentException이 발생한다")
+        void 활성_습관이_없으면_예외() {
+            given(habitRepository.findByGroupMember_Member_IdAndGroupMember_Group_IdAndStatus(
+                MEMBER_ID, GROUP_ID, HabitStatus.ACTIVE)).willReturn(Optional.empty());
+
+            assertThatThrownBy(() -> habitService.getActiveHabit(MEMBER_ID, GROUP_ID))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("현재 진행 중인 습관이 없습니다.");
+        }
+
+        @Test
+        @DisplayName("실패한 습관 목록은 저장소가 돌려준 순서(최신순)를 그대로 유지한다")
+        void 실패한_습관_목록_조회() {
+            GroupMember groupMember = groupMember(activeGroup(), GroupMemberRole.MEMBER);
+            Habit newer = habit(groupMember);
+            ReflectionTestUtils.setField(newer, "id", 2L);
+            Habit older = habit(groupMember);
+            ReflectionTestUtils.setField(older, "id", 1L);
+            given(habitRepository.findAllByGroupMember_Member_IdAndGroupMember_Group_IdAndStatusOrderByCreateDateDesc(
+                MEMBER_ID, GROUP_ID, HabitStatus.FAILED)).willReturn(List.of(newer, older));
+
+            List<HabitResponse> responses = habitService.getFailedHabits(MEMBER_ID, GROUP_ID);
+
+            assertThat(responses).extracting(HabitResponse::id).containsExactly(2L, 1L);
+        }
+
+        @Test
+        @DisplayName("실패한 습관이 없으면 빈 목록을 반환한다")
+        void 실패한_습관이_없으면_빈_목록() {
+            given(habitRepository.findAllByGroupMember_Member_IdAndGroupMember_Group_IdAndStatusOrderByCreateDateDesc(
+                MEMBER_ID, GROUP_ID, HabitStatus.FAILED)).willReturn(List.of());
+
+            assertThat(habitService.getFailedHabits(MEMBER_ID, GROUP_ID)).isEmpty();
+        }
+
+        @Test
+        @DisplayName("같은 그룹 멤버는 습관 상세를 조회할 수 있다")
+        void 상세_조회_성공() {
+            Habit habit = habit(groupMember(activeGroup(), GroupMemberRole.MEMBER));
+            given(habitRepository.findById(HABIT_ID)).willReturn(Optional.of(habit));
+            given(groupMemberRepository.existsByGroupIdAndMemberId(GROUP_ID, MEMBER_ID)).willReturn(true);
+
+            assertThat(habitService.getHabit(MEMBER_ID, HABIT_ID).id()).isEqualTo(HABIT_ID);
+        }
+
+        @Test
+        @DisplayName("존재하지 않는 습관이면 EntityNotFoundException이 발생한다")
+        void 상세_조회_없는_습관_예외() {
+            given(habitRepository.findById(HABIT_ID)).willReturn(Optional.empty());
+
+            assertThatThrownBy(() -> habitService.getHabit(MEMBER_ID, HABIT_ID))
+                .isInstanceOf(EntityNotFoundException.class)
+                .hasMessageContaining("존재하지 않는 습관입니다.");
+        }
+
+        @Test
+        @DisplayName("다른 그룹의 습관이면 ForbiddenException이 발생한다")
+        void 상세_조회_다른_그룹_예외() {
+            Habit habit = habit(groupMember(activeGroup(), GroupMemberRole.MEMBER));
+            given(habitRepository.findById(HABIT_ID)).willReturn(Optional.of(habit));
+            given(groupMemberRepository.existsByGroupIdAndMemberId(GROUP_ID, MEMBER_ID)).willReturn(false);
+
+            assertThatThrownBy(() -> habitService.getHabit(MEMBER_ID, HABIT_ID))
+                .isInstanceOf(ForbiddenException.class)
+                .hasMessageContaining("해당 그룹의 습관만 조회할 수 있습니다.");
+        }
+    }
 }
