@@ -231,7 +231,7 @@ class PenaltyVerifyServiceTest {
         }
 
         @Test
-        @DisplayName("방장이 아닌 일반 회원이 승인 시도 시 IllegalStateException 발생")
+        @DisplayName("방장이 아닌 일반 회원이 승인 시도 시 ForbiddenException (403)")
         void approve_방장아님_예외() {
             PenaltyVerify pv = createFixturePenalty(1L, PenaltyVerifyStatus.PENDING);
             given(penaltyVerifyRepository.findById(1L)).willReturn(Optional.of(pv));
@@ -239,7 +239,7 @@ class PenaltyVerifyServiceTest {
                 .willReturn(Optional.of(normalGroupMember));
 
             assertThatThrownBy(() -> penaltyVerifyService.approve(2L, 1L))
-                .isInstanceOf(IllegalStateException.class)
+                .isInstanceOf(ForbiddenException.class)
                 .hasMessageContaining("승인/거절 권한이 없습니다.");
         }
 
@@ -282,13 +282,13 @@ class PenaltyVerifyServiceTest {
         }
 
         @Test
-        @DisplayName("bulkReject: 방장이 아닌 사용자가 일괄 처리 시 예외 발생")
+        @DisplayName("bulkReject: 방장이 아닌 사용자가 일괄 처리 시 ForbiddenException (403)")
         void bulkReject_권한없음_예외() {
             given(groupMemberRepository.findByGroupIdAndMemberId(100L, 2L))
                 .willReturn(Optional.of(normalGroupMember));
 
             assertThatThrownBy(() -> penaltyVerifyService.bulkReject(2L, 100L, new BulkActionRequest(List.of(1L))))
-                .isInstanceOf(IllegalStateException.class)
+                .isInstanceOf(ForbiddenException.class)
                 .hasMessageContaining("승인/거절 권한이 없습니다.");
         }
     }
