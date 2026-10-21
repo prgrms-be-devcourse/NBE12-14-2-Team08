@@ -27,6 +27,8 @@ public class AuthTokenService {
         this.accessExpiration = accessExpiration;
     }
 
+    // API 접근용 토큰이다. 만료 기간은 jwt.access-expiration의 밀리초 값을 사용한다.
+    // 토큰에는 회원 ID만 담으므로 방장 권한 등은 각 서비스에서 별도로 확인해야 한다.
     public String createAccessToken(Long memberId) {
         Date now = new Date();
 
@@ -39,6 +41,8 @@ public class AuthTokenService {
                 .compact();
     }
 
+    // 현재 Refresh Token에는 만료 시각이 없다. 재발급 시 서명/종류와 DB 저장값을 함께 검증한다.
+    // 만료나 토큰 교체 정책을 도입한다면 AuthController와 MemberService도 함께 변경해야 한다.
     public String createRefreshToken(Long memberId) {
         Date now = new Date();
 

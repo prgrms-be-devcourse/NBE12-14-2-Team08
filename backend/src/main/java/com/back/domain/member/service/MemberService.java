@@ -32,6 +32,8 @@ public class MemberService {
     private final GroupMemberRepository groupMemberRepository;
     private final AuthTokenService authTokenService;
 
+    // 비밀번호는 해시로 저장하고, 회원 ID가 발급된 뒤 재발급용 토큰을 생성한다.
+    // 현재 정책은 가입 시 저장한 Refresh Token을 로그인 시 다시 반환하는 방식이다.
     @Transactional
     public MemberResponse join(CreateMemberRequest request) {
         if (memberRepository.existsByUsername(request.username())) {
@@ -87,6 +89,8 @@ public class MemberService {
         return MemberResponse.from(member);
     }
 
+    // 닉네임만 수정할 때는 비밀번호 대조가 필요 없으며, 새 비밀번호가 있을 때만 대조한다.
+    // 예외가 발생하면 같은 트랜잭션에서 앞서 변경한 닉네임도 함께 롤백된다.
     @Transactional
     public MemberResponse updateMember(Long memberId, UpdateMemberRequest request) {
         Member member = findMember(memberId);
@@ -137,6 +141,8 @@ public class MemberService {
         return member.getStatus() == MemberStatus.ACTIVE && member.matchesRefreshToken(refreshToken);
     }
 
+    // 실제 회원 행을 삭제하지 않고 WITHDRAWN 상태로 전환해 기존 기록의 연결을 유지한다.
+    // 진행 중인 방에서 먼저 나와야 탈퇴할 수 있고, 완료된 방의 참여 정보는 leave 처리한다.
     @Transactional
     public void deleteMember(Long memberId) {
         Member member = findMember(memberId);
@@ -166,6 +172,8 @@ public class MemberService {
         member.withdraw();
     }
 
+    // 종료 스케줄러가 아직 실행되지 않아 상태가 ACTIVE여도, 날짜가 지났으면 진행 방에서 제외한다.
+    // 마감 당일은 여전히 진행 중이며, deadline이 없는 방도 진행 중으로 취급한다.
     private boolean isActiveGroup(Group group, LocalDate today) {
         return group.getStatus() == GroupStatus.ACTIVE
                 && (group.getDeadline() == null
