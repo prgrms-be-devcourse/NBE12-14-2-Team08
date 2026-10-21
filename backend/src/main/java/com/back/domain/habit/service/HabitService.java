@@ -175,7 +175,7 @@ public class HabitService {
     @Scheduled(cron = "0 5 0 * * *")
     @Transactional
     public void autoCheckAllActiveHabits() {
-        List<Habit> activeHabits = habitRepository.findAllByStatus(HabitStatus.ACTIVE);
+        List<Habit> activeHabits = habitRepository.findAllByStatusInProgressGroup(HabitStatus.ACTIVE);
 
         for (Habit habit : activeHabits) {
             evaluateWeeklyResult(habit);
@@ -195,6 +195,15 @@ public class HabitService {
         }
 
         GroupMember groupMember = habit.getGroupMember();
+
+        // 이미 끝난 그룹은 판정하지 않는다. (마감일이 지났지만 아직 FINISH 처리 전인 그룹 포함)
+        // 판정하면 제출할 수 없는 벌칙이 생기고, 끝난 내기의 결과가 바뀌게 된다.
+        if (groupMember.getGroup().isFinished()) {
+            return new HabitWeeklyCheckResponse(
+                    habitId, WeeklyCheckResult.GROUP_FINISHED, habit.getStatus()
+            );
+        }
+
         LocalDateTime now = LocalDateTime.now();
 
         // 가입 1주 미만이면 판정 대상에서 제외
