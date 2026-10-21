@@ -302,4 +302,102 @@ class HabitControllerTest {
             assertThat(penaltyVerifyRepository.findByHabitId(habitId)).isEmpty();
         }
     }
+
+    @Nested
+    @DisplayName("습관 목록 조회")
+    class HabitListApi {
+
+        @Test
+        @DisplayName("활성 습관 조회: 진행 중인 습관을 반환한다")
+        void 활성_습관_조회() throws Exception {
+            mockMvc.perform(get("/api/groups/{groupId}/habits/active", groupId)
+                            .header("Authorization", "Bearer " + memberToken))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.id").value(habitId))
+                    .andExpect(jsonPath("$.title").value("물 마시기"))
+                    .andExpect(jsonPath("$.days").value(3))
+                    .andExpect(jsonPath("$.status").value("ACTIVE"));
+        }
+
+        @Test
+        @DisplayName("활성 습관 조회: 습관이 없는 멤버는 400을 받는다")
+        void 활성_습관이_없으면_400() throws Exception {
+            mockMvc.perform(get("/api/groups/{groupId}/habits/active", groupId)
+                            .header("Authorization", "Bearer " + ownerToken))
+                    .andExpect(status().isBadRequest())
+                    .andExpect(jsonPath("$.message").value("현재 진행 중인 습관이 없습니다."));
+        }
+
+        @Test
+        @DisplayName("실패 습관 조회: 포기한 적이 없으면 빈 목록이다")
+        void 실패한_습관이_없으면_빈_목록() throws Exception {
+            mockMvc.perform(get("/api/groups/{groupId}/habits/fail", groupId)
+                            .header("Authorization", "Bearer " + memberToken))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.length()").value(0));
+        }
+
+        @Test
+        @DisplayName("실패 습관 조회: 최근에 만든 습관이 먼저 나온다")
+        void 실패한_습관은_최신순() throws Exception {
+            failHabit(memberToken, habitId).andExpect(status().isOk());
+            Habit first = habitRepository.findById(habitId).orElseThrow();
+            ReflectionTestUtils.setField(first, "createDate", LocalDateTime.now().minusDays(2));
+            habitRepository.saveAndFlush(first);
+
+            String secondResponse = createHabit(memberToken, new CreateHabitRequest("독서 30분", "책 읽기", 5))
+                    .andExpect(status().isOk())
+                    .andReturn().getResponse().getContentAsString();
+            Long secondId = jsonMapper.readTree(secondResponse).get("id").asLong();
+            failHabit(memberToken, secondId).andExpect(status().isOk());
+
+            mockMvc.perform(get("/api/groups/{groupId}/habits/fail", groupId)
+                            .header("Authorization", "Bearer " + memberToken))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.length()").value(2))
+                    .andExpect(jsonPath("$[0].id").value(secondId))
+                    .andExpect(jsonPath("$[1].id").value(habitId));
+        }
+
+        @Test
+        @DisplayName("실패 습관 조회: 다른 멤버의 실패 습관은 포함되지 않는다")
+        void 다른_멤버의_실패_습관은_제외() throws Exception {
+            failHabit(memberToken, habitId).andExpect(status().isOk());
+            String ownerHabitResponse = createHabit(ownerToken, new CreateHabitRequest("독서 30분", "책 읽기", 5))
+                    .andReturn().getResponse().getContentAsString();
+            failHabit(ownerToken, jsonMapper.readTree(ownerHabitResponse).get("id").asLong())
+                    .andExpect(status().isOk());
+
+            mockMvc.perform(get("/api/groups/{groupId}/habits/fail", groupId)
+                            .header("Authorization", "Bearer " + memberToken))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.length()").value(1))
+                    .andExpect(jsonPath("$[0].id").value(habitId));
+        }
+
+        @Test
+        @DisplayName("실패 습관 조회: 같은 멤버라도 다른 그룹의 실패 습관은 포함되지 않는다")
+        void 다른_그룹의_실패_습관은_제외() throws Exception {
+            Group otherGroup = groupRepository.save(Group.builder()
+                    .title("다른 그룹")
+                    .penalty("커피 사기")
+                    .password("1234")
+                    .inviteCode("OTHERGROUP01")
+                    .memberLimit(5)
+                    .build());
+            GroupMember inOtherGroup = groupMemberRepository.save(GroupMember.create(
+                    otherGroup, memberRepository.findById(memberId).orElseThrow(), GroupMemberRole.MEMBER));
+            Habit otherHabit = Habit.create(inOtherGroup, "다른 그룹 습관", "설명", 3);
+            otherHabit.fail();
+            habitRepository.saveAndFlush(otherHabit);
+
+            failHabit(memberToken, habitId).andExpect(status().isOk());
+
+            mockMvc.perform(get("/api/groups/{groupId}/habits/fail", groupId)
+                            .header("Authorization", "Bearer " + memberToken))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.length()").value(1))
+                    .andExpect(jsonPath("$[0].id").value(habitId));
+        }
+    }
 }
