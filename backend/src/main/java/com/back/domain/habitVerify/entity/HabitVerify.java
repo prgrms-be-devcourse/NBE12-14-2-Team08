@@ -55,8 +55,6 @@ public class HabitVerify extends BaseEntity {
         return habitVerify;
     }
 
-
-
     public void validateResubmittable() {
         if (this.status != HabitVerifyStatus.REJECTED) {
             throw new IllegalStateException(
@@ -93,18 +91,3 @@ public class HabitVerify extends BaseEntity {
         this.status = HabitVerifyStatus.REJECTED;
     }
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

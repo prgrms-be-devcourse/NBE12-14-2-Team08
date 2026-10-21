@@ -589,19 +589,6 @@ class PenaltyVerifyServiceTest {
         }
 
         @Test
-        @DisplayName("submit: 사진 없이 제출하면 400 (벌칙 인증 사진은 필수)")
-        void submit_사진없음() {
-            PenaltyVerify pv = createFixturePenalty(1L, PenaltyVerifyStatus.REQUIRED);
-            given(penaltyVerifyRepository.findByHabitId(50L)).willReturn(Optional.of(pv));
-
-            assertThatThrownBy(() -> penaltyVerifyService.submit(2L, 50L, new SubmitPenaltyVerifyRequest("수행", " ")))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("벌칙 인증 사진은 필수입니다.");
-
-            verify(storageService, never()).validateImageUrl(any(), anyLong(), anyLong(), anyString(), any());
-        }
-
-        @Test
         @DisplayName("submit: 제출할 수 없는 상태(PENDING)면 사진 검사 전에 409")
         void submit_상태먼저() {
             PenaltyVerify pv = createFixturePenalty(1L, PenaltyVerifyStatus.PENDING);

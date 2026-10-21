@@ -219,12 +219,9 @@ public class PenaltyVerifyService {
         return PenaltyVerifyDetailResponse.from(penaltyVerify);
     }
 
-    // 벌칙 인증 사진은 필수이며, 다른 검사가 모두 끝난 뒤 마지막에 확인한다 (Supabase 호출 포함)
+    // 사진 필수 여부는 SubmitPenaltyVerifyRequest의 @NotBlank가 막는다.
+    // Supabase 호출이 있으므로 다른 검사가 모두 끝난 뒤 마지막에 확인한다.
     private void validatePenaltyImage(Long memberId, PenaltyVerify penaltyVerify, String imageUrl) {
-        if (imageUrl == null || imageUrl.isBlank()) {
-            throw new IllegalArgumentException("벌칙 인증 사진은 필수입니다.");
-        }
-
         storageService.validateImageUrl(
             VerificationImageType.PENALTY,
             memberId,

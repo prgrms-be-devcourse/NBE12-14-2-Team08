@@ -5,7 +5,7 @@ import jakarta.validation.constraints.NotBlank;
 public record SubmitPenaltyVerifyRequest(
     String description,
 
-    @NotBlank(message = "인증 이미지는 필수입니다.")
+    @NotBlank(message = "인증 사진은 필수입니다.")
     String imageUrl
 
 ) {
