@@ -799,6 +799,34 @@ class GroupMemberServiceTest {
                         .isInstanceOf(BusinessRuleException.class)
                         .hasMessageContaining("이미 종료된 그룹은 멤버를 추방할 수 없습니다.");
             }
+
+            @Test
+            void kickMember_LeftMember() {
+                // given
+                Group group = createActiveGroup();
+
+                GroupMember owner = org.mockito.Mockito.mock(GroupMember.class);
+                GroupMember kickTarget = org.mockito.Mockito.mock(GroupMember.class);
+
+                given(groupMemberRepository.findByGroupIdAndMemberId(groupId, memberId))
+                        .willReturn(Optional.of(owner));
+                given(owner.getRole()).willReturn(GroupMemberRole.OWNER);
+
+                given(groupMemberRepository.findById(groupMemberId))
+                        .willReturn(Optional.of(kickTarget));
+                given(kickTarget.getGroup()).willReturn(group);
+                given(kickTarget.getId()).willReturn(groupMemberId);
+                given(kickTarget.getStatus()).willReturn(GroupMemberStatus.LEFT);
+
+                // when & then
+                assertThatThrownBy(() ->
+                        groupMemberService.kickMember(groupId, groupMemberId, memberId)
+                )
+                        .isInstanceOf(BusinessRuleException.class)
+                        .hasMessage("현재 활동 중인 멤버만 추방할 수 있습니다.");
+
+                verify(groupMemberRepository, never()).delete(kickTarget);
+            }
         }
     }
 
@@ -976,6 +1004,36 @@ class GroupMemberServiceTest {
                 )
                         .isInstanceOf(BusinessRuleException.class)
                         .hasMessageContaining("이미 종료된 그룹은 방장을 위임할 수 없습니다.");
+            }
+
+            @Test
+            void transferOwner_LeftMember() {
+                // given
+                Group group = createActiveGroup();
+
+                GroupMember owner = org.mockito.Mockito.mock(GroupMember.class);
+                GroupMember nextOwner = org.mockito.Mockito.mock(GroupMember.class);
+
+                given(groupMemberRepository.findByGroupIdAndMemberId(groupId, memberId))
+                        .willReturn(Optional.of(owner));
+                given(owner.getRole()).willReturn(GroupMemberRole.OWNER);
+                given(owner.getGroup()).willReturn(group);
+
+                given(groupMemberRepository.findById(groupMemberId))
+                        .willReturn(Optional.of(nextOwner));
+                given(nextOwner.getGroup()).willReturn(group);
+                given(nextOwner.getId()).willReturn(groupMemberId);
+                given(owner.getId()).willReturn(memberId);
+                given(nextOwner.getStatus()).willReturn(GroupMemberStatus.LEFT);
+
+                // when & then
+                assertThatThrownBy(() ->
+                        groupMemberService.transferOwner(groupId, groupMemberId, memberId)
+                )
+                        .isInstanceOf(BusinessRuleException.class)
+                        .hasMessage("현재 활동 중인 멤버에게만 방장 권한을 위임할 수 있습니다.");
+
+                verify(nextOwner, never()).changeRole(GroupMemberRole.OWNER);
             }
         }
     }
