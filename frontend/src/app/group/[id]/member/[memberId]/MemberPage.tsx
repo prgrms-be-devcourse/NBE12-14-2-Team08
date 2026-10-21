@@ -442,6 +442,9 @@ export function MemberPage({ groupId, memberId }: Props) {
                             await uploadFileToSignedUrl(uploadUrl, file);
                             imageUrl = publicUrl;
                         }
+                        if (!imageUrl) {
+                            throw new Error("습관 인증 사진은 필수입니다.");
+                        }
 
                         if (editingVerify) {
                             await habitApi.resubmitHabitVerification(habit.id, editingVerify.id, {

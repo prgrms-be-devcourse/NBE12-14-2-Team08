@@ -102,7 +102,7 @@ export const habitApi = {
 
   createHabitVerification: (
     habitId: number | string,
-    body: { description: string | null; imageUrl: string | null }
+    body: { description: string | null; imageUrl: string }
   ) =>
     apiRequest<HabitVerifyResponse>(`/habits/${habitId}/verifications`, {
       method: 'POST',
@@ -112,7 +112,7 @@ export const habitApi = {
   resubmitHabitVerification: (
     habitId: number | string,
     verificationId: number | string,
-    body: { description: string | null; imageUrl: string | null }
+    body: { description: string | null; imageUrl: string }
   ) =>
     apiRequest<HabitVerifyResponse>(`/habits/${habitId}/verifications/${verificationId}/resubmit`, {
       method: 'PATCH',

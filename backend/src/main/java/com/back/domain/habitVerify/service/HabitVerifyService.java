@@ -178,12 +178,9 @@ public class HabitVerifyService {
         return HabitVerifyResponse.from(habitVerify);
     }
 
-    // 습관 인증 사진은 선택이므로 있을 때만, 다른 검사가 모두 끝난 뒤 마지막에 확인한다 (Supabase 호출 포함)
+    // 사진 필수 여부는 HabitVerifyRequest의 @NotBlank가 막는다.
+    // Supabase 호출이 있으므로 다른 검사가 모두 끝난 뒤 마지막에 확인한다.
     private void validateHabitImage(Long memberId, Long habitId, String imageUrl, String currentImageUrl) {
-        if (imageUrl == null || imageUrl.isBlank()) {
-            return;
-        }
-
         storageService.validateImageUrl(
                 VerificationImageType.HABIT,
                 memberId,

@@ -114,19 +114,6 @@ class HabitVerifyServiceSubmitTest {
 
             verify(habitVerifyRepository, never()).save(any());
         }
-
-        @Test
-        @DisplayName("사진 없이 등록하면 사진 검사 없이 저장한다 (습관 인증 사진은 선택)")
-        void 사진_없음() {
-            given(habitRepository.findByIdAndGroupMember_Member_Id(50L, 2L)).willReturn(Optional.of(habit));
-            given(habitVerifyRepository.existsByHabitIdAndVerifyDate(50L, LocalDate.now())).willReturn(false);
-            given(habitVerifyRepository.save(any(HabitVerify.class))).willAnswer(invocation -> invocation.getArgument(0));
-
-            habitVerifyService.create(50L, new HabitVerifyRequest("사진 없이 인증", null), 2L);
-
-            verify(storageService, never()).validateImageUrl(any(), anyLong(), anyLong(), any(), any());
-            verify(habitVerifyRepository).save(any(HabitVerify.class));
-        }
     }
 
     @Nested
