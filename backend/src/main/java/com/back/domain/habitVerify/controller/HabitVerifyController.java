@@ -11,7 +11,6 @@ import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -67,9 +66,10 @@ public class HabitVerifyController {
     }
 
     @Operation(
-            summary = "습관 인증 삭제",
-            description = "제출한 특정 인증 기록을 삭제합니다. (본인만 가능)\n\n" +
-                    "- 검토 대기(PENDING) 상태인 인증 건만 삭제가 가능합니다."
+            summary = "반려된 습관 인증 재제출",
+            description = "방장에게 반려(REJECTED)된 인증을 보완해 다시 제출합니다. (본인만 가능)\n\n" +
+                    "- 그 인증이 속한 주의 마감 전까지만 재제출할 수 있습니다.\n" +
+                    "- 사진을 바꾸지 않으면 지금 저장된 사진 URL을 그대로 보내면 됩니다."
     )
     @PatchMapping("/{verificationId}/resubmit")
     public ResponseEntity<HabitVerifyResponse> resubmit(
@@ -86,25 +86,5 @@ public class HabitVerifyController {
                         memberId
                 )
         );
-    }
-
-    @Operation(
-            summary = "습관 인증 삭제",
-            description = "제출한 특정 인증 기록을 삭제합니다. (본인만 가능)\n\n" +
-                    "- 검토 대기(PENDING) 상태인 인증 건만 삭제가 가능합니다."
-    )
-    @DeleteMapping("/{verificationId}")
-    public ResponseEntity<Void> delete(
-            @PathVariable Long habitId,
-            @PathVariable Long verificationId,
-            @LoginMemberId Long memberId
-    ) {
-        habitVerifyService.delete(
-                habitId,
-                verificationId,
-                memberId
-        );
-
-        return ResponseEntity.noContent().build();
     }
 }
