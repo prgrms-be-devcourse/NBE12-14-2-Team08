@@ -185,14 +185,6 @@ public class GroupMemberService {
         }
     }
 
-    // TODO: 미사용 메서드
-    @Transactional
-    public void deleteGroupAndGroupMember(Group group, GroupMember groupMember) {
-        deleteGroupMemberDataBulk(groupMember.getId());
-        groupMemberRepository.delete(groupMember);
-        groupRepository.delete(group);
-    }
-
     @Transactional
     public void deleteGroupAndAllMembers(Group group) {
         Long groupId = group.getId();

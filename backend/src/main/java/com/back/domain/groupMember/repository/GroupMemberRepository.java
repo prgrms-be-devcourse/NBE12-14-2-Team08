@@ -45,7 +45,6 @@ public interface GroupMemberRepository extends JpaRepository<GroupMember, Long> 
             @Param("memberId") Long memberId);
     boolean existsByGroupIdAndMemberId(Long groupId, Long memberId);
 
-    // TODO: 미사용 메서드
     boolean existsByMemberId(Long memberId);
 
     @EntityGraph(attributePaths = "group")
@@ -66,7 +65,6 @@ public interface GroupMemberRepository extends JpaRepository<GroupMember, Long> 
             GroupMemberStatus status
     );
 
-    // TODO: 미사용 메서드
     List<GroupMember> findAllByGroupId(Long groupId);
 
     @Modifying(flushAutomatically = true)
