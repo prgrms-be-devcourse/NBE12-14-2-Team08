@@ -154,4 +154,78 @@ class HabitControllerTest {
         group.finish();
         groupRepository.saveAndFlush(group);
     }
+
+    @Nested
+    @DisplayName("습관 생성 POST /api/groups/{groupId}/habits")
+    class CreateHabitApi {
+
+        static Stream<Arguments> invalidRequests() {
+            return Stream.of(
+                    Arguments.of("제목이 빈 문자열", new CreateHabitRequest("", "설명", 3)),
+                    Arguments.of("제목이 없음", new CreateHabitRequest(null, "설명", 3)),
+                    Arguments.of("실천 일수가 0", new CreateHabitRequest("운동", "설명", 0)),
+                    Arguments.of("실천 일수가 8", new CreateHabitRequest("운동", "설명", 8))
+            );
+        }
+
+        @Test
+        @DisplayName("활성 습관이 없는 멤버가 생성하면 ACTIVE 습관이 만들어진다")
+        void 생성_성공() throws Exception {
+            createHabit(ownerToken, new CreateHabitRequest("독서 30분", "책 읽기", 5))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.title").value("독서 30분"))
+                    .andExpect(jsonPath("$.description").value("책 읽기"))
+                    .andExpect(jsonPath("$.days").value(5))
+                    .andExpect(jsonPath("$.status").value("ACTIVE"));
+
+            // 방장 1개 + setUp에서 만든 멤버 1개
+            assertThat(habitRepository.findAllByGroupMember_Group_IdAndStatus(groupId, HabitStatus.ACTIVE))
+                    .hasSize(2);
+        }
+
+        @Test
+        @DisplayName("이미 활성 습관이 있으면 409를 반환하고 습관이 더 생기지 않는다")
+        void 활성_습관이_이미_있으면_409() throws Exception {
+            createHabit(memberToken, new CreateHabitRequest("독서 30분", "책 읽기", 5))
+                    .andExpect(status().isConflict())
+                    .andExpect(jsonPath("$.message").value("이미 활성화된 습관이 존재합니다."));
+
+            assertThat(habitRepository.findAllByGroupMember_Group_IdAndStatus(groupId, HabitStatus.ACTIVE))
+                    .hasSize(1);
+        }
+
+        @ParameterizedTest(name = "{0}이면 400")
+        @MethodSource("invalidRequests")
+        @DisplayName("요청 값이 올바르지 않으면 400을 반환하고 습관을 만들지 않는다")
+        void 잘못된_요청은_400(String ignoredCase, CreateHabitRequest request) throws Exception {
+            createHabit(ownerToken, request)
+                    .andExpect(status().isBadRequest());
+
+            assertThat(habitRepository.findAllByGroupMember_Group_IdAndStatus(groupId, HabitStatus.ACTIVE))
+                    .hasSize(1);
+        }
+
+        @Test
+        @DisplayName("그룹 멤버가 아니면 400을 반환한다")
+        void 그룹_멤버가_아니면_400() throws Exception {
+            String otherToken = authTokenService.createAccessToken(createMember("other01", "다른멤버"));
+
+            createHabit(otherToken, new CreateHabitRequest("독서 30분", "책 읽기", 5))
+                    .andExpect(status().isBadRequest())
+                    .andExpect(jsonPath("$.message").value("해당 그룹의 멤버를 찾을 수 없습니다."));
+        }
+
+        @Test
+        @DisplayName("종료된 그룹에서는 400을 반환하고 습관을 만들지 않는다")
+        void 종료된_그룹이면_400() throws Exception {
+            finishGroup();
+
+            createHabit(ownerToken, new CreateHabitRequest("독서 30분", "책 읽기", 5))
+                    .andExpect(status().isBadRequest())
+                    .andExpect(jsonPath("$.message").value("이미 종료된 그룹에서는 습관을 추가할 수 없습니다."));
+
+            assertThat(habitRepository.findAllByGroupMember_Group_IdAndStatus(groupId, HabitStatus.ACTIVE))
+                    .hasSize(1);
+        }
+    }
 }
