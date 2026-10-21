@@ -24,6 +24,7 @@ import com.back.global.exception.BusinessRuleException;
 import com.back.global.exception.ForbiddenException;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.NoSuchElementException;
 import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -31,6 +32,7 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.access.AccessDeniedException;
@@ -255,6 +257,62 @@ class PenaltyVerifyServiceTest {
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessageContaining("승인 대기 상태가 아닙니다.");
         }
+
+        @Test
+        @DisplayName("없는 벌칙 인증이면 NoSuchElementException (404), 권한 확인까지 가지 않는다")
+        void approve_없는벌칙_예외() {
+            given(penaltyVerifyRepository.findById(404L)).willReturn(Optional.empty());
+
+            assertThatThrownBy(() -> penaltyVerifyService.approve(1L, 404L))
+                .isInstanceOf(NoSuchElementException.class)
+                .hasMessageContaining("존재하지 않는 벌칙 인증입니다.");
+
+            verify(groupMemberRepository, never()).findByGroupIdAndMemberId(100L, 1L);
+        }
+
+        @Test
+        @DisplayName("방에 가입하지 않은 사람이 승인 시도 시 ForbiddenException (403), 상태는 그대로")
+        void approve_방밖의사람_예외() {
+            PenaltyVerify pv = createFixturePenalty(1L, PenaltyVerifyStatus.PENDING);
+            given(penaltyVerifyRepository.findById(1L)).willReturn(Optional.of(pv));
+            given(groupMemberRepository.findByGroupIdAndMemberId(100L, 999L)).willReturn(Optional.empty());
+
+            assertThatThrownBy(() -> penaltyVerifyService.approve(999L, 1L))
+                .isInstanceOf(ForbiddenException.class)
+                .hasMessageContaining("승인/거절 권한이 없습니다.");
+
+            assertThat(pv.getStatus()).isEqualTo(PenaltyVerifyStatus.PENDING);
+        }
+
+        @Test
+        @DisplayName("방장이 아닌 일반 회원이 반려 시도 시 ForbiddenException (403), 상태는 그대로")
+        void reject_방장아님_예외() {
+            PenaltyVerify pv = createFixturePenalty(1L, PenaltyVerifyStatus.PENDING);
+            given(penaltyVerifyRepository.findById(1L)).willReturn(Optional.of(pv));
+            given(groupMemberRepository.findByGroupIdAndMemberId(100L, 2L))
+                .willReturn(Optional.of(normalGroupMember));
+
+            assertThatThrownBy(() -> penaltyVerifyService.reject(2L, 1L))
+                .isInstanceOf(ForbiddenException.class);
+
+            assertThat(pv.getStatus()).isEqualTo(PenaltyVerifyStatus.PENDING);
+        }
+
+        @Test
+        @DisplayName("종료된 방의 벌칙은 방장이어도 승인할 수 없다 (BusinessRuleException 400), 상태는 그대로")
+        void approve_종료된방_예외() {
+            group.finish();
+            PenaltyVerify pv = createFixturePenalty(1L, PenaltyVerifyStatus.PENDING);
+            given(penaltyVerifyRepository.findById(1L)).willReturn(Optional.of(pv));
+            given(groupMemberRepository.findByGroupIdAndMemberId(100L, 1L))
+                .willReturn(Optional.of(ownerGroupMember));
+
+            assertThatThrownBy(() -> penaltyVerifyService.approve(1L, 1L))
+                .isInstanceOf(BusinessRuleException.class)
+                .hasMessageContaining("이미 종료된 그룹은 벌칙을 검토할 수 없습니다.");
+
+            assertThat(pv.getStatus()).isEqualTo(PenaltyVerifyStatus.PENDING);
+        }
     }
 
     @Nested
@@ -290,6 +348,80 @@ class PenaltyVerifyServiceTest {
             assertThatThrownBy(() -> penaltyVerifyService.bulkReject(2L, 100L, new BulkActionRequest(List.of(1L))))
                 .isInstanceOf(ForbiddenException.class)
                 .hasMessageContaining("승인/거절 권한이 없습니다.");
+
+            verify(penaltyVerifyRepository, never()).findAllByIdInAndGroupId(List.of(1L), 100L);
+        }
+
+        @Test
+        @DisplayName("bulkReject: 방장이 선택한 여러 건의 벌칙을 일괄 반려")
+        void bulkReject_성공() {
+            PenaltyVerify pv1 = createFixturePenalty(1L, PenaltyVerifyStatus.PENDING);
+            PenaltyVerify pv2 = createFixturePenalty(2L, PenaltyVerifyStatus.PENDING);
+            given(groupMemberRepository.findByGroupIdAndMemberId(100L, 1L))
+                .willReturn(Optional.of(ownerGroupMember));
+            given(penaltyVerifyRepository.findAllByIdInAndGroupId(List.of(1L, 2L), 100L))
+                .willReturn(List.of(pv1, pv2));
+
+            List<PenaltyVerifyDetailResponse> responses = penaltyVerifyService.bulkReject(
+                1L, 100L, new BulkActionRequest(List.of(1L, 2L))
+            );
+
+            assertThat(responses).extracting(PenaltyVerifyDetailResponse::status)
+                .containsExactly(PenaltyVerifyStatus.REJECTED, PenaltyVerifyStatus.REJECTED);
+        }
+
+        @Test
+        @DisplayName("bulkApprove: 방에 가입하지 않은 사람이면 ForbiddenException (403), 대상 벌칙을 조회하지 않는다")
+        void bulkApprove_방밖의사람_예외() {
+            given(groupMemberRepository.findByGroupIdAndMemberId(100L, 999L)).willReturn(Optional.empty());
+
+            assertThatThrownBy(() -> penaltyVerifyService.bulkApprove(999L, 100L, new BulkActionRequest(List.of(1L))))
+                .isInstanceOf(ForbiddenException.class);
+
+            verify(penaltyVerifyRepository, never()).findAllByIdInAndGroupId(List.of(1L), 100L);
+        }
+
+        @Test
+        @DisplayName("bulkApprove: 종료된 방이면 BusinessRuleException (400), 대상 벌칙을 조회하지 않는다")
+        void bulkApprove_종료된방_예외() {
+            group.finish();
+            given(groupMemberRepository.findByGroupIdAndMemberId(100L, 1L))
+                .willReturn(Optional.of(ownerGroupMember));
+
+            assertThatThrownBy(() -> penaltyVerifyService.bulkApprove(1L, 100L, new BulkActionRequest(List.of(1L))))
+                .isInstanceOf(BusinessRuleException.class);
+
+            verify(penaltyVerifyRepository, never()).findAllByIdInAndGroupId(List.of(1L), 100L);
+        }
+
+        @Test
+        @DisplayName("bulkApprove: 하나라도 검토 대기가 아니면 IllegalStateException (409) (실제 롤백은 PenaltyVerifyBulkRollbackTest에서 확인)")
+        void bulkApprove_하나라도처리됨_예외() {
+            PenaltyVerify pending = createFixturePenalty(1L, PenaltyVerifyStatus.PENDING);
+            PenaltyVerify approved = createFixturePenalty(2L, PenaltyVerifyStatus.APPROVED);
+            given(groupMemberRepository.findByGroupIdAndMemberId(100L, 1L))
+                .willReturn(Optional.of(ownerGroupMember));
+            given(penaltyVerifyRepository.findAllByIdInAndGroupId(List.of(1L, 2L), 100L))
+                .willReturn(List.of(pending, approved));
+
+            assertThatThrownBy(() -> penaltyVerifyService.bulkApprove(1L, 100L, new BulkActionRequest(List.of(1L, 2L))))
+                .isInstanceOf(IllegalStateException.class);
+        }
+
+        @Test
+        @DisplayName("bulkApprove: 조회되지 않은 id(없는 id, 다른 방 id)는 오류 없이 건너뛴다 (현재 동작, #187에서 팀 확인 필요)")
+        void bulkApprove_조회안된id_건너뜀() {
+            PenaltyVerify pending = createFixturePenalty(1L, PenaltyVerifyStatus.PENDING);
+            given(groupMemberRepository.findByGroupIdAndMemberId(100L, 1L))
+                .willReturn(Optional.of(ownerGroupMember));
+            given(penaltyVerifyRepository.findAllByIdInAndGroupId(List.of(1L, 404L), 100L))
+                .willReturn(List.of(pending));
+
+            List<PenaltyVerifyDetailResponse> responses = penaltyVerifyService.bulkApprove(
+                1L, 100L, new BulkActionRequest(List.of(1L, 404L))
+            );
+
+            assertThat(responses).extracting(PenaltyVerifyDetailResponse::id).containsExactly(1L);
         }
     }
 
@@ -357,6 +489,71 @@ class PenaltyVerifyServiceTest {
             assertThatThrownBy(() -> penaltyVerifyService.getPenaltiesByGroupMember(1L, 100L, 9999L))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("해당 그룹에 속하지 않은 멤버입니다.");
+        }
+
+        @Test
+        @DisplayName("getPendingByGroup: 방에 가입하지 않은 사람이 대기 목록을 조회하면 AccessDeniedException (403)")
+        void getPendingByGroup_방밖의사람_예외() {
+            given(groupMemberRepository.findByGroupIdAndMemberId(100L, 999L)).willReturn(Optional.empty());
+
+            assertThatThrownBy(() -> penaltyVerifyService.getPendingByGroup(999L, 100L))
+                .isInstanceOf(AccessDeniedException.class)
+                .hasMessageContaining("해당 방의 멤버가 아닙니다.");
+
+            verify(penaltyVerifyRepository, never()).findPendingByGroupId(100L);
+        }
+
+        @Test
+        @DisplayName("getPenaltiesByGroupMember: 같은 방 멤버는 그 멤버의 벌칙 기록을 받는다")
+        void getPenaltiesByGroupMember_성공() {
+            PenaltyVerify newer = createFixturePenalty(2L, PenaltyVerifyStatus.PENDING);
+            PenaltyVerify older = createFixturePenalty(1L, PenaltyVerifyStatus.APPROVED);
+            given(groupMemberRepository.existsByGroupIdAndMemberId(100L, 1L)).willReturn(true);
+            given(groupMemberRepository.existsByIdAndGroupId(20L, 100L)).willReturn(true);
+            given(penaltyVerifyRepository.findByGroupMemberIdOrderByIdDesc(20L)).willReturn(List.of(newer, older));
+
+            List<PenaltyVerifySummaryResponse> result = penaltyVerifyService.getPenaltiesByGroupMember(1L, 100L, 20L);
+
+            assertThat(result).extracting(PenaltyVerifySummaryResponse::id).containsExactly(2L, 1L);
+        }
+
+        @Test
+        @DisplayName("getPenaltiesByGroupMember: 조회하는 사람이 방 멤버가 아니면 AccessDeniedException (403), 목록을 조회하지 않는다")
+        void getPenaltiesByGroupMember_방밖의사람_예외() {
+            given(groupMemberRepository.existsByGroupIdAndMemberId(100L, 999L)).willReturn(false);
+
+            assertThatThrownBy(() -> penaltyVerifyService.getPenaltiesByGroupMember(999L, 100L, 20L))
+                .isInstanceOf(AccessDeniedException.class)
+                .hasMessageContaining("같은 그룹의 멤버만 조회할 수 있습니다.");
+
+            verify(penaltyVerifyRepository, never()).findByGroupMemberIdOrderByIdDesc(20L);
+        }
+    }
+
+    @Nested
+    @DisplayName("벌칙 생성(createPenaltyVerify)과 누적 개수(getCount) 테스트")
+    class CreateAndCountTest {
+
+        @Test
+        @DisplayName("createPenaltyVerify: 습관 주인의 미제출(REQUIRED) 벌칙을 그때의 습관 제목·벌칙 문구로 저장한다")
+        void createPenaltyVerify_저장() {
+            penaltyVerifyService.createPenaltyVerify(habit);
+
+            ArgumentCaptor<PenaltyVerify> saved = ArgumentCaptor.forClass(PenaltyVerify.class);
+            verify(penaltyVerifyRepository).save(saved.capture());
+            assertThat(saved.getValue().getGroupMember()).isSameAs(normalGroupMember);
+            assertThat(saved.getValue().getHabit()).isSameAs(habit);
+            assertThat(saved.getValue().getStatus()).isEqualTo(PenaltyVerifyStatus.REQUIRED);
+            assertThat(saved.getValue().getHabitTitle()).isEqualTo("기상 후 스트레칭");
+            assertThat(saved.getValue().getPenaltyText()).isEqualTo("커피 1잔 쏘기");
+        }
+
+        @Test
+        @DisplayName("getCount: 그 방에서 그 회원이 받은 벌칙 개수를 돌려준다 (방 id, 회원 id 순서로 조회)")
+        void getCount_개수() {
+            given(penaltyVerifyRepository.countByGroupMember_Group_IdAndGroupMember_Member_Id(100L, 2L)).willReturn(3L);
+
+            assertThat(penaltyVerifyService.getCount(100L, 2L)).isEqualTo(3L);
         }
     }
 
