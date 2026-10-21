@@ -131,4 +131,71 @@ class PenaltyVerifyTest {
             assertThat(pv.getVerifyDate()).isEqualTo(LocalDate.of(2026, 10, 18));
         }
     }
+
+    @Nested
+    @DisplayName("벌칙 생성(create)")
+    class Create {
+
+        @Test
+        @DisplayName("미제출(REQUIRED)로 시작하고, 습관 제목과 방의 벌칙 문구를 그때 값으로 남긴다")
+        void 생성하면_REQUIRED와_스냅샷() {
+            PenaltyVerify pv = PenaltyVerify.create(groupMember, habit);
+
+            assertThat(pv.getStatus()).isEqualTo(PenaltyVerifyStatus.REQUIRED);
+            assertThat(pv.getVerifyDate()).isNull();
+            assertThat(pv.getHabitTitle()).isEqualTo("기상 후 스트레칭");
+            assertThat(pv.getPenaltyText()).isEqualTo("커피 1잔 쏘기");
+        }
+    }
+
+    @Nested
+    @DisplayName("승인(approve)과 반려(reject)")
+    class ApproveReject {
+
+        @Test
+        @DisplayName("검토 대기 벌칙을 승인하면 APPROVED가 된다")
+        void 대기_벌칙_승인() {
+            PenaltyVerify pv = penaltyIn(PenaltyVerifyStatus.PENDING);
+
+            pv.approve();
+
+            assertThat(pv.getStatus()).isEqualTo(PenaltyVerifyStatus.APPROVED);
+        }
+
+        @Test
+        @DisplayName("검토 대기 벌칙을 반려하면 REJECTED가 된다")
+        void 대기_벌칙_반려() {
+            PenaltyVerify pv = penaltyIn(PenaltyVerifyStatus.PENDING);
+
+            pv.reject();
+
+            assertThat(pv.getStatus()).isEqualTo(PenaltyVerifyStatus.REJECTED);
+        }
+
+        @ParameterizedTest(name = "{0} 벌칙은 승인할 수 없다")
+        @EnumSource(value = PenaltyVerifyStatus.class, names = {"REQUIRED", "APPROVED", "REJECTED"})
+        @DisplayName("검토 대기가 아니면 승인할 수 없고(409) 상태가 그대로다")
+        void 대기_아니면_승인_불가(PenaltyVerifyStatus status) {
+            PenaltyVerify pv = penaltyIn(status);
+
+            assertThatThrownBy(pv::approve)
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("승인 대기 상태가 아닙니다.");
+
+            assertThat(pv.getStatus()).isEqualTo(status);
+        }
+
+        @ParameterizedTest(name = "{0} 벌칙은 반려할 수 없다")
+        @EnumSource(value = PenaltyVerifyStatus.class, names = {"REQUIRED", "APPROVED", "REJECTED"})
+        @DisplayName("검토 대기가 아니면 반려할 수 없고(409) 상태가 그대로다")
+        void 대기_아니면_반려_불가(PenaltyVerifyStatus status) {
+            PenaltyVerify pv = penaltyIn(status);
+
+            assertThatThrownBy(pv::reject)
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("승인 대기 상태가 아닙니다.");
+
+            assertThat(pv.getStatus()).isEqualTo(status);
+        }
+    }
 }
