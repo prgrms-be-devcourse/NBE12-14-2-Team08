@@ -1,6 +1,6 @@
 package com.back.domain.penaltyverify.controller;
 
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -203,10 +203,14 @@ class PenaltyVerifyControllerTest {
     }
 
     @Test
-    @DisplayName("벌칙 작성자의 벌칙 삭제 성공 시 204 No Content 반환")
-    void delete_성공() throws Exception {
-        mockMvc.perform(delete("/api/penalties/{id}", pendingPenaltyId)
+    @DisplayName("벌칙 작성자가 PENDING 벌칙을 제출 취소하면 200 OK 및 REQUIRED 반환, 기록은 남는다")
+    void cancel_성공() throws Exception {
+        mockMvc.perform(patch("/api/penalties/{id}/cancel", pendingPenaltyId)
                 .header("Authorization", "Bearer " + memberToken))
-            .andExpect(status().isNoContent());
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.status").value("REQUIRED"))
+            .andExpect(jsonPath("$.imageUrl").doesNotExist());
+
+        assertThat(penaltyVerifyRepository.findById(pendingPenaltyId)).isPresent();
     }
 }

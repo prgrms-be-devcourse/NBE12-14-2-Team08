@@ -17,7 +17,6 @@ import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -183,16 +182,17 @@ public class PenaltyVerifyController {
     }
 
     @Operation(
-            summary = "벌칙 인증 삭제",
-            description = "제출했던 특정 벌칙 인증 기록을 완전히 삭제합니다. (본인만 가능)\n\n" +
-                    "- 방장의 심사가 진행되기 전(PENDING 상태)인 벌칙 건에 한해서만 삭제가 가능합니다."
+            summary = "벌칙 인증 제출 취소 / 초기화",
+            description = "벌칙 기록은 결산을 위해 삭제하지 않고, 제출 내용(설명, 사진, 제출일)을 비워 REQUIRED 상태로 되돌립니다.\n\n" +
+                    "- 작성자: 방장 검토 전(PENDING)인 벌칙만 제출 취소할 수 있습니다.\n" +
+                    "- 방장: PENDING / APPROVED / REJECTED 벌칙을 초기화할 수 있습니다. (본인 벌칙 포함)\n" +
+                    "- 그 외 사용자는 403, 종료된 방은 400을 반환합니다."
     )
-    @DeleteMapping("/penalties/{id}")
-    public ResponseEntity<Void> delete(
+    @PatchMapping("/penalties/{id}/cancel")
+    public PenaltyVerifyDetailResponse cancelOrReset(
         @LoginMemberId Long memberId,
         @PathVariable Long id
     ) {
-        penaltyVerifyService.delete(memberId, id);
-        return ResponseEntity.noContent().build();
+        return penaltyVerifyService.cancelOrReset(memberId, id);
     }
 }

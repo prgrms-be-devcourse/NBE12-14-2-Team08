@@ -2,8 +2,8 @@ package com.back.domain.penaltyverify.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 
 import com.back.domain.group.entity.Group;
@@ -20,9 +20,10 @@ import com.back.domain.penaltyverify.dto.SubmitPenaltyVerifyRequest;
 import com.back.domain.penaltyverify.entity.PenaltyVerify;
 import com.back.domain.penaltyverify.entity.PenaltyVerifyStatus;
 import com.back.domain.penaltyverify.repository.PenaltyVerifyRepository;
+import com.back.global.exception.BusinessRuleException;
+import com.back.global.exception.ForbiddenException;
 import java.time.LocalDate;
 import java.util.List;
-import java.util.NoSuchElementException;
 import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -90,6 +91,8 @@ class PenaltyVerifyServiceTest {
         PenaltyVerify pv = PenaltyVerify.create(normalGroupMember, habit);
         ReflectionTestUtils.setField(pv, "id", id);
         ReflectionTestUtils.setField(pv, "status", status);
+        ReflectionTestUtils.setField(pv, "imageUrl", "https://example.com/test.jpg");
+        ReflectionTestUtils.setField(pv, "description", "기존 제출 내용");
         return pv;
     }
 
@@ -358,46 +361,127 @@ class PenaltyVerifyServiceTest {
     }
 
     @Nested
-    @DisplayName("삭제(delete) 테스트")
-    class DeleteTest {
+    @DisplayName("벌칙 제출 취소 및 초기화(cancelOrReset) 테스트")
+    class CancelOrResetTest {
+
+        private PenaltyVerify createOwnerPenalty(Long id, PenaltyVerifyStatus status) {
+            Habit ownerHabit = Habit.create(ownerGroupMember, "아침 독서", "10쪽 읽기", 3);
+            ReflectionTestUtils.setField(ownerHabit, "id", 51L);
+
+            PenaltyVerify pv = PenaltyVerify.create(ownerGroupMember, ownerHabit);
+            ReflectionTestUtils.setField(pv, "id", id);
+            ReflectionTestUtils.setField(pv, "status", status);
+            ReflectionTestUtils.setField(pv, "imageUrl", "https://example.com/owner.jpg");
+            ReflectionTestUtils.setField(pv, "description", "방장 제출 내용");
+            return pv;
+        }
 
         @Test
-        @DisplayName("delete: 벌칙 작성자 본인이 삭제 시 성공")
-        void delete_작성자_성공() {
-            PenaltyVerify pv = createFixturePenalty(1L, PenaltyVerifyStatus.REQUIRED);
+        @DisplayName("작성자가 PENDING 벌칙을 제출 취소하면 REQUIRED가 되고 행은 지우지 않는다")
+        void 작성자_PENDING_제출취소_성공() {
+            PenaltyVerify pv = createFixturePenalty(1L, PenaltyVerifyStatus.PENDING);
             given(penaltyVerifyRepository.findById(1L)).willReturn(Optional.of(pv));
             given(groupMemberRepository.findByGroupIdAndMemberId(100L, 2L))
                 .willReturn(Optional.of(normalGroupMember));
 
-            penaltyVerifyService.delete(2L, 1L);
+            PenaltyVerifyDetailResponse response = penaltyVerifyService.cancelOrReset(2L, 1L);
 
-            verify(penaltyVerifyRepository).delete(pv);
+            assertThat(response.status()).isEqualTo(PenaltyVerifyStatus.REQUIRED);
+            assertThat(pv.getImageUrl()).isNull();
+            assertThat(pv.getDescription()).isNull();
+            assertThat(pv.getVerifyDate()).isNull();
+            verify(penaltyVerifyRepository, never()).delete(pv);
         }
 
         @Test
-        @DisplayName("delete: 방장이 타인의 벌칙 삭제 시 성공")
-        void delete_방장_성공() {
-            PenaltyVerify pv = createFixturePenalty(1L, PenaltyVerifyStatus.REQUIRED);
+        @DisplayName("작성자는 APPROVED 벌칙을 제출 취소할 수 없다 (409)")
+        void 작성자_APPROVED_제출취소_예외() {
+            PenaltyVerify pv = createFixturePenalty(1L, PenaltyVerifyStatus.APPROVED);
+            given(penaltyVerifyRepository.findById(1L)).willReturn(Optional.of(pv));
+            given(groupMemberRepository.findByGroupIdAndMemberId(100L, 2L))
+                .willReturn(Optional.of(normalGroupMember));
+
+            assertThatThrownBy(() -> penaltyVerifyService.cancelOrReset(2L, 1L))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("승인 대기(PENDING) 중인 벌칙만 제출을 취소할 수 있습니다.");
+            assertThat(pv.getStatus()).isEqualTo(PenaltyVerifyStatus.APPROVED);
+        }
+
+        @Test
+        @DisplayName("방장은 멤버의 APPROVED 벌칙을 초기화할 수 있다")
+        void 방장_APPROVED_초기화_성공() {
+            PenaltyVerify pv = createFixturePenalty(1L, PenaltyVerifyStatus.APPROVED);
             given(penaltyVerifyRepository.findById(1L)).willReturn(Optional.of(pv));
             given(groupMemberRepository.findByGroupIdAndMemberId(100L, 1L))
                 .willReturn(Optional.of(ownerGroupMember));
 
-            penaltyVerifyService.delete(1L, 1L);
+            PenaltyVerifyDetailResponse response = penaltyVerifyService.cancelOrReset(1L, 1L);
 
-            verify(penaltyVerifyRepository).delete(pv);
+            assertThat(response.status()).isEqualTo(PenaltyVerifyStatus.REQUIRED);
+            assertThat(pv.getImageUrl()).isNull();
+            assertThat(pv.getDescription()).isNull();
+            verify(penaltyVerifyRepository, never()).delete(pv);
         }
 
         @Test
-        @DisplayName("delete: 작성자도 아니고 방장도 아닌 사용자가 삭제 시 IllegalStateException 발생")
-        void delete_권한없음_예외() {
-            PenaltyVerify pv = createFixturePenalty(1L, PenaltyVerifyStatus.REQUIRED);
+        @DisplayName("방장은 자기 자신의 APPROVED 벌칙도 초기화할 수 있다")
+        void 방장_본인벌칙_APPROVED_초기화_성공() {
+            PenaltyVerify pv = createOwnerPenalty(2L, PenaltyVerifyStatus.APPROVED);
+            given(penaltyVerifyRepository.findById(2L)).willReturn(Optional.of(pv));
+            given(groupMemberRepository.findByGroupIdAndMemberId(100L, 1L))
+                .willReturn(Optional.of(ownerGroupMember));
+
+            PenaltyVerifyDetailResponse response = penaltyVerifyService.cancelOrReset(1L, 2L);
+
+            assertThat(response.status()).isEqualTo(PenaltyVerifyStatus.REQUIRED);
+            assertThat(pv.getImageUrl()).isNull();
+        }
+
+        @Test
+        @DisplayName("방 밖의 사람이 요청하면 ForbiddenException (403)")
+        void 방밖의_사람_ForbiddenException() {
+            PenaltyVerify pv = createFixturePenalty(1L, PenaltyVerifyStatus.PENDING);
             given(penaltyVerifyRepository.findById(1L)).willReturn(Optional.of(pv));
             given(groupMemberRepository.findByGroupIdAndMemberId(100L, 999L))
                 .willReturn(Optional.empty());
 
-            assertThatThrownBy(() -> penaltyVerifyService.delete(999L, 1L))
-                .isInstanceOf(IllegalStateException.class)
-                .hasMessageContaining("삭제 권한이 없습니다.");
+            assertThatThrownBy(() -> penaltyVerifyService.cancelOrReset(999L, 1L))
+                .isInstanceOf(ForbiddenException.class)
+                .hasMessageContaining("벌칙 취소/초기화 권한이 없습니다.");
+            assertThat(pv.getStatus()).isEqualTo(PenaltyVerifyStatus.PENDING);
+        }
+
+        @Test
+        @DisplayName("같은 방의 일반 멤버가 남의 벌칙을 요청하면 ForbiddenException (403)")
+        void 같은방_일반멤버_ForbiddenException() {
+            GroupMember otherGroupMember = GroupMember.create(group, otherUser, GroupMemberRole.MEMBER);
+            ReflectionTestUtils.setField(otherGroupMember, "id", 30L);
+
+            PenaltyVerify pv = createFixturePenalty(1L, PenaltyVerifyStatus.PENDING);
+            given(penaltyVerifyRepository.findById(1L)).willReturn(Optional.of(pv));
+            given(groupMemberRepository.findByGroupIdAndMemberId(100L, 999L))
+                .willReturn(Optional.of(otherGroupMember));
+
+            assertThatThrownBy(() -> penaltyVerifyService.cancelOrReset(999L, 1L))
+                .isInstanceOf(ForbiddenException.class)
+                .hasMessageContaining("벌칙 취소/초기화 권한이 없습니다.");
+            assertThat(pv.getStatus()).isEqualTo(PenaltyVerifyStatus.PENDING);
+        }
+
+        @Test
+        @DisplayName("종료된 방의 벌칙은 권한이 있어도 BusinessRuleException (400)")
+        void 종료된방_BusinessRuleException() {
+            group.finish();
+
+            PenaltyVerify pv = createFixturePenalty(1L, PenaltyVerifyStatus.PENDING);
+            given(penaltyVerifyRepository.findById(1L)).willReturn(Optional.of(pv));
+            given(groupMemberRepository.findByGroupIdAndMemberId(100L, 2L))
+                .willReturn(Optional.of(normalGroupMember));
+
+            assertThatThrownBy(() -> penaltyVerifyService.cancelOrReset(2L, 1L))
+                .isInstanceOf(BusinessRuleException.class)
+                .hasMessageContaining("이미 종료된 그룹의 벌칙 기록은 변경할 수 없습니다.");
+            assertThat(pv.getStatus()).isEqualTo(PenaltyVerifyStatus.PENDING);
         }
     }
 }

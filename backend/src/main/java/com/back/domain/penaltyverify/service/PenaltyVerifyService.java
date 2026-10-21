@@ -12,6 +12,7 @@ import com.back.domain.penaltyverify.dto.SubmitPenaltyVerifyRequest;
 import com.back.domain.penaltyverify.entity.PenaltyVerify;
 import com.back.domain.penaltyverify.repository.PenaltyVerifyRepository;
 import com.back.global.exception.BusinessRuleException;
+import com.back.global.exception.ForbiddenException;
 import com.back.global.util.ImageUrlValidator;
 import java.time.LocalDate;
 import java.util.List;
@@ -168,22 +169,30 @@ public class PenaltyVerifyService {
             .toList();
     }
 
+    // 결산 집계를 위해 벌칙 row는 지우지 않는다 (docs/adr/0001-penalty-verify-no-hard-delete.md)
+    // 방장: 벌칙 초기화 (자기 벌칙 포함) / 작성자: PENDING 제출 취소 / 그 외: 403
     @Transactional
-    public void delete(Long memberId, Long id) {
+    public PenaltyVerifyDetailResponse cancelOrReset(Long memberId, Long id) {
         PenaltyVerify penaltyVerify = findById(id);
 
         boolean isAuthor = penaltyVerify.getGroupMember().getMember().getId().equals(memberId);
         boolean isOwner = isGroupOwner(memberId, penaltyVerify.getGroupMember().getGroup().getId());
 
         if (!isAuthor && !isOwner) {
-            throw new IllegalStateException("삭제 권한이 없습니다.");
+            throw new ForbiddenException("벌칙 취소/초기화 권한이 없습니다.");
         }
 
         if (penaltyVerify.getGroupMember().getGroup().isFinished()) {
-            throw new BusinessRuleException("이미 종료된 그룹의 벌칙 기록은 삭제할 수 없습니다.");
+            throw new BusinessRuleException("이미 종료된 그룹의 벌칙 기록은 변경할 수 없습니다.");
         }
 
-        penaltyVerifyRepository.delete(penaltyVerify);
+        if (isOwner) {
+            penaltyVerify.resetByOwner();
+        } else {
+            penaltyVerify.cancelSubmission();
+        }
+
+        return PenaltyVerifyDetailResponse.from(penaltyVerify);
     }
 
     private PenaltyVerify findById(Long id) {
