@@ -367,4 +367,44 @@ class HabitServiceTest {
             assertThat(results.get(0).habitStatus()).isEqualTo(HabitStatus.ACTIVE);
         }
     }
+
+    @Nested
+    @DisplayName("스케줄러(autoCheckAllActiveHabits)")
+    class AutoCheck {
+
+        @Test
+        @DisplayName("진행 중인 그룹의 활성 습관만 조회해서 판정한다 (종료 그룹 제외 쿼리 사용)")
+        void 종료_그룹_제외_쿼리를_사용한다() {
+            given(habitRepository.findAllByStatusInProgressGroup(HabitStatus.ACTIVE)).willReturn(List.of());
+
+            habitService.autoCheckAllActiveHabits();
+
+            verify(habitRepository).findAllByStatusInProgressGroup(HabitStatus.ACTIVE);
+            verify(habitRepository, never()).findAllByGroupMember_Group_IdAndStatus(any(), any());
+        }
+
+        @Test
+        @DisplayName("진행 중인 그룹에서 승인 횟수가 모자라면 습관이 실패 처리되고 벌칙이 생성된다 (대조군)")
+        void 진행중인_그룹은_판정된다() {
+            Habit habit = overdueHabit(activeGroup());
+            given(habitRepository.findAllByStatusInProgressGroup(HabitStatus.ACTIVE)).willReturn(List.of(habit));
+
+            habitService.autoCheckAllActiveHabits();
+
+            assertThat(habit.getStatus()).isEqualTo(HabitStatus.FAILED);
+            verify(penaltyVerifyService).createPenaltyVerify(habit);
+        }
+
+        @Test
+        @DisplayName("마감일은 지났지만 아직 FINISH 처리 전인 그룹의 습관은 판정하지 않는다")
+        void 마감일이_지난_그룹은_판정하지_않는다() {
+            Habit habit = overdueHabit(group(GroupStatus.ACTIVE, LocalDate.now().minusDays(1)));
+            given(habitRepository.findAllByStatusInProgressGroup(HabitStatus.ACTIVE)).willReturn(List.of(habit));
+
+            habitService.autoCheckAllActiveHabits();
+
+            assertThat(habit.getStatus()).isEqualTo(HabitStatus.ACTIVE);
+            verify(penaltyVerifyService, never()).createPenaltyVerify(any(Habit.class));
+        }
+    }
 }
