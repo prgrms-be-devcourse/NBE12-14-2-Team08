@@ -238,10 +238,10 @@ public class PenaltyVerifyService {
 
     private void validateOwner(Long memberId, Long groupId) {
         GroupMember groupMember = groupMemberRepository.findByGroupIdAndMemberId(groupId, memberId)
-            .orElseThrow(() -> new IllegalStateException("승인/거절 권한이 없습니다."));
+            .orElseThrow(() -> new ForbiddenException("승인/거절 권한이 없습니다."));
 
         if (groupMember.getRole() != GroupMemberRole.OWNER) {
-            throw new IllegalStateException("승인/거절 권한이 없습니다.");
+            throw new ForbiddenException("승인/거절 권한이 없습니다.");
         }
 
         if (groupMember.getGroup().isFinished()) {
