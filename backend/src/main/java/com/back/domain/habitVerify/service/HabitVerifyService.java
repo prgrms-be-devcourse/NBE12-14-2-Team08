@@ -112,7 +112,7 @@ public class HabitVerifyService {
         boolean isGroupMember = groupMemberRepository.existsByGroupIdAndMemberId(groupId, memberId);
 
         if (!isGroupMember) {
-            throw new IllegalArgumentException("같은 그룹의 멤버만 조회할 수 있습니다.");
+            throw new ForbiddenException("같은 그룹의 멤버만 조회할 수 있습니다.");
         }
 
         return habitVerifyRepository
