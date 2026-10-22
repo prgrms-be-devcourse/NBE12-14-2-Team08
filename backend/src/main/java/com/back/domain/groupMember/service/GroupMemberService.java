@@ -161,6 +161,10 @@ public class GroupMemberService {
             throw new BusinessRuleException("이미 종료된 그룹은 멤버를 추방할 수 없습니다.");
         }
 
+        if (kickTarget.getStatus() != GroupMemberStatus.ACTIVE) {
+            throw new BusinessRuleException("현재 활동 중인 멤버만 추방할 수 있습니다.");
+        }
+
         deleteGroupMemberDataBulk(kickTarget.getId());
 
         groupMemberRepository.delete(kickTarget);
@@ -179,13 +183,6 @@ public class GroupMemberService {
         if (!habitIds.isEmpty()) {
             habitRepository.deleteByIds(habitIds);
         }
-    }
-
-    @Transactional
-    public void deleteGroupAndGroupMember(Group group, GroupMember groupMember) {
-        deleteGroupMemberDataBulk(groupMember.getId());
-        groupMemberRepository.delete(groupMember);
-        groupRepository.delete(group);
     }
 
     @Transactional
@@ -229,6 +226,10 @@ public class GroupMemberService {
 
         if (currentOwner.getGroup().isFinished()) {
             throw new BusinessRuleException("이미 종료된 그룹은 방장을 위임할 수 없습니다.");
+        }
+
+        if (nextOwner.getStatus() != GroupMemberStatus.ACTIVE) {
+            throw new BusinessRuleException("현재 활동 중인 멤버에게만 방장 권한을 위임할 수 있습니다.");
         }
 
         currentOwner.changeRole(GroupMemberRole.MEMBER);
