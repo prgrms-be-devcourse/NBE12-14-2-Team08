@@ -40,6 +40,7 @@ public class SupabaseStorageClient {
     // Supabase에서 업로드용 Signed URL을 받는다.
     // expiresInSeconds는 요청에 함께 보내지만, Supabase는 업로드용 Signed URL에는 이 값을 적용하지 않는다.
     // (직접 확인: 5분이 지나도 업로드가 거절되지 않음)
+    // TODO: 5분이 지나도 업로드가 거절되지 않는 현상 확인 및 추후 수정 필요
     public String createSignedUploadUrl(
             String bucket,
             String path,

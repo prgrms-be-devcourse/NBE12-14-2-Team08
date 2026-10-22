@@ -206,39 +206,6 @@ public class HabitVerifyService {
         return periodStart.plusWeeks(1);
     }
 
-    @Transactional
-    public void delete(
-            Long habitId,
-            Long verificationId,
-            Long memberId
-    ) {
-        Habit habit = habitRepository.findByIdAndGroupMember_Member_Id(
-                habitId,
-                memberId
-        ).orElseThrow(() ->
-                new IllegalArgumentException(
-                        "권한이 없는 습관입니다."
-                )
-        );
-
-        if (habit.getGroupMember().getGroup().isFinished()) {
-            throw new BusinessRuleException("이미 종료된 그룹의 습관 인증은 삭제할 수 없습니다.");
-        }
-
-        HabitVerify habitVerify =
-                habitVerifyRepository
-                        .findByIdAndHabitId(
-                                verificationId,
-                                habitId
-                        )
-                        .orElseThrow(() ->
-                                new IllegalArgumentException(
-                                        "존재하지 않는 인증 기록입니다."
-                                )
-                        );
-
-        habitVerifyRepository.delete(habitVerify);
-    }
     @Transactional(readOnly = true)
     public List<HabitVerifySummaryResponse> getPendingByGroup(
             Long memberId,
