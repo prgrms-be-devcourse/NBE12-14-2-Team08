@@ -28,6 +28,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
+import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.transaction.annotation.Transactional;
@@ -39,6 +40,7 @@ import org.springframework.transaction.annotation.Transactional;
  */
 @SpringBootTest
 @AutoConfigureMockMvc
+@ActiveProfiles("test")
 @Transactional
 class HabitWeeklyCheckControllerTest {
 
@@ -99,18 +101,25 @@ class HabitWeeklyCheckControllerTest {
 
     // 이번 주 판정 구간(오늘 00시 이전) 안에 들어오도록 제출 시각을 3일 전으로 되돌린 인증 기록 생성
     private Long createVerify(LocalDate verifyDate, HabitVerifyStatus status) {
+        return createVerify(verifyDate, status, 3);
+    }
+
+    // submittedDaysAgo: 제출 시각(createDate)을 며칠 전으로 되돌릴지 (0이면 방금 제출)
+    private Long createVerify(LocalDate verifyDate, HabitVerifyStatus status, int submittedDaysAgo) {
         Habit habit = habitRepository.findById(habitId).orElseThrow();
 
-        // HabitVerify.create는 항상 PENDING으로 생성하므로, APPROVED가 필요하면 승인 처리까지 이어서 한다.
+        // HabitVerify.create는 항상 PENDING으로 생성하므로, APPROVED/REJECTED가 필요하면 심사 처리까지 이어서 한다.
         HabitVerify verify = HabitVerify.create(
                 habit, verifyDate, "테스트 인증", "https://x.com/a.jpg"
         );
         if (status == HabitVerifyStatus.APPROVED) {
             verify.approve();
+        } else if (status == HabitVerifyStatus.REJECTED) {
+            verify.reject();
         }
         habitVerifyRepository.save(verify);
 
-        ReflectionTestUtils.setField(verify, "createDate", LocalDateTime.now().minusDays(3));
+        ReflectionTestUtils.setField(verify, "createDate", LocalDateTime.now().minusDays(submittedDaysAgo));
         habitVerifyRepository.saveAndFlush(verify);
 
         return verify.getId();
@@ -279,5 +288,77 @@ class HabitWeeklyCheckControllerTest {
         mockMvc.perform(post("/api/groups/{groupId}/weekly-check", groupId)
                         .header("Authorization", "Bearer " + otherToken))
                 .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    @DisplayName("승인된 인증이 days보다 1개 모자라면 실패 처리되고 벌칙이 확정된다 (경계값)")
+    void 승인_횟수가_days보다_하나_적으면_실패() throws Exception {
+        createVerify(LocalDate.now().minusDays(1), HabitVerifyStatus.APPROVED);
+        createVerify(LocalDate.now().minusDays(2), HabitVerifyStatus.APPROVED);
+
+        mockMvc.perform(post("/api/groups/{groupId}/weekly-check", groupId)
+                        .header("Authorization", "Bearer " + ownerToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].result").value("FAILED_INSUFFICIENT_SUBMISSION"))
+                .andExpect(jsonPath("$[0].habitStatus").value("FAILED"));
+
+        Assertions.assertTrue(penaltyVerifyRepository.findByHabitId(habitId).isPresent());
+    }
+
+    @Test
+    @DisplayName("승인된 인증이 days보다 많아도 PASSED다")
+    void 승인_횟수가_days를_넘어도_PASSED() throws Exception {
+        createVerify(LocalDate.now().minusDays(1), HabitVerifyStatus.APPROVED);
+        createVerify(LocalDate.now().minusDays(2), HabitVerifyStatus.APPROVED);
+        createVerify(LocalDate.now().minusDays(3), HabitVerifyStatus.APPROVED);
+        createVerify(LocalDate.now().minusDays(4), HabitVerifyStatus.APPROVED);
+
+        mockMvc.perform(post("/api/groups/{groupId}/weekly-check", groupId)
+                        .header("Authorization", "Bearer " + ownerToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].result").value("PASSED"))
+                .andExpect(jsonPath("$[0].habitStatus").value("ACTIVE"));
+    }
+
+    @Test
+    @DisplayName("반려된 인증은 승인 횟수에 포함되지 않는다")
+    void 반려된_인증은_횟수에_포함되지_않는다() throws Exception {
+        createVerify(LocalDate.now().minusDays(1), HabitVerifyStatus.APPROVED);
+        createVerify(LocalDate.now().minusDays(2), HabitVerifyStatus.APPROVED);
+        createVerify(LocalDate.now().minusDays(3), HabitVerifyStatus.REJECTED);
+
+        mockMvc.perform(post("/api/groups/{groupId}/weekly-check", groupId)
+                        .header("Authorization", "Bearer " + ownerToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].result").value("FAILED_INSUFFICIENT_SUBMISSION"))
+                .andExpect(jsonPath("$[0].habitStatus").value("FAILED"));
+    }
+
+    @Test
+    @DisplayName("이번 판정 구간보다 이전에 제출된 인증은 승인 횟수에 포함되지 않는다")
+    void 지난_구간에_제출된_인증은_횟수에_포함되지_않는다() throws Exception {
+        createVerify(LocalDate.now().minusDays(9), HabitVerifyStatus.APPROVED, 9);
+        createVerify(LocalDate.now().minusDays(10), HabitVerifyStatus.APPROVED, 9);
+        createVerify(LocalDate.now().minusDays(11), HabitVerifyStatus.APPROVED, 9);
+
+        mockMvc.perform(post("/api/groups/{groupId}/weekly-check", groupId)
+                        .header("Authorization", "Bearer " + ownerToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].result").value("FAILED_INSUFFICIENT_SUBMISSION"))
+                .andExpect(jsonPath("$[0].habitStatus").value("FAILED"));
+    }
+
+    @Test
+    @DisplayName("이번 주 마감 이후에 제출된 인증은 이번 판정의 승인 횟수에 포함되지 않는다")
+    void 마감_이후_제출된_인증은_횟수에_포함되지_않는다() throws Exception {
+        createVerify(LocalDate.now().minusDays(1), HabitVerifyStatus.APPROVED);
+        createVerify(LocalDate.now().minusDays(2), HabitVerifyStatus.APPROVED);
+        createVerify(LocalDate.now(), HabitVerifyStatus.APPROVED, 0);
+
+        mockMvc.perform(post("/api/groups/{groupId}/weekly-check", groupId)
+                        .header("Authorization", "Bearer " + ownerToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].result").value("FAILED_INSUFFICIENT_SUBMISSION"))
+                .andExpect(jsonPath("$[0].habitStatus").value("FAILED"));
     }
 }
