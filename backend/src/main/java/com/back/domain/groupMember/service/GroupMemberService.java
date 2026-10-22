@@ -17,6 +17,8 @@ import com.back.global.exception.BusinessRuleException;
 import com.back.global.exception.EntityNotFoundException;
 import com.back.global.exception.ForbiddenException;
 import com.back.global.exception.GroupLimitExceededException;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceContext;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -36,6 +38,9 @@ public class GroupMemberService {
     private final PenaltyVerifyRepository penaltyVerifyRepository;
 
     private final PasswordEncoder passwordEncoder;
+
+    @PersistenceContext
+    private EntityManager entityManager;
 
     @Transactional
     public Long joinGroup(String inviteCode, Long memberId, GroupRequest.Join request) {
@@ -188,14 +193,18 @@ public class GroupMemberService {
         Long groupId = group.getId();
 
         habitVerifyRepository.deleteHabitVerifiesByGroupId(groupId);
-
         penaltyVerifyRepository.deletePenaltyVerifiesByGroupId(groupId);
-
         habitRepository.deleteHabitsByGroupId(groupId);
-
         groupMemberRepository.deleteGroupMembersByGroupId(groupId);
 
-        groupRepository.delete(group);
+        entityManager.flush();
+        entityManager.clear();
+
+        Group groupToDelete = groupRepository.findById(groupId)
+                .orElseThrow(() ->
+                        new EntityNotFoundException("존재하지 않는 그룹입니다."));
+
+        groupRepository.delete(groupToDelete);
     }
 
     @Transactional
