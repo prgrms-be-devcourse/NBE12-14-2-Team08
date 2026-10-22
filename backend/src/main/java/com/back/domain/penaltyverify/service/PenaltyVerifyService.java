@@ -13,6 +13,9 @@ import com.back.domain.penaltyverify.entity.PenaltyVerify;
 import com.back.domain.penaltyverify.repository.PenaltyVerifyRepository;
 import com.back.global.exception.BusinessRuleException;
 import com.back.global.exception.ForbiddenException;
+import com.back.global.storage.StorageService;
+import com.back.global.storage.UploadUrlResponse;
+import com.back.global.storage.VerificationImageType;
 import com.back.global.util.ImageUrlValidator;
 import java.time.LocalDate;
 import java.util.List;
@@ -30,6 +33,7 @@ public class PenaltyVerifyService {
     private final PenaltyVerifyRepository penaltyVerifyRepository;
     private final GroupMemberRepository groupMemberRepository;
     private final HabitRepository habitRepository;
+    private final StorageService storageService;
 
     @Transactional
     public void createPenaltyVerify(Habit habit) {
@@ -38,6 +42,25 @@ public class PenaltyVerifyService {
             habit
         );
         penaltyVerifyRepository.save(penaltyVerify);
+    }
+
+    // 벌칙 인증 사진 업로드 URL 발급: 내 벌칙 → 진행 중인 방 → 제출 가능한 상태 순으로 확인
+    public UploadUrlResponse createUploadUrl(Long memberId, Long id, String filename) {
+        PenaltyVerify penaltyVerify = findById(id);
+
+        if (!penaltyVerify.getGroupMember().getMember().getId().equals(memberId)) {
+            throw new ForbiddenException("본인의 벌칙에만 사진을 올릴 수 있습니다.");
+        }
+
+        if (penaltyVerify.getGroupMember().getGroup().isFinished()) {
+            throw new BusinessRuleException("이미 종료된 그룹에서는 벌칙 사진을 올릴 수 없습니다.");
+        }
+
+        if (!penaltyVerify.isSubmittable()) {
+            throw new IllegalStateException("제출 또는 재제출할 수 있는 벌칙이 아닙니다. 현재 상태 : " + penaltyVerify.getStatus());
+        }
+
+        return storageService.createUploadUrl(VerificationImageType.PENALTY, memberId, id, filename);
     }
 
     @Transactional

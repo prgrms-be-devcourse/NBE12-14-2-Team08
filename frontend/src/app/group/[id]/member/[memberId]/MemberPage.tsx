@@ -558,7 +558,7 @@ export function MemberPage({ groupId, memberId }: Props) {
                     onSubmit={async (file, description, existingImageUrl) => {
                         let imageUrl = existingImageUrl;
                         if (file) {
-                            const { uploadUrl, publicUrl } = await habitApi.getPenaltyUploadUrl(file.name);
+                            const { uploadUrl, publicUrl } = await habitApi.getPenaltyUploadUrl(activePenalty.id, file.name);
                             await uploadFileToSignedUrl(uploadUrl, file);
                             imageUrl = publicUrl;
                         }

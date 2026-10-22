@@ -108,6 +108,14 @@ public class GlobalExceptionHandler {
                 .body(ErrorResponse.of(400, e.getMessage()));
     }
 
+    // 외부 사진 저장소(Supabase Storage) 통신 실패 (502 BAD_GATEWAY)
+    @ExceptionHandler(StorageUnavailableException.class)
+    public ResponseEntity<ErrorResponse> handleStorageUnavailable(StorageUnavailableException e) {
+        return ResponseEntity
+                .status(HttpStatus.BAD_GATEWAY)
+                .body(ErrorResponse.of(502, e.getMessage()));
+    }
+
     // 조회 대상 데이터가 존재하지 않음 (404 NOT_FOUND)
     @ExceptionHandler(EntityNotFoundException.class)
     public ResponseEntity<ErrorResponse> handleEntityNotFound(EntityNotFoundException e) {

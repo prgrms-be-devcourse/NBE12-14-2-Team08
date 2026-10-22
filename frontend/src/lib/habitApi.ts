@@ -145,8 +145,8 @@ export const habitApi = {
       body: JSON.stringify(body),
     }, true),
 
-  getPenaltyUploadUrl: (filename: string) =>
-    apiRequest<UploadUrlResponse>('/penalties/upload-url', {
+  getPenaltyUploadUrl: (penaltyId: number | string, filename: string) =>
+    apiRequest<UploadUrlResponse>(`/penalties/${penaltyId}/upload-url`, {
       method: 'POST',
       body: JSON.stringify({ filename }),
     }, true),

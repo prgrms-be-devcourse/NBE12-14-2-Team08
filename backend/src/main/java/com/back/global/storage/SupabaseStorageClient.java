@@ -1,9 +1,11 @@
 package com.back.global.storage;
 
+import com.back.global.exception.StorageUnavailableException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.stereotype.Component;
 
+import java.io.IOException;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
@@ -11,6 +13,9 @@ import java.net.http.HttpResponse;
 
 @Component
 public class SupabaseStorageClient {
+
+    private static final String STORAGE_UNAVAILABLE_MESSAGE =
+            "사진 저장소와 통신할 수 없습니다. 잠시 후 다시 시도해 주세요.";
 
     private final StorageProperties properties;
     private final HttpClient httpClient;
@@ -25,9 +30,12 @@ public class SupabaseStorageClient {
     }
 
     // Supabase에서 업로드용 Signed URL을 받는다.
+    // expiresInSeconds는 요청에 함께 보내지만, Supabase는 업로드용 Signed URL에는 이 값을 적용하지 않는다.
+    // (직접 확인: 5분이 지나도 업로드가 거절되지 않음)
     public String createSignedUploadUrl(
             String bucket,
-            String path
+            String path,
+            int expiresInSeconds
     ) {
 
         String endpoint =
@@ -35,7 +43,11 @@ public class SupabaseStorageClient {
                         + "/storage/v1/object/upload/sign/"
                         + bucket
                         + "/"
-                        + path;
+                        + path
+                        + "?expiresIn="
+                        + expiresInSeconds;
+
+        HttpResponse<String> response;
 
         try {
             HttpRequest request =
@@ -49,33 +61,45 @@ public class SupabaseStorageClient {
                                     "apikey",
                                     properties.serviceRoleKey()
                             )
+                            .header(
+                                    "Content-Type",
+                                    "application/json"
+                            )
                             .POST(
-                                    HttpRequest.BodyPublishers.noBody()
+                                    HttpRequest.BodyPublishers.ofString(
+                                            "{\"expiresIn\":" + expiresInSeconds + "}"
+                                    )
                             )
                             .build();
 
-            HttpResponse<String> response =
+            response =
                     httpClient.send(
                             request,
                             HttpResponse.BodyHandlers.ofString()
                     );
 
-            if (response.statusCode() < 200 || response.statusCode() >= 300) {
-                throw new IllegalArgumentException(
-                        "Supabase 업로드 URL 발급에 실패했습니다."
-                );
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new StorageUnavailableException(STORAGE_UNAVAILABLE_MESSAGE, e);
+        } catch (IOException | IllegalArgumentException e) {
+            throw new StorageUnavailableException(STORAGE_UNAVAILABLE_MESSAGE, e);
+        }
+
+        if (response.statusCode() < 200 || response.statusCode() >= 300) {
+            throw new StorageUnavailableException(STORAGE_UNAVAILABLE_MESSAGE);
+        }
+
+        try {
+            JsonNode url = objectMapper.readTree(response.body()).get("url");
+
+            if (url == null || url.asText().isBlank()) {
+                throw new StorageUnavailableException(STORAGE_UNAVAILABLE_MESSAGE);
             }
 
-            JsonNode json =
-                    objectMapper.readTree(response.body());
+            return url.asText();
 
-            return json.get("url").asText();
-
-        } catch (Exception e) {
-            throw new IllegalArgumentException(
-                    "Supabase Storage와 통신할 수 없습니다.",
-                    e
-            );
+        } catch (IOException e) {
+            throw new StorageUnavailableException(STORAGE_UNAVAILABLE_MESSAGE, e);
         }
     }
 

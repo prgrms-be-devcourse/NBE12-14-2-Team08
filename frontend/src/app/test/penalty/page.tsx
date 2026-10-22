@@ -10,6 +10,7 @@ export default function PenaltyPlaygroundTestPage() {
   const [currentSavedToken, setCurrentSavedToken] = useState('');
   const [groupId, setGroupId] = useState(1);
   const [testHabitId, setTestHabitId] = useState(1);
+  const [testPenaltyId, setTestPenaltyId] = useState(1);
 
   // 모달 제어 상태
   const [isSubmitModalOpen, setIsSubmitModalOpen] = useState(false);
@@ -152,6 +153,13 @@ export default function PenaltyPlaygroundTestPage() {
                         onChange={(e) => setTestHabitId(Number(e.target.value))}
                         className="w-16 rounded-lg border border-gray-300 bg-white px-2 py-1 text-center font-bold"
                     />
+                    <span>Penalty ID:</span>
+                    <input
+                        type="number"
+                        value={testPenaltyId}
+                        onChange={(e) => setTestPenaltyId(Number(e.target.value))}
+                        className="w-16 rounded-lg border border-gray-300 bg-white px-2 py-1 text-center font-bold"
+                    />
                   </div>
                 </div>
                 <button
@@ -189,6 +197,7 @@ export default function PenaltyPlaygroundTestPage() {
         <PenaltySubmitModal
             isOpen={isSubmitModalOpen}
             onClose={() => setIsSubmitModalOpen(false)}
+            penaltyId={testPenaltyId}
             habitId={testHabitId}
             penaltyText="스타벅스 커피 쏘기"
             onSuccess={() => {
