@@ -56,18 +56,6 @@ public class Habit extends BaseEntity {
     }
 
 
-    public void update(Integer days) {
-        if (days != null) {
-            if (days < 1 || days > 7) {
-                throw new IllegalArgumentException(
-                        "실천 일수는 1~7이어야 합니다."
-                );
-            }
-
-            this.days = days;
-        }
-    }
-
     public void fail() {
         if (this.status != HabitStatus.ACTIVE) {
             throw new IllegalStateException(
