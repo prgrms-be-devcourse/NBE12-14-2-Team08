@@ -10,12 +10,18 @@ import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.time.Duration;
 
 @Component
 public class SupabaseStorageClient {
 
     private static final String STORAGE_UNAVAILABLE_MESSAGE =
             "사진 저장소와 통신할 수 없습니다. 잠시 후 다시 시도해 주세요.";
+
+    // 인증 제출은 트랜잭션 안에서 Supabase를 부르므로, 응답이 없을 때 DB 커넥션을 오래 쥐지 않도록 끊는다.
+    // 시간이 넘으면 IOException(HttpTimeoutException)이 나서 502로 응답한다.
+    private static final Duration CONNECT_TIMEOUT = Duration.ofSeconds(3);
+    private static final Duration REQUEST_TIMEOUT = Duration.ofSeconds(5);
 
     private final StorageProperties properties;
     private final HttpClient httpClient;
@@ -25,7 +31,9 @@ public class SupabaseStorageClient {
             StorageProperties properties
     ) {
         this.properties = properties;
-        this.httpClient = HttpClient.newHttpClient();
+        this.httpClient = HttpClient.newBuilder()
+                .connectTimeout(CONNECT_TIMEOUT)
+                .build();
         this.objectMapper = new ObjectMapper();
     }
 
@@ -53,6 +61,7 @@ public class SupabaseStorageClient {
             HttpRequest request =
                     HttpRequest.newBuilder()
                             .uri(URI.create(endpoint))
+                            .timeout(REQUEST_TIMEOUT)
                             .header(
                                     "Authorization",
                                     "Bearer " + properties.serviceRoleKey()
@@ -120,6 +129,7 @@ public class SupabaseStorageClient {
             HttpRequest request =
                     HttpRequest.newBuilder()
                             .uri(URI.create(endpoint))
+                            .timeout(REQUEST_TIMEOUT)
                             .header(
                                     "Authorization",
                                     "Bearer " + properties.serviceRoleKey()
@@ -140,10 +150,27 @@ public class SupabaseStorageClient {
                             HttpResponse.BodyHandlers.ofString()
                     );
 
-            return response.statusCode() == 200;
+            return isFound(response.statusCode());
 
-        } catch (Exception e) {
+        } catch (IllegalArgumentException e) {
+            // URI로 만들 수 없는 경로 = 우리가 발급한 파일일 수 없음
+            return false;
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new StorageUnavailableException(STORAGE_UNAVAILABLE_MESSAGE, e);
+        } catch (IOException e) {
+            throw new StorageUnavailableException(STORAGE_UNAVAILABLE_MESSAGE, e);
+        }
+    }
+
+    // 200: 있음 / 400·404: 없음 (Supabase는 없는 파일에 400을 주기도 함) / 그 외: 저장소 장애
+    static boolean isFound(int statusCode) {
+        if (statusCode == 200) {
+            return true;
+        }
+        if (statusCode == 400 || statusCode == 404) {
             return false;
         }
+        throw new StorageUnavailableException(STORAGE_UNAVAILABLE_MESSAGE);
     }
 }

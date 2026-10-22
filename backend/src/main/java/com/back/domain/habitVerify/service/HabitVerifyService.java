@@ -64,8 +64,8 @@ public class HabitVerifyService {
 
         Habit habit = habitRepository.findByIdAndGroupMember_Member_Id(habitId, memberId)
                 .orElseThrow(() ->
-                        new IllegalArgumentException(
-                                "존재하지 않는 습관입니다."
+                        new ForbiddenException(
+                                "본인의 습관에만 인증을 등록할 수 있습니다."
                         )
                 );
 
@@ -86,19 +86,8 @@ public class HabitVerifyService {
                     "해당 날짜에 이미 인증 기록이 있습니다."
             );
         }
-        if (request.imageUrl() != null) {
 
-            boolean exists =
-                    storageService.existsHabitImage(
-                            request.imageUrl()
-                    );
-
-            if (!exists) {
-                throw new IllegalArgumentException(
-                        "업로드된 이미지를 확인할 수 없습니다."
-                );
-            }
-        }
+        validateHabitImage(memberId, habitId, request.imageUrl(), null);
 
         HabitVerify habitVerify = HabitVerify.create(
                 habit, verifyDate,
@@ -134,46 +123,6 @@ public class HabitVerifyService {
     }
 
     @Transactional
-    public HabitVerifyResponse update(
-            Long habitId,
-            Long verificationId,
-            HabitVerifyRequest request,
-            Long memberId
-    ) {
-        Habit habit = habitRepository.findByIdAndGroupMember_Member_Id(
-                habitId,
-                memberId
-        ).orElseThrow(() ->
-                new IllegalArgumentException(
-                        "권한이 없는 습관입니다."
-                )
-        );
-
-        if (habit.getGroupMember().getGroup().isFinished()) {
-            throw new BusinessRuleException("이미 종료된 그룹의 습관 인증은 수정할 수 없습니다.");
-        }
-
-        HabitVerify habitVerify =
-                habitVerifyRepository
-                        .findByIdAndHabitId(
-                                verificationId,
-                                habitId
-                        )
-                        .orElseThrow(() ->
-                                new IllegalArgumentException(
-                                        "존재하지 않는 인증 기록입니다."
-                                )
-                        );
-
-        habitVerify.update(
-                request.description(),
-                request.imageUrl()
-        );
-
-        return HabitVerifyResponse.from(habitVerify);
-    }
-
-    @Transactional
     public HabitVerifyResponse resubmit(
             Long habitId,
             Long verificationId,
@@ -184,19 +133,19 @@ public class HabitVerifyService {
                 habitId,
                 memberId
         ).orElseThrow(() ->
-                new IllegalArgumentException(
-                        "권한이 없는 습관입니다."
+                new ForbiddenException(
+                        "본인의 습관 인증만 재제출할 수 있습니다."
                 )
         );
+
+        if (habit.getGroupMember().getGroup().isFinished()) {
+            throw new BusinessRuleException("이미 종료된 그룹의 습관 인증은 수정할 수 없습니다.");
+        }
 
         if (habit.getStatus() != HabitStatus.ACTIVE) {
             throw new IllegalStateException(
                     "이미 종료된 습관의 인증은 수정할 수 없습니다."
             );
-        }
-
-        if (habit.getGroupMember().getGroup().isFinished()) {
-            throw new BusinessRuleException("이미 종료된 그룹의 습관 인증은 수정할 수 없습니다.");
         }
 
         HabitVerify habitVerify =
@@ -218,18 +167,8 @@ public class HabitVerifyService {
             );
         }
 
-        if (request.imageUrl() != null) {
-            boolean exists =
-                    storageService.existsHabitImage(
-                            request.imageUrl()
-                    );
-
-            if (!exists) {
-                throw new IllegalArgumentException(
-                        "업로드된 이미지를 확인할 수 없습니다."
-                );
-            }
-        }
+        habitVerify.validateResubmittable();
+        validateHabitImage(memberId, habitId, request.imageUrl(), habitVerify.getImageUrl());
 
         habitVerify.resubmit(
                 request.description(),
@@ -237,6 +176,18 @@ public class HabitVerifyService {
         );
 
         return HabitVerifyResponse.from(habitVerify);
+    }
+
+    // 사진 필수 여부는 HabitVerifyRequest의 @NotBlank가 막는다.
+    // Supabase 호출이 있으므로 다른 검사가 모두 끝난 뒤 마지막에 확인한다.
+    private void validateHabitImage(Long memberId, Long habitId, String imageUrl, String currentImageUrl) {
+        storageService.validateImageUrl(
+                VerificationImageType.HABIT,
+                memberId,
+                habitId,
+                imageUrl,
+                currentImageUrl
+        );
     }
 
     // 이 인증 건이 제출된 주간 구간의 마감 시각(다음 마감 요일 00시)을 계산한다.
